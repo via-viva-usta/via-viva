@@ -1,8 +1,9 @@
-# Clases UML del tablero Java (propuesta)
+# Clases UML del tablero Java
 
-Proyecto NetBeans *Java with Ant*, Java 21, Swing. Lee la base SQLite con JDBC (`sqlite-jdbc` en `lib/`).
-Las estructuras de datos del curso se implementan a mano (no se usan `PriorityQueue` ni grafos de librerías)
-para poder analizar su complejidad; `HashMap` y `TreeMap` de Java se usan donde el curso lo permite.
+Proyecto NetBeans *Java with Ant*, Java 21, Swing (`dashboard-java/`). Lee la base SQLite con JDBC (`sqlite-jdbc` en `lib/`).
+Las estructuras del curso se implementan a mano (`TablaHash`, `MonticuloMax`, `GrafoCalles`) para poder analizar su complejidad.
+
+## Implementado (Fase 5)
 
 ```mermaid
 classDiagram
@@ -10,184 +11,143 @@ classDiagram
 
     class TableroApp {
         +main(String[] args)$
-    }
-    class VentanaPrincipal {
-        -PanelMapa panelMapa
-        -PanelRanking panelRanking
-        -PanelFiltros panelFiltros
-        -PanelDetalle panelDetalle
-        +VentanaPrincipal(ControladorTablero c)
+        -capturar(String ruta, File salida)$
     }
     class ControladorTablero {
-        -RepositorioSQLite repo
+        -TablaHash~Integer, Tramo~ porId
         -GrafoCalles grafo
         -IndiceGeohash indice
-        -ColaPrioridadReparacion cola
-        -BitacoraFechas bitacora
-        +cargarTodo()
-        +filtrarPorFechas(LocalDateTime desde, LocalDateTime hasta) List~Evento~
-        +topReparaciones(int k) List~Peligro~
-        +ordenDeTrabajo(Peligro p) List~Peligro~
+        -Proyeccion proyeccion
+        -Corrida corridaActual
+        +cargar()
+        +elegirCorrida(Corrida c)
+        +topRiesgo(int k, boolean soloNoReportados) List~Tramo~
+        +corredor(Tramo t, int saltos) ResultadoBFS
+        +zonasDeRiesgo(double umbral) List~List~Tramo~~
+        +tramoCercano(double x, double y, double maxM) Tramo
+        +claseRiesgo(Tramo t) int
     }
-
     class RepositorioSQLite {
-        -String rutaDb
         +leerTramos() List~Tramo~
-        +leerEventos() List~Evento~
-        +leerReportes() List~Reporte~
-        +leerRiesgo(String modelo) Map~Integer, Double~
-        +actualizarEstado(int idReporte, EstadoPeligro e)
+        +listarCorridas() List~Corrida~
+        +aplicarRiesgo(Corrida c, TablaHash porId) int
     }
-
     class Tramo {
-        -int idTramo
-        -long osmU
-        -long osmV
-        -String nombre
-        -String tipoVia
-        -double longitudM
-        -double latCentro
-        -double lonCentro
-        -double riesgo
+        +int id
+        +long osmU
+        +long osmV
+        +String nombre
+        +String tipoVia
+        +double longitudM
+        +double[] lats
+        +double[] lons
+        +double[] xs
+        +double[] ys
+        +double riesgo
+        +boolean reportado
     }
-    class Evento {
-        -int idEvento
-        -LocalDateTime tsUtc
-        -double lat
-        -double lon
-        -ClaseEvento clase
-        -double severidad
-        -double confianza
-        -int idTramo
-        -String geohash7
+    class Corrida {
+        <<record>>
+        +String modelo
+        +String version
+        +String fecha
+        +esDemo() boolean
     }
-    class Reporte {
-        -int idReporte
-        -LocalDateTime tsUtc
-        -double lat
-        -double lon
-        -String tipo
-        -EstadoPeligro estado
-        -int idTramo
-    }
-    class Peligro {
-        -String geohash7
-        -int idTramo
-        -List~Evento~ eventos
-        -List~Reporte~ reportes
-        -EstadoPeligro estado
-        +severidadMax() double
-        +reincidencia() int
-        +antiguedadDias() long
-        +prioridad() double
-    }
-    class ClaseEvento {
-        <<enumeration>>
-        HUECO
-        RESALTO
-        IMPACTO_FUERTE
-        NORMAL
-        OBSTACULO
-    }
-    class EstadoPeligro {
-        <<enumeration>>
-        NUEVO
-        CONFIRMADO
-        EN_REPARACION
-        REPARADO
-        DESCARTADO
+    class Proyeccion {
+        +aMetros(double lat, double lon) double[]
+        +aGrados(double x, double y) double[]
+        +proyectar(Tramo t)
     }
 
-    class GrafoCalles {
-        -Map~Long, List~Arista~~ adyacencia
-        +agregarTramo(Tramo t)
-        +bfs(long origen, int maxSaltos) List~Long~
-        +dfs(long origen) List~Long~
-        +corredor(Peligro p, double maxMetros) List~Tramo~
-    }
-    class Arista {
-        -long destino
-        -Tramo tramo
-    }
-    class IndiceGeohash {
-        -HashMap~String, Peligro~ celdas
-        +insertar(Evento e)
-        +insertar(Reporte r)
-        +vecinos(String geohash7) List~Peligro~
-        +peligros() Collection~Peligro~
-    }
-    class Geohash {
-        +codificar(double lat, double lon, int precision)$ String
-    }
-    class ColaPrioridadReparacion {
-        -Peligro[] heap
+    class TablaHash~K, V~ {
+        -Entrada[] cubetas
         -int tamano
-        +insertar(Peligro p)
-        +extraerMax() Peligro
-        +verMax() Peligro
+        +poner(K llave, V valor) V
+        +obtener(K llave) V
+        +quitar(K llave) V
+        +contiene(K llave) boolean
+        -redimensionar()
+        +cadenaMasLarga() int
+    }
+    class MonticuloMax~T~ {
+        -List~T~ datos
+        +MonticuloMax(Collection elementos, Comparator c)
+        +insertar(T x)
+        +extraerMax() T
+        +extraerK(int k) List~T~
         -subir(int i)
         -bajar(int i)
     }
-    class BitacoraFechas {
-        -TreeMap~LocalDateTime, List~Evento~~ arbol
-        +agregar(Evento e)
-        +rango(LocalDateTime desde, LocalDateTime hasta) List~Evento~
+    class GrafoCalles {
+        -TablaHash~Long, List~Arista~~ adyacencia
+        +agregarTramo(Tramo t)
+        +vecinos(long nodo) List~Arista~
+        +corredor(Tramo origen, int maxSaltos) ResultadoBFS
+        +zonasDeRiesgo(double umbral) List~List~Tramo~~
+    }
+    class Arista {
+        <<record>>
+        +long destino
+        +Tramo tramo
+    }
+    class IndiceGeohash {
+        -TablaHash~String, List~Tramo~~ celdas
+        +insertar(Tramo t)
+        +masCercano(double lat, double lon, Proyeccion p, double maxM) Tramo
+        +masCercanoFuerzaBruta(double lat, double lon, Proyeccion p, double maxM) Tramo
+    }
+    class Geohash {
+        +codificar(double lat, double lon, int precision)$ String
+        +celdaYVecinas(String geohash)$ String[]
     }
 
+    class PanelTablero {
+        -PanelMapa mapa
+        -JTable tablaRanking
+        -JList listaZonas
+    }
     class PanelMapa {
-        +paintComponent(Graphics g)
-        -dibujarTramos(Graphics2D g)
-        -dibujarPeligros(Graphics2D g)
+        +ajustarVista(int ancho, int alto)
+        +seleccionar(Tramo t, boolean centrar)
+        +mostrarCorredor(List~Tramo~ tramos)
+        +mostrarZona(List~Tramo~ tramos)
+        #paintComponent(Graphics g)
     }
-    class PanelRanking {
-        -JTable tabla
-        +mostrar(List~Peligro~ top)
-    }
-    class PanelFiltros
-    class PanelDetalle {
-        +mostrar(Peligro p)
+    class PruebaEstructuras {
+        +main(String[] args)$
     }
 
-    TableroApp ..> VentanaPrincipal : crea
     TableroApp ..> ControladorTablero : crea
-    VentanaPrincipal --> ControladorTablero
-    VentanaPrincipal *-- PanelMapa
-    VentanaPrincipal *-- PanelRanking
-    VentanaPrincipal *-- PanelFiltros
-    VentanaPrincipal *-- PanelDetalle
-    ControladorTablero --> RepositorioSQLite
+    TableroApp ..> PanelTablero : crea
+    PanelTablero *-- PanelMapa
+    PanelTablero --> ControladorTablero
+    PanelMapa --> ControladorTablero
+    ControladorTablero ..> RepositorioSQLite : usa
     ControladorTablero *-- GrafoCalles
     ControladorTablero *-- IndiceGeohash
-    ControladorTablero *-- ColaPrioridadReparacion
-    ControladorTablero *-- BitacoraFechas
+    ControladorTablero *-- TablaHash
+    ControladorTablero ..> MonticuloMax : ranking
+    ControladorTablero --> Proyeccion
+    ControladorTablero o-- Corrida
+    GrafoCalles *-- TablaHash
     GrafoCalles *-- Arista
     Arista --> Tramo
+    IndiceGeohash *-- TablaHash
     IndiceGeohash ..> Geohash
-    IndiceGeohash o-- Peligro
-    Peligro o-- Evento
-    Peligro o-- Reporte
-    Peligro --> EstadoPeligro
-    Evento --> ClaseEvento
-    Reporte --> EstadoPeligro
-    ColaPrioridadReparacion o-- Peligro
-    BitacoraFechas o-- Evento
     RepositorioSQLite ..> Tramo
-    RepositorioSQLite ..> Evento
-    RepositorioSQLite ..> Reporte
+    RepositorioSQLite ..> Corrida
+    PruebaEstructuras ..> ControladorTablero
+    JPanel <|-- PanelTablero
     JPanel <|-- PanelMapa
-    JPanel <|-- PanelRanking
-    JPanel <|-- PanelFiltros
-    JPanel <|-- PanelDetalle
-    JFrame <|-- VentanaPrincipal
 ```
 
-## Complejidad esperada (para el informe de Estructuras de Datos)
+## Pendiente (cuando haya eventos del nodo y reportes del bot)
 
-| Operación | Estructura | Complejidad |
+| Clase | Estructura | Para qué |
 |---|---|---|
-| Agrupar n eventos en peligros | `IndiceGeohash` (tabla hash) | O(n) promedio vs. O(n²) por fuerza bruta |
-| Peligros del mismo corredor | `GrafoCalles.bfs` / `dfs` | O(V + E) |
-| Top-k de reparación | `ColaPrioridadReparacion` (heap binario) | O(n) construir + O(k log n) |
-| Eventos entre dos fechas | `BitacoraFechas` (`TreeMap`, árbol rojo-negro) | O(log n + m) |
+| `Evento`, `Reporte`, `Peligro`, `EstadoPeligro` | — | Agrupar eventos y reportes cercanos en un solo peligro con ciclo nuevo → confirmado → en reparación → reparado |
+| `IndiceGeohash` (ampliado) | Tabla hash | Agrupar eventos por celda: O(n) promedio vs. O(n²) comparando todos contra todos |
+| `BitacoraFechas` | `TreeMap` (árbol rojo-negro) | Eventos entre dos fechas en O(log n + m) |
+| `MonticuloMax` (otra prioridad) | Heap | Ranking de reparación: severidad × tránsito × reincidencia × antigüedad |
 
-Prioridad de reparación (diseño, sección 8): `severidad × tránsito × reincidencia × antigüedad`.
+La complejidad de lo implementado está en `dashboard-java/README.md`.
