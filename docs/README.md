@@ -6,4 +6,4 @@ Documentación del proyecto.
 - `propuesta/` — propuesta en formato IEEE (`main.tex` + `referencias.bib`).
 - `diagramas/` — diagramas en Mermaid (arquitectura, flujo de datos, entidad-relación, clases UML del tablero).
 
-**Estado:** diseño y propuesta listos; diagramas en construcción (Fase 1).
+**Estado:** diseño, propuesta y diagramas (arquitectura, flujo de datos, entidad-relación, clases del tablero) listos.
