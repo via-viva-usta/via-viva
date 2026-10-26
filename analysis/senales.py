@@ -240,6 +240,7 @@ class Recorrido:
     espectro: Espectro
     ventanas: pd.DataFrame = field(default_factory=pd.DataFrame)
     gps: pd.DataFrame | None = None
+    a_sin_filtro: np.ndarray | None = None
 
 
 def _etiquetas_de(ruta: Path) -> pd.DataFrame | None:
@@ -258,9 +259,9 @@ def procesar_recorrido(acc: pd.DataFrame, gps: pd.DataFrame | None, nombre: str,
     fs_nat = tasa_nativa(acc["t"].to_numpy())
     fs = fs or min(200.0, round(fs_nat))
     acc_u = remuestrear(acc, fs)
-    a = eje_vertical(acc_u, fs, acc.attrs.get("con_g", True))
-    esp = espectro(a, fs)                        # espectro ANTES del filtro: es lo que define fs
-    a = pasa_bajos(a, fs, min(80.0, 0.4 * fs))   # antialias / ruido
+    a_sin_filtro = eje_vertical(acc_u, fs, acc.attrs.get("con_g", True))
+    esp = espectro(a_sin_filtro, fs)             # espectro ANTES del filtro: es lo que define fs
+    a = pasa_bajos(a_sin_filtro, fs, min(80.0, 0.4 * fs))   # antialias / ruido
     t = acc_u["t"].to_numpy()
 
     vel = np.full_like(t, np.nan)
@@ -293,7 +294,7 @@ def procesar_recorrido(acc: pd.DataFrame, gps: pd.DataFrame | None, nombre: str,
                 ventanas.loc[dist.idxmin(), "clase"] = str(e["clase"]).strip().lower()
         # Ventanas detectadas sin etiqueta: falsas alarmas del detector → clase 'normal'
         ventanas.loc[(ventanas["origen"] == "detectada") & ventanas["clase"].isna(), "clase"] = "normal"
-    return Recorrido(nombre, fs, t, a, fs_nat, esp, ventanas, gps)
+    return Recorrido(nombre, fs, t, a, fs_nat, esp, ventanas, gps, a_sin_filtro)
 
 
 # ============================================================================
