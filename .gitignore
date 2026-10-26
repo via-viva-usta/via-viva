@@ -10,6 +10,7 @@ data/raw/
 data/alcaldia/
 data/osm/
 data/terceros/
+data/campo/
 *.db
 *.sqlite
 *.sqlite3

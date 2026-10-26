@@ -1,12 +1,16 @@
 -- =====================================================================
 -- VÍA VIVA — Esquema de la base de datos (SQLite 3)
 -- =====================================================================
--- Cinco tablas:
+-- Tablas principales:
 --   tramos            tramos de calle de OpenStreetMap (unidad del modelo de riesgo)
 --   eventos           eventos detectados por el nodo a bordo (NO trayectorias)
 --   reportes          reportes ciudadanos (bot de Telegram, web, SMS)
 --   fuentes_externas  datos de fuentes públicas (clima IDEAM, noticias de cierres y accidentes)
 --   riesgo            probabilidad de hueco no reportado por tramo, por modelo y fecha
+-- Tablas de apoyo (Fase 4):
+--   nodos             intersecciones del grafo OSM con su elevación (para pendiente y para el tablero)
+--   barrios           barrios y veredas de Tunja (datos abiertos de la Alcaldía) para la validación espacial
+--   variables_tramo   tabla de variables del modelo de riesgo, una fila por tramo
 --
 -- Convenciones:
 --   * Horas en UTC, texto ISO 8601 ('2026-10-26T14:05:00Z').
@@ -152,3 +156,59 @@ CREATE TABLE IF NOT EXISTS riesgo (
     UNIQUE (id_tramo, modelo, version_modelo, fecha_calculo)
 );
 CREATE INDEX IF NOT EXISTS idx_riesgo_corrida ON riesgo (modelo, version_modelo, fecha_calculo, probabilidad DESC);
+
+-- ---------------------------------------------------------------------
+-- nodos: vértices del grafo de calles (intersecciones y extremos).
+-- osm_u / osm_v de tramos apuntan a osm_id. La elevación sale de un modelo
+-- digital de elevación público (SRTM 30 m vía OpenTopoData).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS nodos (
+    osm_id          INTEGER PRIMARY KEY,
+    lat             REAL NOT NULL,
+    lon             REAL NOT NULL,
+    grado           INTEGER,                   -- calles que llegan al nodo (street_count de osmnx)
+    elevacion_m     REAL,
+    fuente_elev     TEXT                       -- p. ej. 'OpenTopoData srtm30m'
+);
+
+-- ---------------------------------------------------------------------
+-- barrios: punto de referencia de cada barrio o vereda (Alcaldía de Tunja,
+-- datos abiertos 4ryc-k7fx). Un tramo pertenece al barrio cuyo punto está más cerca.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS barrios (
+    id_barrio       INTEGER PRIMARY KEY,       -- id de la fuente
+    nombre          TEXT NOT NULL,
+    sector          TEXT,
+    es_vereda       INTEGER NOT NULL DEFAULT 0,
+    lat             REAL NOT NULL,
+    lon             REAL NOT NULL,
+    fuente          TEXT NOT NULL,
+    fecha_carga     TEXT NOT NULL
+);
+
+-- ---------------------------------------------------------------------
+-- variables_tramo: entrada del modelo de riesgo (risk_model/variables.py).
+-- Se recalcula completa cada vez; 'etiqueta' es la verdad conocida:
+--   1 = tramo con hueco confirmado, 0 = tramo revisado sin huecos, NULL = no se sabe.
+-- Las variables de "vecinos" excluyen el propio tramo para no filtrar la etiqueta.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS variables_tramo (
+    id_tramo            INTEGER PRIMARY KEY REFERENCES tramos (id_tramo),
+    fecha_calculo       TEXT NOT NULL,
+    tipo_via            TEXT,                  -- highway agrupado (primary, secondary, ..., residential, otro)
+    clase_superficie    TEXT,                  -- pavimentada / sin_pavimentar / desconocida
+    longitud_m          REAL,
+    pendiente_pct       REAL,
+    lluvia_30d_mm       REAL,                  -- interpolada (IDW) desde estaciones IDEAM
+    lluvia_max_dia_mm   REAL,
+    huecos_vecinos      INTEGER,               -- huecos conocidos a <= 300 m en OTROS tramos
+    accidentes_cercanos INTEGER,               -- siniestros a <= 200 m
+    rugosidad_media     REAL,                  -- medida por el nodo en el tramo (NULL si no pasó)
+    profundidad_max_mm  REAL,
+    barrio              TEXT,
+    sector              TEXT,
+    distancia_barrio_m  REAL,                  -- distancia al punto del barrio asignado
+    etiqueta            INTEGER CHECK (etiqueta IN (0, 1)),
+    fuente_etiqueta     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_variables_barrio ON variables_tramo (barrio);

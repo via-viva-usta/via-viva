@@ -18,10 +18,12 @@ Todos los comandos se corren **desde `via-viva/`** como módulos (`-m etl....`).
 | Comando | Qué hace | Salida |
 |---|---|---|
 | `etl\.venv\Scripts\python -m etl.db` | Crea la base y aplica el esquema | `data/via_viva.db` |
-| `etl\.venv\Scripts\python -m etl.osm_tunja` | Descarga el grafo vial de Tunja y carga `tramos` | `data/osm/tunja_drive.gpkg`, `.graphml` |
+| `etl\.venv\Scripts\python -m etl.osm_tunja` | Descarga el grafo vial de Tunja y carga `tramos` y `nodos` | `data/osm/tunja_drive.gpkg`, `.graphml` |
 | `etl\.venv\Scripts\python -m etl.scraping.clima_ideam` | Lluvia diaria de estaciones IDEAM a ≤15 km (últimos 30 días) | filas `tipo='clima'` en `fuentes_externas` |
 | `etl\.venv\Scripts\python -m etl.scraping.noticias --revisar` | Revisa robots.txt y respuesta de cada fuente de noticias | solo consola |
 | `etl\.venv\Scripts\python -m etl.scraping.noticias` | Descarga las fuentes habilitadas y guarda las relevantes | filas `cierre_vial` / `accidente` / `obra` |
+| `etl\.venv\Scripts\python -m etl.barrios_tunja` | 154 barrios y veredas de Tunja (Alcaldía, datos abiertos `4ryc-k7fx`) | tabla `barrios` |
+| `etl\.venv\Scripts\python -m etl.elevacion` | Elevación de los nodos (SRTM 30 m, OpenTopoData) y pendiente de cada tramo | `nodos.elevacion_m`, `tramos.pendiente_pct` |
 | `etl\.venv\Scripts\python -m etl.geohash` | Prueba del geohash escrito a mano | solo consola |
 
 `data/` (base, GeoPackage, caché) está en `.gitignore`: cada quien la regenera con estos comandos.
@@ -66,6 +68,8 @@ prueba ninguna entrada de los feeds hablaba de cierres o accidentes, así que no
 
 ## Pendiente
 
-- Ajuste de eventos y reportes al tramo más cercano, deduplicación por geohash, tabla `peligros`.
-- Pendiente por tramo (modelo de elevación público) y barrio (zona piloto).
+- Ajuste de eventos y reportes al tramo más cercano en la carga (hoy lo hace `risk_model.variables` al vuelo),
+  deduplicación por geohash, tabla `peligros`.
 - Carga de eventos del nodo y del bot.
+
+Pendiente por tramo y barrio ya están (Fase 4): ver `risk_model/README.md`.

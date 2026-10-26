@@ -4,6 +4,7 @@ Salidas:
   data/osm/tunja_drive.gpkg     GeoPackage con capas 'nodes' y 'edges' (se abre en QGIS)
   data/osm/tunja_drive.graphml  grafo completo para volver a cargarlo sin descargar
   tabla tramos en la base SQLite (una fila por tramo NO dirigido)
+  tabla nodos (intersecciones con lat/lon; la elevación la agrega etl.elevacion)
 
 Uso (desde la carpeta via-viva/):
   etl\\.venv\\Scripts\\python -m etl.osm_tunja
@@ -118,6 +119,24 @@ def cargar_tramos(G_no_dirigido) -> int:
     return total
 
 
+def cargar_nodos(G_no_dirigido) -> int:
+    """Inserta los vértices del grafo; conserva la elevación si ya estaba calculada."""
+    filas = [(int(n), float(d["y"]), float(d["x"]), int(d.get("street_count", 0)))
+             for n, d in G_no_dirigido.nodes(data=True)]
+    con = conectar()
+    with con:
+        con.executemany(
+            """
+            INSERT INTO nodos (osm_id, lat, lon, grado) VALUES (?,?,?,?)
+            ON CONFLICT (osm_id) DO UPDATE SET lat=excluded.lat, lon=excluded.lon, grado=excluded.grado
+            """,
+            filas,
+        )
+    total = con.execute("SELECT COUNT(*) FROM nodos").fetchone()[0]
+    con.close()
+    return total
+
+
 def resumen(G, G_nd, total_db: int):
     aristas = ox.graph_to_gdfs(G_nd, nodes=False, edges=True)
     km = aristas["length"].sum() / 1000
@@ -148,6 +167,7 @@ def main():
 
     G_nd = ox.convert.to_undirected(G)  # una calle de doble sentido = un tramo
     total = cargar_tramos(G_nd)
+    print(f"Nodos en la tabla 'nodos': {cargar_nodos(G_nd)}")
     resumen(G, G_nd, total)
 
 

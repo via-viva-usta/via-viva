@@ -1,6 +1,7 @@
 # Modelo entidad-relación
 
 Corresponde a `db/schema.sql`. El tramo de calle (OpenStreetMap) es la unidad que une todo.
+`nodos`, `barrios` y `variables_tramo` se agregaron en la Fase 4 (modelo de riesgo).
 
 ```mermaid
 erDiagram
@@ -8,6 +9,46 @@ erDiagram
     TRAMOS ||--o{ REPORTES : "se asigna a"
     TRAMOS ||--o{ FUENTES_EXTERNAS : "se asigna a (opcional)"
     TRAMOS ||--o{ RIESGO : "recibe"
+    NODOS ||--o{ TRAMOS : "osm_u / osm_v"
+    TRAMOS ||--|| VARIABLES_TRAMO : "describe"
+    BARRIOS ||--o{ VARIABLES_TRAMO : "agrupa (validación espacial)"
+
+    NODOS {
+        int osm_id PK
+        real lat
+        real lon
+        int grado
+        real elevacion_m
+        text fuente_elev
+    }
+
+    BARRIOS {
+        int id_barrio PK
+        text nombre
+        text sector
+        int es_vereda
+        real lat
+        real lon
+        text fuente
+    }
+
+    VARIABLES_TRAMO {
+        int id_tramo PK
+        text tipo_via
+        text clase_superficie
+        real longitud_m
+        real pendiente_pct
+        real lluvia_30d_mm
+        real lluvia_max_dia_mm
+        int huecos_vecinos
+        int accidentes_cercanos
+        real rugosidad_media
+        real profundidad_max_mm
+        text barrio
+        text sector
+        int etiqueta "1, 0 o NULL"
+        text fuente_etiqueta
+    }
 
     TRAMOS {
         int id_tramo PK
