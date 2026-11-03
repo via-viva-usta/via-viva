@@ -12,7 +12,11 @@ Variables (CLAUDE.md, sección 7):
 
 Huecos conocidos = eventos 'hueco' del nodo + reportes ciudadanos 'hueco' (no descartados)
                    + inventario de la Alcaldía si existe data/alcaldia/huecos.csv (columnas lat, lon).
-Revisiones de campo (etiqueta 0 o 1) = data/campo/tramos_revisados.csv (columnas id_tramo, tiene_hueco).
+Tramos revisados (etiqueta 0 o 1) = data/campo/tramos_revisados*.csv (columnas id_tramo, tiene_hueco[, fuente]):
+  los escribe etl.recorridos (recorridos etiquetados) y se agregan los de las visitas de campo.
+Cada etiqueta guarda su fuente (alcaldia, recorrido, visita, nodo, bot) en fuente_etiqueta, para que el modelo
+pueda entrenar con la Alcaldía o con el plan B (recorridos + bot) y registrar cuál usó.
+Los eventos con origen 'simulado' no cuentan, salvo con --incluir-simulados (pruebas).
 Siniestros = data/alcaldia/siniestros.csv (lat, lon) + noticias de accidentes con coordenadas.
 
 Uso (desde via-viva/):
@@ -42,7 +46,7 @@ SIN_PAVIMENTAR = {"unpaved", "gravel", "fine_gravel", "dirt", "ground", "compact
 
 ARCHIVO_HUECOS_ALCALDIA = DATA / "alcaldia" / "huecos.csv"
 ARCHIVO_SINIESTROS = DATA / "alcaldia" / "siniestros.csv"
-ARCHIVO_REVISIONES = DATA / "campo" / "tramos_revisados.csv"
+CARPETA_CAMPO = DATA / "campo"            # tramos_revisados*.csv: recorridos (etl.recorridos) y visitas de campo
 
 
 # ---------------------------------------------------------------------------
@@ -89,10 +93,12 @@ def _leer_csv_latlon(ruta) -> pd.DataFrame:
     return df[["lat", "lon"]].apply(pd.to_numeric, errors="coerce").dropna()
 
 
-def leer_huecos(con) -> gpd.GeoDataFrame:
+def leer_huecos(con, incluir_simulados: bool = False) -> gpd.GeoDataFrame:
+    filtro = "" if incluir_simulados else " AND origen <> 'simulado'"
     partes = [
-        pd.read_sql("SELECT lat, lon, 'nodo' AS origen FROM eventos WHERE clase = 'hueco'", con),
-        pd.read_sql("SELECT lat, lon, 'ciudadano' AS origen FROM reportes "
+        pd.read_sql("SELECT lat, lon, CASE origen WHEN 'phyphox' THEN 'recorrido' WHEN 'simulado' THEN 'recorrido' "
+                    f"ELSE 'nodo' END AS origen FROM eventos WHERE clase = 'hueco'{filtro}", con),
+        pd.read_sql("SELECT lat, lon, 'bot' AS origen FROM reportes "
                     "WHERE tipo = 'hueco' AND estado <> 'descartado'", con),
         _leer_csv_latlon(ARCHIVO_HUECOS_ALCALDIA).assign(origen="alcaldia"),
     ]
@@ -172,22 +178,36 @@ def asignar_barrio(tramos: gpd.GeoDataFrame, con) -> pd.DataFrame:
     return j.rename(columns={"nombre": "barrio"})[["barrio", "sector", "distancia_barrio_m"]]
 
 
-def etiquetas(tramos, huecos_por_tramo: pd.Series) -> tuple[pd.Series, pd.Series]:
-    et = pd.Series(np.nan, index=tramos.index)
-    fuente = pd.Series(None, index=tramos.index, dtype="object")
-    con_hueco = tramos["id_tramo"].isin(set(huecos_por_tramo.dropna().astype(int)))
-    et[con_hueco], fuente[con_hueco] = 1, "hueco_conocido"
-    if ARCHIVO_REVISIONES.exists():
-        rev = pd.read_csv(ARCHIVO_REVISIONES, sep=None, engine="python")
-        rev.columns = [c.strip().lower() for c in rev.columns]
-        mapa = rev.set_index("id_tramo")["tiene_hueco"].astype(int)
-        m = tramos["id_tramo"].isin(mapa.index)
-        et[m] = tramos.loc[m, "id_tramo"].map(mapa)
-        fuente[m] = "revision_campo"
+def leer_revisados(carpeta) -> pd.DataFrame:
+    """Une todos los tramos_revisados*.csv: id_tramo, tiene_hueco y fuente (recorrido o visita)."""
+    partes = []
+    for ruta in sorted(carpeta.glob("tramos_revisados*.csv")) if carpeta.exists() else []:
+        r = pd.read_csv(ruta, sep=None, engine="python")
+        r.columns = [c.strip().lower() for c in r.columns]
+        fuente = "visita" if "visita" in ruta.stem else "recorrido"
+        partes.append(pd.DataFrame({"id_tramo": r["id_tramo"].astype(int),
+                                    "tiene_hueco": pd.to_numeric(r["tiene_hueco"], errors="coerce"),
+                                    "fuente": fuente}).dropna(subset=["tiene_hueco"]))
+    return pd.concat(partes, ignore_index=True) if partes else pd.DataFrame(columns=["id_tramo", "tiene_hueco", "fuente"])
+
+
+def etiquetas(tramos, huecos: gpd.GeoDataFrame, tramo_de_hueco: pd.Series, carpeta_campo=None) -> tuple[pd.Series, pd.Series]:
+    """1 si alguna fuente vio un hueco en el tramo; 0 si fue revisado y nadie vio huecos; NULL si no se sabe.
+    La fuente guarda TODAS las que aportaron, separadas por ';' (p. ej. 'bot;recorrido')."""
+    fuentes = {}                                   # id_tramo → (etiqueta, {fuentes})
+    for idt, origen in zip(tramo_de_hueco.reindex(huecos.index), huecos["origen"]):
+        if pd.notna(idt):
+            fuentes.setdefault(int(idt), [1, set()])[1].add(origen)
+    for _, r in leer_revisados(carpeta_campo or CARPETA_CAMPO).iterrows():
+        e = fuentes.setdefault(int(r["id_tramo"]), [0, set()])
+        e[0] = max(e[0], int(r["tiene_hueco"]))
+        e[1].add(r["fuente"])
+    et = tramos["id_tramo"].map(lambda i: fuentes[i][0] if i in fuentes else np.nan)
+    fuente = tramos["id_tramo"].map(lambda i: ";".join(sorted(fuentes[i][1])) if i in fuentes else None)
     return et, fuente
 
 
-def construir(con) -> pd.DataFrame:
+def construir(con, incluir_simulados: bool = False, carpeta_campo=None) -> pd.DataFrame:
     tramos = leer_tramos(con)
     v = pd.DataFrame({"id_tramo": tramos["id_tramo"]})
     v["tipo_via"] = tramos["tipo_via"].map(agrupar_tipo)
@@ -200,7 +220,7 @@ def construir(con) -> pd.DataFrame:
     v["lluvia_30d_mm"] = idw(lat, lon, lluvia, "lluvia_30d_mm") if not lluvia.empty else np.nan
     v["lluvia_max_dia_mm"] = idw(lat, lon, lluvia, "lluvia_max_dia_mm") if not lluvia.empty else np.nan
 
-    huecos = leer_huecos(con)
+    huecos = leer_huecos(con, incluir_simulados)
     tramo_de_hueco = asignar_a_tramo(huecos, tramos)
     v["huecos_vecinos"] = contar_cerca(tramos, huecos, RADIO_HUECOS_M,
                                        excluir=tramo_de_hueco.reindex(huecos.index))
@@ -217,7 +237,7 @@ def construir(con) -> pd.DataFrame:
         v["profundidad_max_mm"] = np.nan
 
     v = v.join(asignar_barrio(tramos, con))
-    v["etiqueta"], v["fuente_etiqueta"] = etiquetas(tramos, tramo_de_hueco)
+    v["etiqueta"], v["fuente_etiqueta"] = etiquetas(tramos, huecos, tramo_de_hueco, carpeta_campo)
     v["fecha_calculo"] = ahora_utc()
     return v, len(huecos), len(lluvia)
 
@@ -237,8 +257,14 @@ def guardar(con, v: pd.DataFrame):
 
 
 def main():
+    import argparse
+    from pathlib import Path
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--campo", default=str(CARPETA_CAMPO), help="carpeta con tramos_revisados*.csv")
+    ap.add_argument("--incluir-simulados", action="store_true", help="cuenta eventos con origen 'simulado' (pruebas)")
+    args = ap.parse_args()
     con = conectar()
-    v, n_huecos, n_estaciones = construir(con)
+    v, n_huecos, n_estaciones = construir(con, args.incluir_simulados, Path(args.campo))
     guardar(con, v)
     print(f"variables_tramo: {len(v)} tramos")
     print(f"  tipo_via: {v['tipo_via'].value_counts().to_dict()}")
@@ -251,6 +277,8 @@ def main():
           f"{v['distancia_barrio_m'].median():.0f} m)")
     print(f"  etiquetas: 1 = {int((v['etiqueta'] == 1).sum())}, 0 = {int((v['etiqueta'] == 0).sum())}, "
           f"sin etiqueta = {int(v['etiqueta'].isna().sum())}")
+    if v["fuente_etiqueta"].notna().any():
+        print(f"  fuentes de las etiquetas: {v['fuente_etiqueta'].value_counts().to_dict()}")
 
 
 if __name__ == "__main__":

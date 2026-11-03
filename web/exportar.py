@@ -34,7 +34,7 @@ def coords_wkt(wkt: str) -> list[list[float]]:
 
 
 def elegir_corrida(con):
-    filas = con.execute("SELECT modelo, version_modelo, fecha_calculo FROM riesgo GROUP BY 1, 2, 3 "
+    filas = con.execute("SELECT modelo, version_modelo, fecha_calculo, MAX(fuente_etiquetas) FROM riesgo GROUP BY 1, 2, 3 "
                         "ORDER BY fecha_calculo DESC, modelo = 'bosque' DESC").fetchall()
     reales = [f for f in filas if not f[1].upper().startswith("DEMO")]
     return (reales or filas or [None])[0]
@@ -44,13 +44,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sin-riesgo", action="store_true")
     args = ap.parse_args()
-    con = conectar(aplicar_esquema=False)
+    con = conectar()   # aplica el esquema y las migraciones si la base es vieja
 
     corrida = None if args.sin_riesgo else elegir_corrida(con)
     riesgo = {}
     if corrida:
         riesgo = dict(con.execute("SELECT id_tramo, probabilidad FROM riesgo WHERE modelo = ? AND version_modelo = ? "
-                                  "AND fecha_calculo = ?", corrida).fetchall())
+                                  "AND fecha_calculo = ?", corrida[:3]).fetchall())
     tramos = []
     for idt, nombre, tipo, wkt in con.execute("SELECT id_tramo, nombre, tipo_via, geometria_wkt FROM tramos"):
         p = riesgo.get(idt)
@@ -68,7 +68,7 @@ def main():
     datos = {
         "generado": ahora_utc(),
         "corrida": None if corrida is None else {"modelo": corrida[0], "version": corrida[1], "fecha": corrida[2],
-                                                 "demo": corrida[1].upper().startswith("DEMO")},
+                                                 "demo": corrida[1].upper().startswith("DEMO"), "fuente": corrida[3]},
         "tramos": {"type": "FeatureCollection", "features": tramos},
         "reportes": {"type": "FeatureCollection", "features": reportes},
         "eventos": {"type": "FeatureCollection", "features": eventos},
@@ -78,7 +78,7 @@ def main():
     SALIDA.write_text(texto, encoding="utf-8")
     print(f"{SALIDA}: {len(tramos)} tramos ({len(riesgo)} con riesgo), {len(reportes)} reportes, "
           f"{len(eventos)} eventos, {SALIDA.stat().st_size / 1e6:.1f} MB · corrida: "
-          f"{'ninguna' if corrida is None else ' · '.join(corrida)}")
+          f"{'ninguna' if corrida is None else ' · '.join(map(str, corrida))}")
 
 
 if __name__ == "__main__":

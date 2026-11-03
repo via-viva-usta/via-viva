@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS riesgo (
     rango           INTEGER,                   -- posición en el ranking de esa corrida (1 = más riesgo)
     reportado       INTEGER NOT NULL DEFAULT 0,-- 1 si el tramo ya tenía huecos conocidos
     variables_json  TEXT,                      -- variables usadas y su valor (explicabilidad)
+    fuente_etiquetas TEXT,                     -- de dónde salieron las etiquetas: alcaldia, planb (recorridos + bot), demo
     UNIQUE (id_tramo, modelo, version_modelo, fecha_calculo)
 );
 CREATE INDEX IF NOT EXISTS idx_riesgo_corrida ON riesgo (modelo, version_modelo, fecha_calculo, probabilidad DESC);

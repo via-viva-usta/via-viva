@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent      # carpeta via-viva/
+# Columnas agregadas después de crear la primera base: se añaden solas a las bases existentes.
+COLUMNAS_NUEVAS = [("riesgo", "fuente_etiquetas", "TEXT")]
 ESQUEMA_SQL = Path(__file__).resolve().parent / "schema.sql"
 
 try:                                               # python-dotenv es opcional para esta capa
@@ -67,6 +69,7 @@ def conectar(url: str | None = None, solo_lectura: bool = False, aplicar_esquema
             con.execute("PRAGMA foreign_keys = ON")
             if aplicar_esquema:
                 con.executescript(ESQUEMA_SQL.read_text(encoding="utf-8"))
+                migrar(con)
         return con
     if motor(url) == "postgresql":
         raise NotImplementedError(
@@ -75,6 +78,15 @@ def conectar(url: str | None = None, solo_lectura: bool = False, aplicar_esquema
             "(2) aquí, conectar con psycopg y devolver la conexión; (3) cambiar los '?' de las consultas por '%s' "
             "(usar marcador() de este módulo).")
     raise ValueError(f"Motor de base de datos no soportado: {url}")
+
+
+def migrar(con) -> None:
+    """ALTER TABLE ... ADD COLUMN para las columnas que una base vieja todavía no tiene."""
+    for tabla, columna, tipo in COLUMNAS_NUEVAS:
+        existentes = {r[1] for r in con.execute(f"PRAGMA table_info({tabla})")}
+        if columna not in existentes:
+            con.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {tipo}")
+    con.commit()
 
 
 def marcador(url: str | None = None) -> str:

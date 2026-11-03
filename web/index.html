@@ -116,7 +116,7 @@
     html += `<div class="fila"><span class="punto" style="background:#2f2f2f;border-radius:50%"></span>Evento detectado</div>`;
     html += `<div class="nota">${D.reportes.features.length} reportes · ${D.eventos.features.length} eventos · ` +
             `datos del ${D.generado.slice(0, 10)}` +
-            (D.corrida ? `<br>Modelo: ${D.corrida.modelo} (${D.corrida.version})` : "<br>Aún no hay modelo de riesgo") +
+            (D.corrida ? `<br>Modelo: ${D.corrida.modelo} (${D.corrida.version})` + (D.corrida.fuente ? `<br>Etiquetas: ${D.corrida.fuente}` : "") : "<br>Aún no hay modelo de riesgo") +
             "<br>Las fotos de los reportes no se publican.</div>";
     div.innerHTML = html;
     return div;

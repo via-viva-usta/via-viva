@@ -79,3 +79,32 @@ tablero la muestra con un aviso rojo. Al entrenar con datos reales se agrega una
 - Con 5 estaciones la lluvia cambia poco dentro de la ciudad; aportará más cuando se cruce con la fecha de aparición de huecos.
 - SRTM tiene error vertical de varios metros: la pendiente de tramos cortos es ruidosa.
 - Solo el 11 % de los tramos tiene superficie en OSM.
+
+## Plan B: entrenar sin datos de la Alcaldía (decisión del 2-nov)
+
+Si la Alcaldía no entrega su inventario antes del **9-nov**, el modelo se entrena con lo que produce el propio equipo:
+
+| Fuente | Aporta | De dónde |
+|---|---|---|
+| `recorrido` | 1 y **0** (tramos revisados con y sin hueco) | `etl.recorridos` → `data/campo/tramos_revisados.csv` |
+| `visita` | 1 y 0 | Visitas de campo → `data/campo/tramos_revisados_visita_<fecha>.csv` |
+| `bot` | 1 | Reportes ciudadanos de hueco (no descartados) |
+| `nodo` | 1 | Eventos `hueco` del nodo |
+| `alcaldia` | 1 | `data/alcaldia/huecos.csv` |
+
+`variables_tramo.fuente_etiqueta` guarda todas las fuentes de cada etiqueta (p. ej. `bot;recorrido`).
+
+```powershell
+etl\.venv\Scripts\python -m etl.recorridos                 # recorridos etiquetados → tramos revisados
+etl\.venv\Scripts\python -m risk_model.variables
+etl\.venv\Scripts\python -m risk_model.modelo --fuente auto --guardar --lista-campo
+```
+
+`--fuente auto` usa `alcaldia` si hay datos de la Alcaldía y si no `planb`; también se puede forzar `alcaldia`, `planb`
+o `todas`. **Cada corrida registra la fuente** en `riesgo.fuente_etiquetas` (p. ej.
+`planb: bot+recorrido (n=134, con hueco=29)`) y en la versión (`v0.1-<fecha>-planb`). El tablero y el mapa web la muestran.
+
+**Prueba del 2-nov (base temporal, NO resultado):** con los 3 recorridos sintéticos y 3 reportes de prueba, `auto`
+eligió `planb`, entrenó con 134 tramos (29 con hueco) y guardó la corrida con su fuente. La AUC espacial salió ≈ 0,5,
+lo esperado porque en los datos sintéticos los huecos se ponen al azar (sirve también de control: no hay fuga de la
+etiqueta hacia las variables). Con la base real hoy se detiene: hay 0 etiquetas.

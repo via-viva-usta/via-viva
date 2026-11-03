@@ -11,6 +11,13 @@ Salidas:
   tabla riesgo                        probabilidad y ranking de cada tramo (con --guardar)
   data/campo/visita_<fecha>.csv       10 tramos de mayor riesgo NO reportados + 10 al azar (con --lista-campo)
 
+Fuente de las etiquetas (--fuente), decisión del 2-nov:
+  alcaldia  huecos del inventario de la Alcaldía + tramos revisados en recorridos y visitas (negativos)
+  planb     tramos revisados en recorridos y visitas + reportes del bot + eventos del nodo (sin la Alcaldía)
+  auto      alcaldia si hay datos de la Alcaldía; si no, planb   (por defecto)
+  todas     todo junto
+La fuente usada queda en riesgo.fuente_etiquetas y en la versión del modelo.
+
 Uso (desde via-viva/):
   etl\\.venv\\Scripts\\python -m risk_model.modelo                      # entrena y valida (datos reales)
   etl\\.venv\\Scripts\\python -m risk_model.modelo --guardar --lista-campo
@@ -40,6 +47,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from etl.config import DATA
 from etl.db import ahora_utc, conectar
 
+FUENTES = {"alcaldia": {"alcaldia", "recorrido", "visita"},
+           "planb": {"recorrido", "visita", "bot", "nodo"},
+           "todas": {"alcaldia", "recorrido", "visita", "bot", "nodo"}}
 CATEGORICAS = ["tipo_via", "clase_superficie"]
 NUMERICAS = ["longitud_m", "pendiente_pct", "lluvia_30d_mm", "lluvia_max_dia_mm", "huecos_vecinos",
              "accidentes_cercanos", "rugosidad_media", "profundidad_max_mm"]
@@ -75,6 +85,20 @@ def cargar(con) -> pd.DataFrame:
     if v.empty:
         raise SystemExit("variables_tramo está vacía: corre primero python -m risk_model.variables")
     return v
+
+
+def seleccionar_fuente(v: pd.DataFrame, fuente: str) -> tuple[pd.DataFrame, str, str]:
+    """Deja solo las etiquetas de la fuente pedida. Devuelve (v, fuente_resuelta, descripción para la base)."""
+    if fuente == "auto":
+        fuente = "alcaldia" if v["fuente_etiqueta"].fillna("").str.contains("alcaldia").any() else "planb"
+    permitidas = FUENTES[fuente]
+    usa = v["fuente_etiqueta"].fillna("").map(lambda f: bool(set(f.split(";")) & permitidas) if f else False)
+    v = v.copy()
+    v.loc[~usa, "etiqueta"] = np.nan
+    usadas = sorted(set(";".join(v.loc[usa, "fuente_etiqueta"]).split(";")) - {""})
+    desc = (f"{fuente}: {'+'.join(usadas) or 'ninguna'} "
+            f"(n={int(v['etiqueta'].notna().sum())}, con hueco={int((v['etiqueta'] == 1).sum())})")
+    return v, fuente, desc
 
 
 def etiquetas_sinteticas(v: pd.DataFrame, fraccion: float = 0.3, semilla: int = 0) -> pd.Series:
@@ -139,7 +163,7 @@ def predecir(v: pd.DataFrame, numericas: list[str], semilla: int = 0) -> dict:
     return salida
 
 
-def guardar_riesgo(con, v: pd.DataFrame, probs: dict, version: str, numericas: list[str]) -> str:
+def guardar_riesgo(con, v: pd.DataFrame, probs: dict, version: str, numericas: list[str], fuente: str) -> str:
     fecha = ahora_utc()
     reportado = (v["etiqueta"] == 1).astype(int)
     with con:
@@ -151,9 +175,9 @@ def guardar_riesgo(con, v: pd.DataFrame, probs: dict, version: str, numericas: l
                                  (v.at[i, c].item() if hasattr(v.at[i, c], "item") else v.at[i, c]))
                              for c in CATEGORICAS + numericas}
                 filas.append((int(idt), nombre, version, fecha, float(prob), int(orden[i]), int(reportado.iat[i]),
-                              json.dumps(variables, ensure_ascii=False)))
+                              json.dumps(variables, ensure_ascii=False), fuente))
             con.executemany("INSERT INTO riesgo (id_tramo, modelo, version_modelo, fecha_calculo, probabilidad, "
-                            "rango, reportado, variables_json) VALUES (?,?,?,?,?,?,?,?)", filas)
+                            "rango, reportado, variables_json, fuente_etiquetas) VALUES (?,?,?,?,?,?,?,?,?)", filas)
     return fecha
 
 
@@ -179,16 +203,21 @@ def main():
     ap.add_argument("--guardar", action="store_true", help="escribe la tabla riesgo")
     ap.add_argument("--lista-campo", action="store_true", help="genera la lista de visita top-10 vs. azar")
     ap.add_argument("--demo-sintetico", action="store_true", help="usa etiquetas INVENTADAS para probar el código")
+    ap.add_argument("--fuente", choices=["auto", "alcaldia", "planb", "todas"], default="auto",
+                    help="de dónde salen las etiquetas (ver arriba)")
     ap.add_argument("--version", default=f"v0.1-{date.today().isoformat()}")
     args = ap.parse_args()
 
     con = conectar()
     v = cargar(con)
-    version = args.version
     if args.demo_sintetico:
         print(AVISO_DEMO)
         v["etiqueta"] = etiquetas_sinteticas(v)
-        version = VERSION_DEMO
+        version, desc = VERSION_DEMO, "demo: etiquetas inventadas"
+    else:
+        v, fuente, desc = seleccionar_fuente(v, args.fuente)
+        version = f"{args.version}-{fuente}"
+    print(f"Fuente de las etiquetas → {desc}")
 
     r = validar(v, args.grupo)
     print(f"\nTramos etiquetados: {r['n']} ({r['positivos']} con hueco) en {r['grupos']} {args.grupo}s; "
@@ -205,7 +234,7 @@ def main():
     if args.guardar or args.lista_campo:
         probs = predecir(v, r["numericas"])
         if args.guardar:
-            fecha = guardar_riesgo(con, v, probs, version, r["numericas"])
+            fecha = guardar_riesgo(con, v, probs, version, r["numericas"], desc)
             print(f"Guardado en riesgo: version_modelo='{version}', fecha_calculo={fecha}")
         if args.lista_campo:
             ruta = lista_campo(v, probs["bosque"], demo=args.demo_sintetico)
