@@ -36,7 +36,7 @@ VÍA VIVA **no** genera multas ni lee placas.
 | `dashboard-java/` | Tablero Java Swing (NetBeans, Ant) |
 | `data/` | Solo muestras pequeñas y anonimizadas |
 
-Cada carpeta tiene un `README.md` con su estado.
+Cada carpeta tiene un `README.md` con su estado. Estado general del proyecto: `docs/ESTADO.md`. Cómo colaborar: `CONTRIBUTING.md`.
 
 ## Primeros pasos
 
