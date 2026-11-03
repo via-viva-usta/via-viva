@@ -104,3 +104,6 @@ web/datos.js
 
 # ===== Salidas del análisis (métricas; se suben solo las que vayan al informe) =====
 analysis/salidas/
+
+# ===== Informe: el PDF se regenera con pdflatex (ver report/README.md) =====
+report/main.pdf

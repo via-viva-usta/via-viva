@@ -35,7 +35,10 @@ O subir la carpeta `report/` completa a Overleaf (plantilla vacía, compilador p
 
 ## Estado (2-nov-2026)
 
-**No se ha compilado**: en este PC no hay LaTeX instalado y la descarga de un motor (Tectonic) fue bloqueada por los
-permisos de la sesión de Claude Code. Se hizo una revisión estática: llaves y entornos balanceados, las 23 citas
-existen en `referencias.bib`, las figuras existen, las macros de datos están definidas y todos los `\ref` tienen
-`\label`. Al compilar por primera vez, revisar avisos de cajas desbordadas (`Overfull \hbox`) en las tablas.
+**Compila** con MiKTeX 25.12 (instalado con `winget install MiKTeX.MiKTeX --scope user`, con instalación automática
+de paquetes): 4 páginas, sin errores, sin citas ni referencias sin resolver y sin cajas desbordadas. El único aviso es
+`Package caption Warning: Unknown document class`, que también sale en la propuesta con IEEEtran y no afecta el PDF.
+`main.pdf` no se sube a Git: se regenera con los comandos de arriba.
+
+Si `pdflatex` no se reconoce en una terminal abierta antes de instalar MiKTeX, abrir una nueva o usar
+`%LOCALAPPDATA%\Programs\MiKTeX\miktexind\pdflatex.exe`.

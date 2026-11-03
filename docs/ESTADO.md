@@ -55,7 +55,7 @@ entrena con los tramos revisados en recorridos + los reportes del bot (plan B, y
 | Bot | Lógica con base temporal; app con token falso | Con Telegram real (falta pegar el token en `.env`) |
 | Mapa web | En navegador con base de prueba | Publicado (no se publica todavía) |
 | Tablero Java | Compila con Ant; pruebas de estructuras | Abrirlo en el IDE NetBeans; uso con el ratón |
-| Informe LaTeX | Revisión estática (llaves, entornos, citas, figuras, macros) | **Compilar** (no hay LaTeX en el PC) |
+| Informe LaTeX | **Compila** con MiKTeX 25.12: 4 páginas, sin errores ni referencias sin resolver | Con los resultados reales (19 marcas [PENDIENTE]) |
 
 ## Falta (en orden)
 
@@ -65,7 +65,7 @@ entrena con los tramos revisados en recorridos + los reportes del bot (plan B, y
 4. Volver a entrenar el detector con datos reales y regenerar `modelo_cnn.h` / `modelo_bosque.h` (issue #7).
 5. Modelo de riesgo con datos reales y validación en campo (issues #9, #10).
 6. Token del bot y prueba con celulares (issue #8).
-7. Llenar las 19 marcas `[PENDIENTE]` del informe y compilarlo (issues #13, #16).
+7. Llenar las 19 marcas `[PENDIENTE]` del informe con resultados reales (issue #13); ya compila con MiKTeX.
 
 ## Fuentes externas y licencias
 
