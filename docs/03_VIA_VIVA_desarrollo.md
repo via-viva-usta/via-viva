@@ -7,6 +7,13 @@ Equipo (4): Andrés Santiago Cárdenas González, Juan Felipe García Carvajal, 
 
 > **Actualización 2-nov-2026 — cambio de placa.** La placa principal pasa a ser la **ESP32 normal (WROOM-32, DevKit de 30 pines)**: sin PSRAM, sin instrucciones vectoriales y con pines distintos (ver `CLAUDE.md`, sección 5). E2 queda como flash vs. SRAM y E3 como float32 vs. int8. Presupuesto aproximado: **330.000 COP**. La ESP32-CAM se programa con un adaptador CP2102. La atención al ciudadano es un bot de Telegram + un mapa web estático, sin backend. El resto del diseño se mantiene.
 
+> **Actualización 3-nov-2026 — la foto la toma el celular** (aprobado por el docente de Arquitectura). Se **eliminan la
+> ESP32-CAM y el CP2102** (código en `futuro/nodo-camara/`): la evidencia visual es un **dataset propio de fotos con el
+> celular** (≥ 500 fotos, 9 clases, con fecha, hora, GPS, temperatura y humedad; `docs/protocolo_fotos.md`, `dataset/`),
+> con tarjeta ArUco para la escala y un clasificador MobileNetV3 → TFLite int8. El nodo suma **BME280 (o DHT22) y BH1750**.
+> El **módulo láser de cuadrícula** y el **OBD2 (ELM327, solo lectura)** quedan como trabajo futuro. Presupuesto:
+> `docs/presupuesto.md` (268.900 COP). Donde abajo dice ESP32-CAM o "cámara del nodo", leer "celular".
+
 ## 1. Idea en una frase
 
 Nodos con IA en el borde, a bordo de vehículos, detectan huecos, resaltos e impactos en las vías de Tunja. Una cámara documenta cada evento con evidencia anonimizada (foto difuminada, hora y GPS). Todo alimenta un mapa vivo, junto con reportes ciudadanos y fuentes públicas, para la autoridad (tablero) y la ciudadanía (mapa público).

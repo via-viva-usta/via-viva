@@ -42,9 +42,9 @@ Si el modelo de riesgo todavía es DEMO, el último paso dice: "this map uses sy
 | # | Duración | Toma |
 |---|---|---|
 | 1 | 0:20 | Calle de Tunja con huecos (grabar con permiso; sin placas ni rostros legibles) |
-| 2 | 0:30 | Montaje del nodo en el carro: caja, GPS al parabrisas, cámara |
+| 2 | 0:30 | Montaje del nodo en el carro: caja, GPS al parabrisas, sensor de ambiente fuera de la caja |
 | 3 | 0:50 | Recorrido a ≤ 30 km/h (copiloto filma la pantalla del celular con la página del nodo y los eventos) |
-| 4 | 0:30 | Paso por un hueco: evento en la página + foto difuminada de la ESP32-CAM |
+| 4 | 0:30 | Paso por un hueco: evento en la página del nodo; luego, en el andén, las 4 fotos del celular con la tarjeta ArUco |
 | 5 | 0:40 | Reporte con el bot de principio a fin |
 | 6 | 0:50 | Tablero Java: ranking, corredor, zonas |
 | 7 | 0:40 | Mapa web con la capa de riesgo y la fuente de las etiquetas |

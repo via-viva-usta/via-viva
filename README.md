@@ -8,13 +8,16 @@ Es el Proyecto Integrador 2026-2 de Ingeniería de Datos e Inteligencia Artifici
 ## Cómo funciona
 
 1. **Nodo a bordo (IA en el borde).** Un ESP32 con acelerómetro, unidad inercial, láser de distancia y GPS va en un carro,
-   clasifica eventos (hueco, resalto, impacto fuerte) y mide la rugosidad de la vía. Una ESP32-CAM toma una foto de evidencia
-   **solo cuando hay evento** y difumina placas y rostros antes de que la imagen salga del nodo.
-2. **Reportes ciudadanos.** Un bot de Telegram recibe reportes con foto y ubicación donde el carro no pasa.
-3. **ETL.** Une eventos del nodo, reportes ciudadanos, fuentes públicas (scraping responsable) y el grafo de calles de
+   clasifica eventos (hueco, resalto, impacto fuerte) y mide la rugosidad de la vía; también registra temperatura, humedad
+   y luz (BME280 o DHT22, BH1750).
+2. **Fotos con el celular (dataset propio).** El celular es el dispositivo de borde para imágenes: ≥ 500 fotos de 9 clases
+   con fecha, hora, GPS y clima, tarjeta ArUco para la escala y un clasificador MobileNetV3 exportado a TFLite int8
+   (`dataset/`, protocolo en `docs/protocolo_fotos.md`). Caras y placas se difuminan antes del análisis.
+3. **Reportes ciudadanos.** Un bot de Telegram recibe reportes con foto y ubicación donde el carro no pasa.
+4. **ETL.** Une eventos del nodo, reportes ciudadanos, fuentes públicas (scraping responsable) y el grafo de calles de
    OpenStreetMap en una base SQLite.
-4. **Modelo de riesgo.** Estima, por cada tramo de calle, la probabilidad de huecos aún no reportados.
-5. **Tablero y mapa.** Un tablero en Java Swing prioriza inspecciones y reparaciones para la autoridad; un mapa público muestra
+5. **Modelo de riesgo.** Estima, por cada tramo de calle, la probabilidad de huecos aún no reportados.
+6. **Tablero y mapa.** Un tablero en Java Swing prioriza inspecciones y reparaciones para la autoridad; un mapa público muestra
    el estado de los reportes.
 
 VÍA VIVA **no** genera multas ni lee placas.
@@ -25,7 +28,8 @@ VÍA VIVA **no** genera multas ni lee placas.
 |---|---|
 | `docs/` | Diseño, propuesta IEEE y diagramas (Mermaid) |
 | `firmware/nodo-sensores/` | PlatformIO, ESP32 `esp32dev` (sensores, detección, página web del nodo) |
-| `firmware/nodo-camara/` | PlatformIO, ESP32-CAM (foto de evidencia) |
+| `dataset/` | Dataset de fotos del celular: ingesta, etiquetador, escala ArUco y modelo de imágenes |
+| `futuro/` | Trabajo futuro: ESP32-CAM (fuera del diseño desde el 3-nov), láser de cuadrícula, OBD2 |
 | `db/` | Esquema SQLite |
 | `etl/` | OpenStreetMap, scraping, limpieza y carga |
 | `analysis/` | Notebooks de señales y clasificador |
@@ -64,7 +68,8 @@ cp .env.example .env        # y llenar los valores
 
 **VÍA VIVA** is a low-cost edge-AI system that detects, maps and predicts road hazards (potholes, speed bumps, severe impacts
 and obstacles) in Tunja, Colombia. A vehicle-mounted ESP32 node with an accelerometer, IMU, laser time-of-flight sensor and
-GPS classifies events on-device, and an ESP32-CAM captures anonymized evidence only when an event occurs. An ETL pipeline merges
+GPS classifies events on-device and logs temperature, humidity and light. A smartphone is the edge device for images: an own
+dataset of geotagged photos of nine road classes, an ArUco card for metric scale and a MobileNetV3 classifier (TFLite int8). An ETL pipeline merges
 node events, citizen reports (Telegram bot), web-scraped public sources and the OpenStreetMap street graph into SQLite.
 A georeferenced model estimates the risk of unreported hazards per street segment, and a Java Swing dashboard ranks inspections
 and repairs for the authorities. The system does not issue fines or read license plates.

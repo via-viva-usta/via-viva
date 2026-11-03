@@ -20,7 +20,7 @@ flowchart LR
         GPS["GPS NEO-6M<br/>posición, velocidad, hora UTC"]
         SD[("microSD<br/>registro crudo")]
         BTN["Pulsador<br/>etiqueta de campo"]
-        CAM["ESP32-CAM · nodo-camara<br/>OV2640 → foto → difuminado"]
+        AMB["BME280 o DHT22 + BH1750<br/>temperatura, humedad, luz"]
 
         ADXL -- "VSPI + INT1 (GPIO 34)" --> S3
         MPU -- "I2C 0x68" --> S3
@@ -28,24 +28,31 @@ flowchart LR
         GPS -- "UART2 9600 baud" --> S3
         S3 -- "HSPI (matriz GPIO)" --> SD
         BTN -- "GPIO 26" --> S3
-        S3 <-- "UART1: FOTO / OK" --> CAM
+        AMB -- "I2C 0x76 / 0x23 (DHT22: GPIO 25)" --> S3
     end
+    CEL["Celular (borde para imágenes)<br/>fotos JPG/HEIC + EXIF (hora, GPS)<br/>+ tarjeta ArUco"]
 
     subgraph FUENTES["Otras fuentes"]
         BOT["Bot de Telegram<br/>reportes ciudadanos"]
+        API["Open-Meteo<br/>clima histórico por hora"]
         WEB["Fuentes públicas<br/>IDEAM, noticias (robots.txt)"]
         OSM["OpenStreetMap<br/>grafo de calles (osmnx)"]
     end
 
     subgraph SERVIDOR["PC / servidor"]
         ETL["ETL (Python)<br/>limpieza → ajuste a la calle → deduplicación (geohash)"]
+        DS["dataset/ (Python)<br/>ingesta + difuminado → etiquetador<br/>→ escala ArUco → MobileNetV3 → TFLite int8"]
         DB[("SQLite<br/>tramos · eventos · reportes<br/>fuentes_externas · riesgo")]
         RISK["Modelo de riesgo<br/>logística · bosque aleatorio"]
         DASH["Tablero Java Swing<br/>(autoridad)"]
         MAPA["Mapa público"]
     end
 
-    NODO -- "eventos + miniatura difuminada" --> ETL
+    NODO -- "eventos + ambiente_NNN.csv" --> ETL
+    NODO -- "temperatura y humedad por hora" --> DS
+    CEL -- "Drive: AAAA-MM-DD_nombre" --> DS
+    API --> DS
+    DS -- "tramo, barrio, lluvia IDEAM" --- DB
     BOT --> ETL
     WEB --> ETL
     OSM --> ETL
@@ -67,16 +74,17 @@ flowchart TB
     subgraph N0["Núcleo 0 (PRO_CPU)"]
         TG["tareaGPS<br/>NMEA → posición + hora UTC"]
         TS["tareaRegistro<br/>microSD (crudo + eventos)"]
-        TC["tareaCamara<br/>orden FOTO por UART1"]
-        TI["tareaI2C<br/>MPU-6050 + VL53L0X"]
+        TI["tareaI2C<br/>MPU-6050 + VL53L0X (50 Hz)<br/>+ ambiente cada 10 s"]
     end
     TP -- "colaEventos" --> TS
-    TP -- "colaEventos" --> TC
+    TI -- "colaAmbienteSD" --> TS
     TG -. "última posición (mutex)" .-> TP
     TI -. "giro + distancia (mutex)" .-> TP
 ```
 
-## Protocolo UART entre nodo-sensores y nodo-camara
+## Protocolo UART entre nodo-sensores y nodo-camara (TRABAJO FUTURO)
+
+La ESP32-CAM salió del diseño el 3-nov-2026; el protocolo se conserva para `futuro/nodo-camara/`.
 
 Texto ASCII, una orden por línea (terminada en salto de línea), 115200 baud.
 

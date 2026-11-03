@@ -24,7 +24,7 @@ diferencia después de la primera llamada; por eso se reporta también la primer
 
 ### E1 (tres corridas, una por modo)
 
-Mismas condiciones en las tres: microSD, GPS y cámara conectados, **celular conectado a la página web** (Wi-Fi activo).
+Mismas condiciones en las tres: microSD, GPS y sensores de ambiente conectados, **celular conectado a la página web** (Wi-Fi activo).
 
 ```powershell
 cd firmware\nodo-sensores
@@ -71,7 +71,7 @@ Estados a medir:
 | Nodo completo, FIFO + DMA, sin celular conectado | Firmware normal |
 | Nodo completo con el celular en la página web | Wi-Fi con cliente |
 | Cada modo de E1 | Los tres entornos |
-| ESP32-CAM sola, en espera y tomando fotos | Medir la cámara con su propio tester |
+| BME280/DHT22 + BH1750 conectados vs. desconectados | Aporte de los sensores de ambiente (se espera < 1 mA) |
 
 Llenar `data/raw/nodo/corriente.csv`:
 
