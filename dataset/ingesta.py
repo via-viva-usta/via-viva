@@ -475,6 +475,15 @@ def main():
             meta.loc[idx, col] = viejo.loc[idx, col]
     meta = meta.reset_index()
 
+    # La lectura del termohigrómetro se escribe en UNA foto del punto (protocolo): se copia a las demás del sitio
+    sitio = sitios(meta)
+    termo = meta[(meta["fuente_clima"] == "termohigrometro") & (meta["temperatura"] != "")]
+    lectura = {sitio[k]: (r["temperatura"], r["humedad"]) for k, r in termo.iterrows()}
+    for k in meta.index:
+        if sitio[k] in lectura and meta.at[k, "fuente_clima"] != "termohigrometro":
+            meta.at[k, "temperatura"], meta.at[k, "humedad"] = lectura[sitio[k]]
+            meta.at[k, "fuente_clima"], meta.at[k, "lux"] = "termohigrometro", ""
+
     base = Base(a.base)
     nodo = leer_nodo(a.nodo) if a.nodo.exists() else leer_nodo(Path("__no_existe__"))
     if nodo.empty:
