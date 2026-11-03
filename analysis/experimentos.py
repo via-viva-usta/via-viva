@@ -24,7 +24,7 @@ import pandas as pd
 
 RAIZ = Path(__file__).resolve().parent.parent
 MODOS = ["polling", "int_muestra", "fifo_dma"]
-NOMBRE_MODO = {"polling": "Polling (5 ms)", "int_muestra": "Interrupción por muestra", "fifo_dma": "FIFO + DMA ping-pong"}
+NOMBRE_MODO = {"polling": "Polling (5 ms)", "int_muestra": "Per-sample interrupt", "fifo_dma": "FIFO + DMA ping-pong"}  # en inglés: van al informe
 
 
 def leer(carpeta: Path) -> pd.DataFrame:
