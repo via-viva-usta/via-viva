@@ -4,7 +4,7 @@ Proyecto PlatformIO (framework Arduino sobre ESP-IDF) para la **ESP32 DevKit de 
 4 MB de flash, 520 KB de SRAM, sin PSRAM. Pines en `include/pines.h` (sección 5 de `CLAUDE.md`).
 
 > **Cambio de placa (2-nov-2026):** antes era una ESP32-S3. Cambió: pines, buses (VSPI para el ADXL345, HSPI por la
-> matriz GPIO para la microSD), UART2 para el GPS y UART1 para la cámara, sin PSRAM. E2 = flash vs. SRAM; E3 = float32 vs. int8.
+> matriz GPIO para la microSD), UART2 para el GPS, sin PSRAM. E2 = flash vs. SRAM; E3 = float32 vs. int8.
 
 ## Qué hace
 
@@ -12,18 +12,18 @@ Proyecto PlatformIO (framework Arduino sobre ESP-IDF) para la **ESP32 DevKit de 
 |---|---|---|
 | ADXL345 por VSPI | Controlador propio a nivel de registros con el driver `spi_master` de ESP-IDF (DMA). FIFO en modo *stream* con watermark 31 → INT1 (GPIO 34) → lote por DMA → búfer **ping-pong** | `adxl345.*`, `adquisicion.cpp` |
 | **Detector por umbrales** (línea base del docente) | Evento si velocidad GPS > V_min **y** el cambio de aceleración vertical en 50 ms supera K × la vibración de fondo de esa calle (y un piso absoluto). Configurable en `include/config.h`; la misma regla en Python (`analysis/detector_umbral.py`) pre-etiqueta los recorridos | `detector_umbral.h`, `procesamiento.cpp` |
-| **Maniobras** con el giroscopio del MPU-6050 | Giro a la izquierda / derecha (velocidad angular vertical) y frenada brusca (aceleración longitudinal o caída de velocidad GPS). Cada maniobra queda como evento propio, y un golpe que cae durante una maniobra se atribuye a ella y no a la vía (no se pide foto) | `maniobras.h`, `perifericos.cpp` |
+| **Maniobras** con el giroscopio del MPU-6050 | Giro a la izquierda / derecha (velocidad angular vertical) y frenada brusca (aceleración longitudinal o caída de velocidad GPS). Cada maniobra queda como evento propio, y un golpe que cae durante una maniobra se atribuye a ella y no a la vía | `maniobras.h`, `perifericos.cpp` |
 | **Página web del nodo** (punto de acceso Wi-Fi) | Para el celular del copiloto: último evento, velocidad, estado de sensores y botones **Hueco / Resalto / Otro** que guardan la hora en la microSD. "Modo mesa" para probar sin carro | `servidor_web.cpp` |
 | Ventana y características | Búfer circular de 2 s; pico, RMS, curtosis, factor de cresta, jerk; clase **provisional** por reglas hasta tener el modelo | `bufer_circular.h`, `caracteristicas.h` |
 | MPU-6050 y VL53L0X por I2C | MPU con controlador propio (se mide su duración para E4); VL53L0X con la librería de Pololu | `mpu6050.h`, `perifericos.cpp` |
 | GPS NEO-6M por UART2 | TinyGPSPlus; hora UTC de la fijación + `esp_timer` de llegada para interpolar en el ETL | `perifericos.cpp` |
-| microSD por HSPI | Por sesión: `crudo_NNN.csv`, `eventos_NNN.csv`, `gps_NNN.csv`, `etiquetas_NNN.csv` (tipo y origen: web o botón), `fotos_NNN.csv` | `registro.cpp` |
-| Enlace con la cámara | UART1, `PING` / `FOTO,id,hora` → `OK` / `ERR` | `perifericos.cpp` |
+| microSD por HSPI | Por sesión: `crudo_NNN.csv`, `eventos_NNN.csv`, `gps_NNN.csv`, `etiquetas_NNN.csv` (tipo y origen: web o botón), `ambiente_NNN.csv` | `registro.cpp` |
+| **Ambiente** (3-nov) | BME280 (0x76/0x77; si es BMP280 no hay humedad) o, si no hay, DHT22 en GPIO 25; BH1750 (0x23) opcional. Cada `PERIODO_AMBIENTE_MS` (10 s) en la misma tarea I2C → `ambiente_NNN.csv` con hora UTC del GPS (`utc_fix` + `ms_desde_fix`), lugar, temperatura, humedad, presión y lux; también en la página web. Sirve para llenar el clima del dataset de fotos (`dataset/`) | `include/ambiente.h`, `perifericos.cpp` |
 | **Experimentos E1–E4** | E1 por entorno (polling / interrupción / FIFO+DMA), cada 5 s; E2 (flash vs. SRAM), E3 (float32 vs. int8 y bosque) y E4 (I2C vs. SPI) medidos al arrancar; todo a `exp_NNN.csv` en la microSD. Procedimiento en `docs/experimentos.md` | `experimentos.cpp`, `estadisticas.cpp` |
 | Modelos exportados | `modelo_cnn.h` (red 1D float32 + int8) y `modelo_bosque.h` (emlearn), generados por `analysis/entrenar_detector.py`. **Hoy entrenados con datos sintéticos**: solo para medir latencia | `modelo_*.h` |
 
 **Reparto en los dos núcleos:** núcleo 1 (APP_CPU) = adquisición (prioridad 20) y procesamiento (10).
-Núcleo 0 (PRO_CPU) = Wi-Fi y página web (el Wi-Fi de ESP-IDF corre en el núcleo 0), GPS, I2C y maniobras, cámara,
+Núcleo 0 (PRO_CPU) = Wi-Fi y página web (el Wi-Fi de ESP-IDF corre en el núcleo 0), GPS, I2C (maniobras y ambiente),
 microSD y estadísticas. El `loop()` de Arduino se elimina para que el núcleo 1 quede libre y se pueda medir su ocio.
 
 ### Detector por umbrales (parámetros por defecto)

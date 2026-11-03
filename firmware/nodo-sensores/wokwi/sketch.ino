@@ -4,7 +4,7 @@
 //     (en Wokwi: clic en el MPU-6050 y mover el deslizador de giro Z por encima de 15 °/s);
 //   * escribe en la microSD simulada;
 //   * el botón guarda una etiqueta y el LED parpadea.
-// No simula: ADXL345, VL53L0X, GPS NEO-6M ni la ESP32-CAM (Wokwi no tiene esas piezas).
+// No simula: ADXL345, VL53L0X, GPS NEO-6M (Wokwi no tiene esas piezas).
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>

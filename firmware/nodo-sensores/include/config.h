@@ -62,8 +62,12 @@ constexpr uint8_t AP_MAX_CLIENTES = 2;
 
 // ---- Otros ----
 constexpr uint32_t GPS_BAUD = 9600;
-constexpr uint32_t CAM_BAUD = 115200;
 constexpr uint32_t PERIODO_I2C_MS = 20;      // MPU-6050 + VL53L0X a 50 Hz
 constexpr uint32_t ANTIRREBOTE_MS = 250;
 constexpr uint32_t PERIODO_ESTADISTICAS_MS = 5000;
-constexpr uint32_t TIMEOUT_CAMARA_MS = 3000;
+
+// ---- Ambiente (include/ambiente.h): BME280 o DHT22 + BH1750 ----
+// Se registra en ambiente_NNN.csv con la hora GPS. 10 s basta: temperatura, humedad y luz cambian lento,
+// y el DHT22 no admite lecturas a menos de 2 s.
+constexpr uint32_t PERIODO_AMBIENTE_MS = 10000;
+constexpr uint8_t BH1750_DIR = 0x23;         // ADDR a GND (0x5C si ADDR en alto)

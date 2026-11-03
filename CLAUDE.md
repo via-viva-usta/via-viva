@@ -97,16 +97,17 @@ via-viva/
 | ADXL345 SCK / MISO / MOSI / CS | 18 / 19 / 23 / 4 | VSPI (SPI3_HOST) con `spi_master` + DMA; CS en 4 porque el nativo (5) es de arranque |
 | ADXL345 INT1 (watermark) | 34 | Solo entrada; el INT1 del ADXL345 es push-pull |
 | microSD SCK / MISO / MOSI / CS | 14 / 27 / 13 / 32 | HSPI (SPI2) **por la matriz GPIO** (los nativos 12 y 15 son de arranque); 10 MHz |
-| I2C SDA / SCL | 21 / 22 | MPU-6050 (0x68) y VL53L0X (0x29), 400 kHz |
+| I2C SDA / SCL | 21 / 22 | MPU-6050 (0x68), VL53L0X (0x29), **BME280 (0x76; 0x77 si SDO alto)**, **BH1750 (0x23, ADDR a GND)**; 400 kHz |
 | GPS NEO-6M (TX del GPS → RX / RX ← TX) | 16 / 17 | UART2, 9600 baud |
-| Enlace ESP32-CAM TX / RX | 25 / 35 | UART1, 115200 baud |
+| **DHT22** DATA (solo si no hay BME280) | 25 | Un hilo, pull-up 10 kΩ a 3V3. El 25 y el 35 quedaron libres al retirar la ESP32-CAM |
 | Pulsador | 26 | INPUT_PULLUP, a GND, antirrebote 250 ms |
 | LED | 33 | salida |
 
-**ESP32-CAM (AI-Thinker):** RX = GPIO 13 ← GPIO 25 del nodo; TX = GPIO 14 → GPIO 35 del nodo; 1 kΩ en serie; 5 V estables
-con condensador de 470–1000 µF. Programación con CP2102: 5V–5V, GND–GND, TXD→U0R (GPIO 3), RXD→U0T (GPIO 1), GPIO 0 a GND
-al subir, quitarlo y RST para correr. Protocolo: `PING`→`PONG`; `FOTO,<id>,<hora>`→`OK,<id>,<bytes>` o `ERR,<id>,<código>`.
-Hoy difumina **todo** el cuadro (gris 320×240); falta el difuminado selectivo y enviar la miniatura.
+**Ambiente (3-nov):** controladores propios en `include/ambiente.h` (compensación entera de Bosch, verificada con el ejemplo
+de la hoja de datos en `pruebas/prueba_bme280.cpp`). Un BME280 con ID **0x58 es un BMP280** (sin humedad) → usar DHT22.
+Lectura cada `PERIODO_AMBIENTE_MS` = 10 s en la tarea I2C → `ambiente_NNN.csv` + tarjeta "Ambiente" de la página web.
+El sensor va **fuera de la caja** (la ESP32 lo calienta) y, para clima, fuera de la cabina del carro.
+**ESP32-CAM y CP2102: fuera del diseño** (código en `futuro/nodo-camara/`).
 
 **Montaje:** MPU-6050 con **X hacia adelante y Z hacia arriba** (si no, cambiar `EJE_*`/`SIGNO_*` en `config.h`); ADXL345 y
 MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs/montaje.md`.

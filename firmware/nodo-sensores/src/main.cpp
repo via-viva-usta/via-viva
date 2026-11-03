@@ -3,9 +3,9 @@
 // Reparto de tareas (FreeRTOS, doble núcleo):
 //   Núcleo 1 (APP_CPU): tareaAdquisicion (ADXL345 por VSPI + DMA) → búfer ping-pong → tareaProcesamiento
 //                       (detector por umbrales → características → clase → evento)
-//   Núcleo 0 (PRO_CPU): Wi-Fi + página web, GPS, I2C (MPU-6050 + VL53L0X + maniobras), cámara, microSD, estadísticas
+//   Núcleo 0 (PRO_CPU): Wi-Fi + página web, GPS, I2C (MPU-6050 + VL53L0X + maniobras + ambiente), microSD, estadísticas
 //
-// Archivos: adquisicion.cpp, procesamiento.cpp, perifericos.cpp (GPS, I2C, cámara), registro.cpp (microSD),
+// Archivos: adquisicion.cpp, procesamiento.cpp, perifericos.cpp (GPS, I2C y ambiente), registro.cpp (microSD),
 // servidor_web.cpp, estadisticas.cpp. Lo que solo se puede validar con la placa real está marcado [VALIDAR EN PLACA].
 
 #include <Arduino.h>
@@ -25,7 +25,7 @@ EstadoNodo estadoNodo;
 SemaphoreHandle_t mutexGPS, mutexI2C, mutexNodo;
 Bloque pingPong[2];
 SemaphoreHandle_t mitadLibre[2];
-QueueHandle_t colaBloques, colaCrudo, colaEventosSD, colaCamara, colaGpsSD, colaEtiquetas, colaFotosSD;
+QueueHandle_t colaBloques, colaCrudo, colaEventosSD, colaGpsSD, colaEtiquetas, colaAmbienteSD;
 TaskHandle_t hAdquisicion;
 
 static SPIClass spiSD(HSPI);     // HSPI (SPI2) por la matriz GPIO, separado del VSPI del acelerómetro
@@ -103,10 +103,9 @@ void setup() {
     colaBloques = xQueueCreate(2, sizeof(int));
     colaCrudo = xQueueCreate(8, sizeof(Bloque));
     colaEventosSD = xQueueCreate(8, sizeof(Evento));
-    colaCamara = xQueueCreate(4, sizeof(Evento));
     colaGpsSD = xQueueCreate(8, sizeof(EstadoGPS));
     colaEtiquetas = xQueueCreate(8, sizeof(Etiqueta));
-    colaFotosSD = xQueueCreate(4, sizeof(RespuestaFoto));
+    colaAmbienteSD = xQueueCreate(4, sizeof(FilaAmbiente));
     colaExp = xQueueCreate(64, sizeof(FilaExp));
 
     iniciarMedicionOcio();   // 1 s sin tareas propias: referencia para el % de CPU
@@ -128,16 +127,14 @@ void setup() {
     // ---- E2, E3, E4 y memoria: se miden ahora, sin tareas propias que interfieran ----
     if (estadoNodo.adxlOk) experimentosArranque();
 
-    // ---- UARTs ----
+    // ---- UART ----
     Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);   // UART2: GPS
-    Serial1.begin(CAM_BAUD, SERIAL_8N1, PIN_CAM_RX, PIN_CAM_TX);   // UART1: ESP32-CAM
 
     // ---- Tareas: adquisición y procesamiento en el núcleo 1; Wi-Fi y lo demás en el núcleo 0 ----
     xTaskCreatePinnedToCore(tareaAdquisicion, "adq", 4096, nullptr, 20, &hAdquisicion, 1);
     xTaskCreatePinnedToCore(tareaProcesamiento, "proc", 8192, nullptr, 10, nullptr, 1);
     xTaskCreatePinnedToCore(tareaGPS, "gps", 4096, nullptr, 8, nullptr, 0);
     xTaskCreatePinnedToCore(tareaI2C, "i2c", 4096, nullptr, 7, nullptr, 0);
-    xTaskCreatePinnedToCore(tareaCamara, "cam", 4096, nullptr, 5, nullptr, 0);
     xTaskCreatePinnedToCore(tareaRegistro, "sd", 8192, nullptr, 4, nullptr, 0);
     xTaskCreatePinnedToCore(tareaWeb, "web", 8192, nullptr, 3, nullptr, 0);
     xTaskCreatePinnedToCore(tareaEstadisticas, "stats", 4096, nullptr, 2, nullptr, 0);

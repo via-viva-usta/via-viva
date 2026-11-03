@@ -25,7 +25,7 @@ Hay dos formas. Las dos usan los mismos pines que el nodo real.
 | ADXL345 | Wokwi no tiene el ADXL345 | `[ADXL345] ... NO RESPONDE`; no hay muestras ni eventos de la vía |
 | VL53L0X | No existe en Wokwi | `VL53L0X: NO RESPONDE` |
 | GPS NEO-6M | No hay pieza de GPS | Velocidad 0 → el detector no dispara (activar "modo mesa" no sirve sin ADXL345) |
-| ESP32-CAM | No existe en Wokwi | `[CAM] PING → (sin respuesta)` |
+| BME280, BH1750, DHT22 | No se agregaron al diagrama | `[AMBIENTE] temperatura/humedad: ninguno · BH1750: NO RESPONDE` |
 | Punto de acceso Wi-Fi | Wokwi simula Wi-Fi como estación (red `Wokwi-GUEST`), no como punto de acceso | El servidor web puede no quedar accesible |
 | Tiempos reales (jitter, % de CPU, corriente) | La simulación no reproduce la temporización del chip | Los números de E1–E4 **solo** valen medidos en la placa real |
 

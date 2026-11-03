@@ -20,7 +20,7 @@
 #define PIN_SD_MOSI  13
 #define PIN_SD_CS    32
 
-// I2C: MPU-6050 (0x68) y VL53L0X (0x29)
+// I2C: MPU-6050 (0x68), VL53L0X (0x29), BME280 (0x76; 0x77 si SDO en alto) y BH1750 (0x23 con ADDR a GND)
 #define PIN_I2C_SDA  21
 #define PIN_I2C_SCL  22
 
@@ -28,9 +28,9 @@
 #define PIN_GPS_RX   16
 #define PIN_GPS_TX   17
 
-// Enlace con la ESP32-CAM por UART1: GPIO 25 = TX del nodo, GPIO 35 = RX del nodo (solo entrada, basta)
-#define PIN_CAM_TX   25
-#define PIN_CAM_RX   35
+// DHT22: solo si no hay BME280 (plan B de temperatura y humedad). Un hilo bidireccional con pull-up de 10 kΩ:
+// necesita un pin de entrada/salida (el 35 no sirve). El 25 quedó libre al retirar la ESP32-CAM (3-nov).
+#define PIN_DHT22    25
 
 #define PIN_PULSADOR 26     // a GND, con pull-up interno (los pines 34-39 no lo tienen)
 #define PIN_LED      33

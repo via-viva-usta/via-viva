@@ -83,7 +83,6 @@ void tareaProcesamiento(void*) {
                 ev.gps = copiarGPS();
                 ev.msDesdeFix = ev.gps.tFixUs ? (int32_t)((tDisparo - ev.gps.tFixUs) / 1000) : 0;
                 xQueueSend(colaEventosSD, &ev, 0);
-                if (ev.maniobra == Maniobra::NINGUNA) xQueueSend(colaCamara, &ev, 0);   // foto solo de la vía
                 if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
                     estadoNodo.ultimo = ev;
                     estadoNodo.hayUltimo = true;

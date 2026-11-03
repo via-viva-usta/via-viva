@@ -1,5 +1,5 @@
 // Núcleo 0: registro en la microSD. Una sesión por arranque: crudo_NNN.csv, eventos_NNN.csv, gps_NNN.csv,
-// etiquetas_NNN.csv y fotos_NNN.csv. El crudo y el GPS son datos de análisis (van a data/raw/, no se publican);
+// etiquetas_NNN.csv y ambiente_NNN.csv. El crudo y el GPS son datos de análisis (van a data/raw/, no se publican);
 // a la base final solo llegan eventos.
 #include <SD.h>
 
@@ -17,7 +17,7 @@ static File abrirSiguiente(const char* prefijo, int sesion, const char* encabeza
 void tareaRegistro(void*) {
     const bool sdOk = copiarNodo().sdOk;
     int sesion = 0;
-    File fCrudo, fEventos, fGps, fEtiq, fFotos, fExp;
+    File fCrudo, fEventos, fGps, fEtiq, fAmb, fExp;
     if (sdOk) {
         char ruta[32];
         do {
@@ -30,7 +30,9 @@ void tareaRegistro(void*) {
             "jerk_max_gps,gps_valido,lat,lon,vel_kmh,hdop,utc_fix,ms_desde_fix,distancia_mm");
         fGps = abrirSiguiente("gps", sesion, "t_us,utc,lat,lon,vel_kmh,hdop,satelites");
         fEtiq = abrirSiguiente("etiquetas", sesion, "t_us,utc_fix,ms_desde_fix,tipo,origen");
-        fFotos = abrirSiguiente("fotos", sesion, "id_evento,respuesta");
+        // utc_fix + ms_desde_fix = hora UTC de la lectura (Colombia = UTC-5); utc vacío si el GPS aún no da hora
+        fAmb = abrirSiguiente("ambiente", sesion,
+            "t_us,utc_fix,ms_desde_fix,gps_valido,lat,lon,sensor_th,temperatura_c,humedad_pct,presion_hpa,lux");
         fExp = abrirSiguiente("exp", sesion, "t_ms,experimento,condicion,variable,valor");
         if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
             estadoNodo.sesion = sesion;
@@ -42,7 +44,7 @@ void tareaRegistro(void*) {
     Evento ev;
     EstadoGPS g;
     Etiqueta et;
-    RespuestaFoto rf;
+    FilaAmbiente fa;
     FilaExp fe;
     uint32_t ultimoFlush = millis();
     char linea[64];
@@ -83,16 +85,23 @@ void tareaRegistro(void*) {
                 xSemaphoreGive(mutexNodo);
             }
         }
-        while (xQueueReceive(colaFotosSD, &rf, 0) == pdTRUE) {
-            Serial.printf("[CAM] evento #%lu → %s\n", (unsigned long)rf.idEvento, rf.texto);
-            if (sdOk) fFotos.printf("%lu,%s\n", (unsigned long)rf.idEvento, rf.texto);
+        while (xQueueReceive(colaAmbienteSD, &fa, 0) == pdTRUE) {
+            const long ms = fa.g.tFixUs ? (long)((fa.a.tUs - fa.g.tFixUs) / 1000) : 0;
+            // NAN va como celda vacía para que pandas lea el CSV sin errores
+            char t[12] = "", h[12] = "", p[12] = "", l[12] = "";
+            if (!isnan(fa.a.tempC)) snprintf(t, sizeof(t), "%.2f", fa.a.tempC);
+            if (!isnan(fa.a.humPct)) snprintf(h, sizeof(h), "%.1f", fa.a.humPct);
+            if (!isnan(fa.a.presHpa)) snprintf(p, sizeof(p), "%.2f", fa.a.presHpa);
+            if (!isnan(fa.a.lux)) snprintf(l, sizeof(l), "%.1f", fa.a.lux);
+            if (sdOk) fAmb.printf("%lld,%s,%ld,%d,%.7f,%.7f,%s,%s,%s,%s,%s\n", (long long)fa.a.tUs, fa.g.utc, ms,
+                                  fa.g.valido, fa.g.lat, fa.g.lon, fa.a.sensorTH, t, h, p, l);
         }
         while (xQueueReceive(colaExp, &fe, 0) == pdTRUE) {
             if (sdOk) fExp.printf("%lu,%s,%s,%s,%.4f\n", (unsigned long)fe.tMs, fe.experimento, fe.condicion,
                                   fe.variable, fe.valor);
         }
         if (sdOk && millis() - ultimoFlush > 1000) {   // como máximo se pierde 1 s si se corta la energía
-            fCrudo.flush(); fEventos.flush(); fGps.flush(); fEtiq.flush(); fFotos.flush(); fExp.flush();
+            fCrudo.flush(); fEventos.flush(); fGps.flush(); fEtiq.flush(); fAmb.flush(); fExp.flush();
             ultimoFlush = millis();
         }
         vTaskDelay(pdMS_TO_TICKS(10));

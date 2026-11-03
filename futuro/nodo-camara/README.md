@@ -1,4 +1,9 @@
-# firmware/nodo-camara
+# futuro/nodo-camara (TRABAJO FUTURO: fuera del diseño desde el 3-nov-2026)
+
+> La ESP32-CAM y el adaptador CP2102 **salieron del diseño** el 3-nov-2026 (decisión aprobada por el docente de
+> Arquitectura): la evidencia fotográfica la toma el **celular** del equipo (`docs/protocolo_fotos.md`, `dataset/`).
+> Este código se conserva como trabajo futuro. Ya **no** se compila en el flujo normal ni hay enlace UART en el nodo
+> (los GPIO 25/35 se liberaron; el 25 es ahora el DHT22). Lo de abajo es la descripción original.
 
 Esqueleto PlatformIO para la **ESP32-CAM AI-Thinker** (ESP32 + OV2640 + 4 MB PSRAM propia del módulo de cámara).
 

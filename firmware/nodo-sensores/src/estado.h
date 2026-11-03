@@ -25,12 +25,26 @@ struct EstadoGPS {
     int64_t tFixUs = 0;          // esp_timer cuando se completó esa fijación
 };
 
+// Temperatura, humedad, presión y luz (include/ambiente.h). NAN = sin dato.
+struct EstadoAmbiente {
+    char sensorTH[8] = "ninguno";   // bme280, bmp280 (sin humedad), dht22 o ninguno
+    bool luxOk = false;             // hay BH1750
+    float tempC = NAN, humPct = NAN, presHpa = NAN, lux = NAN;
+    int64_t tUs = 0;                // esp_timer de la última lectura
+};
+
+struct FilaAmbiente {               // una línea de ambiente_NNN.csv
+    EstadoAmbiente a;
+    EstadoGPS g;                    // última fijación: da la hora UTC y el lugar
+};
+
 struct EstadoI2C {
     bool mpuOk = false, tofOk = false;
     float giroVertDps = 0, aLongG = 0;
     uint16_t distanciaMm = 0;
     uint32_t usLecturaMpu = 0;   // E4: duración de una lectura I2C de 14 bytes
     Maniobra maniobra = Maniobra::NINGUNA;
+    EstadoAmbiente amb;
 };
 
 struct Evento {
@@ -52,14 +66,9 @@ struct Etiqueta {
     char origen[8];              // web o boton
 };
 
-struct RespuestaFoto {
-    uint32_t idEvento;
-    char texto[48];
-};
-
 // Estado que muestra la página web
 struct EstadoNodo {
-    bool adxlOk = false, sdOk = false, camOk = false;
+    bool adxlOk = false, sdOk = false;
     int sesion = 0;
     uint32_t eventos = 0, etiquetas = 0;
     float muestrasPorSegundo = 0;
@@ -76,7 +85,7 @@ extern SemaphoreHandle_t mutexGPS, mutexI2C, mutexNodo;
 
 extern Bloque pingPong[2];
 extern SemaphoreHandle_t mitadLibre[2];
-extern QueueHandle_t colaBloques, colaCrudo, colaEventosSD, colaCamara, colaGpsSD, colaEtiquetas, colaFotosSD;
+extern QueueHandle_t colaBloques, colaCrudo, colaEventosSD, colaGpsSD, colaEtiquetas, colaAmbienteSD;
 extern TaskHandle_t hAdquisicion;
 
 // ---- Tareas (cada una en su archivo) ----
@@ -84,7 +93,6 @@ void tareaAdquisicion(void*);
 void tareaProcesamiento(void*);
 void tareaGPS(void*);
 void tareaI2C(void*);
-void tareaCamara(void*);
 void tareaRegistro(void*);
 void tareaEstadisticas(void*);
 void tareaWeb(void*);

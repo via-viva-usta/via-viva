@@ -1,6 +1,6 @@
 // Núcleo 0: punto de acceso Wi-Fi y página web para el celular del copiloto.
 //   http://192.168.4.1/           página (se actualiza sola cada segundo)
-//   GET  /estado                  JSON con el último evento, velocidad y estado de sensores
+//   GET  /estado                  JSON con el último evento, velocidad, estado de sensores y ambiente
 //   POST /etiqueta?tipo=hueco     guarda una etiqueta (hueco, resalto, otro) con la hora en la microSD
 //   POST /mesa?activo=1           "modo mesa": ignora la velocidad GPS para probar el detector sin carro
 // El Wi-Fi de la ESP32 corre en el núcleo 0 (configuración de ESP-IDF); la adquisición no se toca.
@@ -50,6 +50,7 @@ button{font-size:1.15rem;padding:22px 6px;border:0;border-radius:12px;color:#fff
 <button class="resalto" onclick="etiquetar('resalto')">Resalto</button>
 <button class="otro" onclick="etiquetar('otro')">Otro</button></div>
 <div id="aviso"></div></div>
+<div class="tarjeta"><div><b>Ambiente</b> <small id="amb_s"></small></div><div id="amb">–</div></div>
 <div class="tarjeta"><div><b>Último evento</b></div><div id="evento">ninguno todavía</div></div>
 <div class="tarjeta"><div><b>Sensores</b></div><div class="sens" id="sens"></div><div id="extra"></div>
 <label><input type="checkbox" id="mesa" onchange="mesa(this.checked)"> Modo mesa (ignora la velocidad para probar)</label></div>
@@ -59,7 +60,10 @@ function chip(n,v){return '<span class="'+(v?'si':'no')+'">'+n+'</span>'}
 async function actualizar(){try{const r=await fetch('/estado');const e=await r.json();
 document.getElementById('vel').textContent=e.gps.vel.toFixed(1);
 document.getElementById('gps').textContent=e.gps.valido?('Fijación: '+e.gps.sat+' satélites · '+e.gps.utc):'Sin señal GPS (bajo techo no hay)';
-document.getElementById('sens').innerHTML=chip('ADXL345',e.adxl)+chip('MPU-6050',e.mpu)+chip('VL53L0X',e.tof)+chip('microSD',e.sd)+chip('Cámara',e.cam)+chip('GPS',e.gps.valido);
+document.getElementById('sens').innerHTML=chip('ADXL345',e.adxl)+chip('MPU-6050',e.mpu)+chip('VL53L0X',e.tof)+chip('microSD',e.sd)+chip('GPS',e.gps.valido)+chip(e.amb.sensor_th.toUpperCase(),e.amb.sensor_th!='ninguno')+chip('BH1750',e.amb.lux_ok);
+const a=e.amb,f=(v,d,u)=>v===null?'–':v.toFixed(d)+u;
+document.getElementById('amb').textContent=f(a.temp,1,' °C')+' · '+f(a.hum,0,' % HR')+' · '+f(a.pres,0,' hPa')+' · '+f(a.lux,0,' lx');
+document.getElementById('amb_s').textContent=a.hace_s>=0?('hace '+a.hace_s.toFixed(0)+' s'):'';
 document.getElementById('extra').textContent='Sesión '+e.sesion+' · '+e.muestras_s.toFixed(0)+' muestras/s · '+e.eventos+' eventos · '+e.etiquetas+' etiquetas · modo E1: '+e.modo_e1+' · maniobra: '+e.maniobra+' · láser '+e.dist_mm+' mm';
 document.getElementById('mesa').checked=e.mesa;
 if(e.ultimo){const u=e.ultimo;document.getElementById('evento').textContent='#'+u.id+' '+u.clase+' · pico '+u.pico.toFixed(2)+' g · '+u.vel.toFixed(0)+' km/h · hace '+u.hace_s.toFixed(0)+' s'}
@@ -80,15 +84,28 @@ static void manejarEstado() {
                  (unsigned long)n.ultimo.id, nombreClase(n.ultimo.clase), n.ultimo.c.pico, n.ultimo.gps.velKmh,
                  (esp_timer_get_time() - n.ultimo.tUs) / 1e6);
     }
-    char json[700];
+    // Ambiente: NAN → null en el JSON
+    const EstadoAmbiente& a = i.amb;
+    char t[12] = "null", h[12] = "null", p[12] = "null", l[12] = "null";
+    if (!isnan(a.tempC)) snprintf(t, sizeof(t), "%.2f", a.tempC);
+    if (!isnan(a.humPct)) snprintf(h, sizeof(h), "%.1f", a.humPct);
+    if (!isnan(a.presHpa)) snprintf(p, sizeof(p), "%.1f", a.presHpa);
+    if (!isnan(a.lux)) snprintf(l, sizeof(l), "%.1f", a.lux);
+    char amb[200];
+    snprintf(amb, sizeof(amb),
+             "{\"sensor_th\":\"%s\",\"lux_ok\":%s,\"temp\":%s,\"hum\":%s,\"pres\":%s,\"lux\":%s,\"hace_s\":%.1f}",
+             a.sensorTH, a.luxOk ? "true" : "false", t, h, p, l,
+             a.tUs ? (esp_timer_get_time() - a.tUs) / 1e6 : -1.0);
+    char json[900];
     snprintf(json, sizeof(json),
-             "{\"adxl\":%s,\"mpu\":%s,\"tof\":%s,\"sd\":%s,\"cam\":%s,\"sesion\":%d,\"muestras_s\":%.1f,"
+             "{\"adxl\":%s,\"mpu\":%s,\"tof\":%s,\"sd\":%s,\"sesion\":%d,\"muestras_s\":%.1f,"
              "\"eventos\":%lu,\"etiquetas\":%lu,\"maniobra\":\"%s\",\"dist_mm\":%u,\"mesa\":%s,\"modo_e1\":\"%s\","
-             "\"gps\":{\"valido\":%s,\"vel\":%.1f,\"sat\":%u,\"utc\":\"%s\"},\"ultimo\":%s}",
+             "\"gps\":{\"valido\":%s,\"vel\":%.1f,\"sat\":%u,\"utc\":\"%s\"},\"amb\":%s,\"ultimo\":%s}",
              n.adxlOk ? "true" : "false", i.mpuOk ? "true" : "false", i.tofOk ? "true" : "false",
-             n.sdOk ? "true" : "false", n.camOk ? "true" : "false", n.sesion, n.muestrasPorSegundo,
+             n.sdOk ? "true" : "false", n.sesion, n.muestrasPorSegundo,
              (unsigned long)n.eventos, (unsigned long)n.etiquetas, nombreManiobra(i.maniobra), i.distanciaMm,
-             modoMesa ? "true" : "false", nombreModoAdq(), g.valido ? "true" : "false", g.velKmh, g.satelites, g.utc, ultimo);
+             modoMesa ? "true" : "false", nombreModoAdq(), g.valido ? "true" : "false", g.velKmh, g.satelites, g.utc,
+             amb, ultimo);
     servidor.send(200, "application/json", json);
 }
 

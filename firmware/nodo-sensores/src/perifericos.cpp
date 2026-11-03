@@ -1,8 +1,10 @@
-// Núcleo 0: GPS (UART2), I2C (MPU-6050 + VL53L0X + maniobras) y enlace con la ESP32-CAM (UART1).
+// Núcleo 0: GPS (UART2) e I2C (MPU-6050 + VL53L0X + maniobras a 50 Hz; ambiente cada PERIODO_AMBIENTE_MS).
+// El ambiente va en la misma tarea porque comparte el bus I2C: así no hace falta un mutex del bus.
 #include <TinyGPSPlus.h>
 #include <VL53L0X.h>
 #include <Wire.h>
 
+#include "ambiente.h"
 #include "esp_timer.h"
 #include "estadisticas.h"
 #include "estado.h"
@@ -12,6 +14,49 @@
 static TinyGPSPlus gps;
 static MPU6050 mpu;
 static VL53L0X tof;
+static BME280 bme;
+static BH1750 bh;
+static DHT22 dht;
+
+// Detecta qué sensores de ambiente hay. Temperatura y humedad: BME280 (o BMP280, sin humedad); si no hay, DHT22.
+static void iniciarAmbiente(EstadoAmbiente& a) {
+    if (bme.iniciar(Wire)) {
+        strcpy(a.sensorTH, bme.tieneHumedad() ? "bme280" : "bmp280");
+    } else {
+        dht.iniciar(PIN_DHT22);
+        float t, h;
+        for (int intento = 0; intento < 3; intento++) {   // la primera lectura tras energizar suele fallar
+            delay(2100);                                  // ≥ 2 s entre lecturas
+            if (dht.leer(t, h) == DHT22::OK) {
+                strcpy(a.sensorTH, "dht22");
+                break;
+            }
+        }
+    }
+    a.luxOk = bh.iniciar(Wire, BH1750_DIR);
+    Serial.printf("[AMBIENTE] temperatura/humedad: %s%s · BH1750: %s\n", a.sensorTH,
+                  strcmp(a.sensorTH, "bmp280") == 0 ? " (es BMP280: NO mide humedad; usar DHT22)" : "",
+                  a.luxOk ? "OK" : "NO RESPONDE");
+}
+
+static void leerAmbiente(EstadoAmbiente& a) {
+    float t = NAN, h = NAN, p = NAN, lux = NAN;
+    if (a.sensorTH[0] == 'b') {
+        if (!bme.leer(t, h, p)) t = h = p = NAN;
+    } else if (a.sensorTH[0] == 'd') {
+        const DHT22::Error e = dht.leer(t, h);
+        if (e != DHT22::OK) {
+            t = h = NAN;
+            Serial.printf("[AMBIENTE] DHT22: %s\n", DHT22::nombreError(e));
+        }
+    }
+    if (a.luxOk && !bh.leer(lux)) lux = NAN;
+    a.tempC = t;
+    a.humPct = h;
+    a.presHpa = p;
+    a.lux = lux;
+    a.tUs = esp_timer_get_time();
+}
 
 void tareaGPS(void*) {
     float velAnterior = 0;
@@ -61,6 +106,9 @@ void tareaI2C(void*) {
         tof.startContinuous();
     }
     Serial.printf("[I2C] MPU-6050: %s · VL53L0X: %s\n", mpuOk ? "OK" : "NO RESPONDE", tofOk ? "OK" : "NO RESPONDE");
+    EstadoAmbiente amb;
+    iniciarAmbiente(amb);
+    uint32_t ultimoAmbiente = millis() - PERIODO_AMBIENTE_MS;   // primera lectura de una vez
 
     DetectorManiobras maniobras;
     ParametrosManiobra pm;
@@ -93,6 +141,12 @@ void tareaI2C(void*) {
             if (tof.timeoutOccurred()) dist = 0;
         }
         const EstadoGPS g = copiarGPS();
+        if (millis() - ultimoAmbiente >= PERIODO_AMBIENTE_MS) {
+            ultimoAmbiente = millis();
+            leerAmbiente(amb);
+            FilaAmbiente fa{amb, g};
+            xQueueSend(colaAmbienteSD, &fa, 0);
+        }
         const float giro = SIGNO_GIRO_MPU * eje(l, EJE_GIRO_MPU, true);
         const float aLong = SIGNO_LONG_MPU * eje(l, EJE_LONG_MPU, false);
         const Maniobra nueva = mpuOk ? maniobras.procesar(giro, aLong, g.velKmh, g.decelMs2) : Maniobra::NINGUNA;
@@ -105,6 +159,7 @@ void tareaI2C(void*) {
             estadoI2C.distanciaMm = dist;
             estadoI2C.usLecturaMpu = us;
             estadoI2C.maniobra = maniobras.activa();
+            estadoI2C.amb = amb;
             xSemaphoreGive(mutexI2C);
         }
         if (nueva != Maniobra::NINGUNA) {   // cada maniobra queda como evento propio en la microSD
@@ -120,32 +175,5 @@ void tareaI2C(void*) {
             xQueueSend(colaEventosSD, &ev, 0);
         }
         vTaskDelayUntil(&ultimo, pdMS_TO_TICKS(PERIODO_I2C_MS));
-    }
-}
-
-// Protocolo con la ESP32-CAM (docs/diagramas/01_arquitectura.md):
-//   nodo → CAM: "FOTO,<id>,<utc_fix>+<ms>"   CAM → nodo: "OK,<id>,<bytes>" o "ERR,<id>,<codigo>"
-void tareaCamara(void*) {
-    Serial1.setTimeout(TIMEOUT_CAMARA_MS);
-    Serial1.print("PING\n");
-    String pong = Serial1.readStringUntil('\n');
-    pong.trim();
-    Serial.printf("[CAM] PING → %s\n", pong.length() ? pong.c_str() : "(sin respuesta)");
-    if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
-        estadoNodo.camOk = pong == "PONG";
-        xSemaphoreGive(mutexNodo);
-    }
-
-    Evento ev;
-    for (;;) {
-        xQueueReceive(colaCamara, &ev, portMAX_DELAY);
-        while (Serial1.available()) Serial1.read();   // descarta basura previa
-        Serial1.printf("FOTO,%lu,%s+%ld\n", (unsigned long)ev.id, ev.gps.utc, (long)ev.msDesdeFix);
-        String r = Serial1.readStringUntil('\n');
-        r.trim();
-        RespuestaFoto rf{};
-        rf.idEvento = ev.id;
-        snprintf(rf.texto, sizeof(rf.texto), "%s", r.length() ? r.c_str() : "TIMEOUT");
-        xQueueSend(colaFotosSD, &rf, 0);
     }
 }
