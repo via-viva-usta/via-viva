@@ -95,3 +95,9 @@ data/fotos_bot/
 
 # ===== Firmware: claves del punto de acceso =====
 firmware/**/include/secretos.h
+
+# ===== Configuración local de Claude Code =====
+.claude/
+
+# ===== Mapa web: datos generados (se regeneran con web/exportar.py) =====
+web/datos.js
