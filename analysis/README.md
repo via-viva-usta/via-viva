@@ -112,3 +112,26 @@ por vecino más cercano). Estos números no describen las vías de Tunja.
 - Correrlo con los primeros recorridos reales y fijar fs.
 - Leer los CSV del nodo (`crudo_NNN.csv` en cuentas de 3,9 mg, `gps_NNN.csv`, `etiquetas_NNN.csv`).
 - Exportar el árbol a C / CNN 1D int8 para el experimento E3.
+
+## Cadena de entrenamiento del detector (un comando)
+
+```powershell
+analysis\.venv\Scripts\python analysis\entrenar_detector.py              # con los recorridos reales de data/raw/
+analysis\.venv\Scripts\python analysis\entrenar_detector.py --sintetico  # prueba de la cadena con datos SINTÉTICOS
+```
+
+1. **Recorridos etiquetados**: phyphox (`data/raw/phyphox/`) y nodo (`data/raw/nodo/<sesión>/crudo_NNN.csv`,
+   `gps_NNN.csv`, `etiquetas_NNN.csv`). Se necesitan ≥ 2 para validar.
+2. **Señal igual a la del nodo**: \|a\| − 1 g a 200 Hz. Ventanas ancladas en el disparo del **detector por umbrales**
+   (como en el ESP32); los disparos sin etiqueta son falsas alarmas (negativos difíciles) y hay ventanas normales al azar.
+3. **Características** idénticas a `src/caracteristicas.h` (pico, RMS, curtosis, factor de cresta, jerk, signo) + velocidad.
+4. **Modelos**: bosque aleatorio (10 árboles, profundidad ≤ 6) y red 1D (`modelo_cnn.py`, 788 parámetros) en float32 y
+   **int8** (cuantización propia, idéntica en Python y en C).
+5. **Validación leave-one-drive-out** por ventana (F1 macro y F1 de huecos) y **por evento** sobre todos los disparos:
+   detector por umbrales solo vs. umbral + bosque vs. umbral + red int8 (precisión, recall, F1, falsos por km).
+6. **Exportación a C**: `firmware/nodo-sensores/src/modelo_cnn.h` (float32 + int8) y `modelo_bosque.h` (emlearn).
+   Métricas en `analysis/salidas/detector_<fecha>.md` (carpeta ignorada por Git).
+
+**Estado (2-nov-2026):** probada solo con `--sintetico` (6 recorridos, 232 ventanas). Los modelos exportados hoy llevan
+`MODELO_SINTETICO 1`: sirven para medir latencia en E2/E3, **no** para detectar huecos. Las métricas sintéticas salen
+perfectas porque los datos falsos son fáciles: no son resultados. Con los recorridos reales basta volver a correr el comando.

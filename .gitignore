@@ -101,3 +101,6 @@ firmware/**/include/secretos.h
 
 # ===== Mapa web: datos generados (se regeneran con web/exportar.py) =====
 web/datos.js
+
+# ===== Salidas del análisis (métricas; se suben solo las que vayan al informe) =====
+analysis/salidas/
