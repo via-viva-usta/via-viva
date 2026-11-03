@@ -11,6 +11,8 @@ data/alcaldia/
 data/osm/
 data/terceros/
 data/campo/
+data/procesado/
+data/procesado_sintetico/
 *.db
 *.sqlite
 *.sqlite3

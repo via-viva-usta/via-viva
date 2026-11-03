@@ -3,6 +3,6 @@ numpy
 pandas
 pillow
 pillow-heif
-opencv-contrib-python-headless
+opencv-contrib-python-headless<5   # la 5.x ya no trae los clasificadores Haar (caras y placas)
 requests
 reportlab
