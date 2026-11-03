@@ -114,7 +114,7 @@ def pegar_aruco(img, rng, px_por_cm: float, id_: int) -> tuple[np.ndarray, np.nd
     lado = int(round(LADO_MARCADOR_MM / 10 * px_por_cm))
     marg = int(round(px_por_cm))
     m = cv2.aruco.generateImageMarker(cv2.aruco.getPredefinedDictionary(DICCIONARIO), id_, lado)
-    x0, y0 = int(rng.uniform(15, 40)), int(rng.uniform(15, 40))
+    x0, y0 = int(rng.uniform(70, 120)), int(rng.uniform(60, 100))   # lejos del borde: la perspectiva no la corta
     cv2.rectangle(img, (x0, y0), (x0 + lado + 2 * marg, y0 + lado + 2 * marg), (245, 245, 245), -1)
     img[y0 + marg:y0 + marg + lado, x0 + marg:x0 + marg + lado] = np.dstack([m] * 3)
     return img, np.array([x0, y0, lado + 2 * marg])
