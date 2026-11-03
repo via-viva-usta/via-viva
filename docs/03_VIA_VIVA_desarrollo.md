@@ -5,6 +5,8 @@ Propuesta propia del equipo, independiente de las propuestas anteriores.
 Compra asociada: `02_COMPRAS\VIA_VIVA_Cotizacion.xlsx` (hoja «ELEGIDA - 1 nodo»).
 Equipo (4): Andrés Santiago Cárdenas González, Juan Felipe García Carvajal, Juan Diego Anzola Duarte, Dany Alexander Cipamocha Riaño.
 
+> **Actualización 2-nov-2026 — cambio de placa.** La placa principal pasa a ser la **ESP32 normal (WROOM-32, DevKit de 30 pines)**: sin PSRAM, sin instrucciones vectoriales y con pines distintos (ver `CLAUDE.md`, sección 5). E2 queda como flash vs. SRAM y E3 como float32 vs. int8. Presupuesto aproximado: **330.000 COP**. La ESP32-CAM se programa con un adaptador CP2102. La atención al ciudadano es un bot de Telegram + un mapa web estático, sin backend. El resto del diseño se mantiene.
+
 ## 1. Idea en una frase
 
 Nodos con IA en el borde, a bordo de vehículos, detectan huecos, resaltos e impactos en las vías de Tunja. Una cámara documenta cada evento con evidencia anonimizada (foto difuminada, hora y GPS). Todo alimenta un mapa vivo, junto con reportes ciudadanos y fuentes públicas, para la autoridad (tablero) y la ciudadanía (mapa público).
@@ -16,11 +18,11 @@ Nodos con IA en el borde, a bordo de vehículos, detectan huecos, resaltos e imp
 | Papel de la cámara | **Reporte con evidencia** para la autoridad; **no multa** |
 | Dónde va el dispositivo | **A bordo de vehículos** (se mueve por la ciudad) |
 | Usuario principal | **Autoridad (tablero) + mapa público** |
-| Hardware de visión | **ESP32-S3 con cámara** (detección simple y difuminado en el borde) |
+| Hardware de visión | **ESP32-CAM** (detección simple y difuminado en el borde) |
 | Vehículo de pruebas | **Sí, el equipo tiene carro para pruebas** |
-| Prototipo | **1 nodo** (ESP32-S3 de sensores + ESP32-CAM), con acelerómetro de repuesto y sensor láser VL53L0X (decisiones 20 y 24-oct) |
+| Prototipo | **1 nodo** (ESP32 WROOM-32 de sensores + ESP32-CAM; antes ESP32-S3, cambio del 2-nov), con acelerómetro de repuesto y sensor láser VL53L0X (decisiones 20 y 24-oct) |
 | Capa predictiva | **Mapa de riesgo georreferenciado** de huecos no reportados (sugerencia del docente y comité curricular, 24-oct) |
-| Presupuesto | ≈ **342.400 COP** (≈ 85.600 por persona; hoja «FINAL - compra»); cargador, cable y soporte los pone el equipo |
+| Presupuesto | ≈ **330.000 COP** (actualizado 2-nov con la ESP32 normal; antes 342.400); cargador, cable y soporte los pone el equipo |
 | Tiempo | **4 semanas**: 19 oct – 13 nov 2026 |
 | Gestión institucional | Alcaldía por oficio vía contacto en Infraestructura (Sr. Hermen Román Díaz); Gobernación por derecho de petición (VUV). Living Lab va aparte del integrador |
 
@@ -38,10 +40,10 @@ Nodos con IA en el borde, a bordo de vehículos, detectan huecos, resaltos e imp
 
 ```
 NODO (a bordo)
-  ESP32-S3 sensores ── SPI ──> ADXL345 (FIFO, INT watermark) ──GDMA──> buffer A | buffer B
+  ESP32 sensores ── VSPI ──> ADXL345 (FIFO, INT watermark) ──DMA──> buffer A | buffer B
         │          ── I2C ──> MPU-6050 (giroscopio, línea base)
         │          ── UART ─> GPS NEO-6M (posición, velocidad, hora UTC)
-        │          ── SPI ──> microSD (registro crudo)
+        │          ── HSPI ─> microSD (registro crudo)
         │  Núcleo 1: ventana → filtro → características → inferencia int8 → evento
         │  Núcleo 0: cola de eventos → SD → Wi-Fi (hotspot) / store-and-forward
         └── UART ──> ESP32-CAM: "evento en t" → foto → difuminado → miniatura + metadatos
@@ -74,9 +76,9 @@ Decisiones de señal:
 
 ## 6. Arquitectura del computador (protagonista)
 
-- **Dos procesadores por nodo.** El ESP32-S3 de sensores detecta y le pide la foto al ESP32-CAM por UART. Reparto de carga entre procesadores y protocolo entre ellos.
+- **Dos procesadores por nodo.** El ESP32 de sensores detecta y le pide la foto al ESP32-CAM por UART. Reparto de carga entre procesadores y protocolo entre ellos.
 - **Doble núcleo.** Núcleo 1 para adquisición e inferencia; núcleo 0 para SD y comunicaciones.
-- **Buses separados.** SPI para el acelerómetro y SPI aparte para la microSD (evita contención). I2C para el MPU-6050, UART para GPS y para la cámara. El I2C del S3 no usa DMA (verificar en el TRM).
+- **Buses separados.** SPI para el acelerómetro y SPI aparte para la microSD (evita contención). I2C para el MPU-6050, UART para GPS y para la cámara. El I2C del ESP32 no usa DMA.
 - **DMA con doble buffer (ping-pong).** La FIFO del ADXL345 avisa cada 32 muestras: a 200 Hz es una interrupción cada 160 ms.
 - **A esta tasa el bus no es el cuello de botella.** La ganancia del DMA es liberar la CPU. Hay que medirlo.
 - **Memoria.** Una ventana de 2 s en 3 ejes son 2,4 KB. El modelo int8 vive en flash con caché o en SRAM (experimento E2).
@@ -84,8 +86,8 @@ Decisiones de señal:
 | # | Pregunta | Se compara | Métricas |
 |---|---|---|---|
 | E1 | ¿Cómo adquirir? | Polling vs interrupción por muestra vs FIFO + DMA ping-pong | Jitter, CPU %, muestras perdidas con SD y Wi-Fi activos, mA |
-| E2 | ¿Dónde viven los pesos? | Flash con caché vs SRAM vs PSRAM | Latencia de inferencia |
-| E3 | ¿Cuánto acelera? | float32 vs int8, con y sin ESP-NN | Latencia, RAM, Flash, F1 |
+| E2 | ¿Dónde viven los pesos? | Flash con caché vs SRAM | Latencia de inferencia |
+| E3 | ¿Cuánto acelera? | float32 vs int8 | Latencia, RAM, Flash, F1 |
 | E4 | ¿Qué bus? | I2C (MPU-6050) vs SPI (ADXL345) | Tiempo de lectura, ocupación de CPU |
 
 Mínimo para el informe: E1 y E3.
@@ -200,7 +202,7 @@ El comité curricular consideró el proyecto viable y el docente sugirió agrega
 
 ## 16. Tareas de esta semana
 
-- [ ] Confirmar con Dynamo la reposición de la ESP32-S3-DevKitC (16 MB / 8 MB) o buscar otra tienda.
+- [x] ~~Confirmar la ESP32-S3~~ → se usa ESP32 normal (2-nov).
 - [ ] Hacer la compra según `VIA_VIVA_Cotizacion.xlsx` y asignar responsables.
 - [ ] Derecho de petición a Tránsito de Tunja: siniestros georreferenciados 2024–2025.
 - [ ] Derecho de petición a la Secretaría de Infraestructura: inventario de huecos y formato de inspección.
@@ -215,4 +217,4 @@ El comité curricular consideró el proyecto viable y el docente sugirió agrega
 - Street Bump (Harvard D3): https://d3.harvard.edu/platform-digit/submission/street-bump-crowdsourcing-better-streets-but-many-roadblocks-remain/
 - Informe de práctica, Secretaría de Infraestructura de Tunja (USTA, 2022): https://repository.usta.edu.co/items/87b16f56-0138-4234-ab02-e6da83b6f925/full
 - Pasantía en la Secretaría de Infraestructura de Tunja (USTA, 2022): https://repository.usta.edu.co/bitstreams/3f85e77b-eb81-4ffd-a3fc-11c11f6bf6a1/download
-- ESP32-S3 (Espressif): https://www.espressif.com/en/products/socs/esp32-s3
+- ESP32 (Espressif): https://www.espressif.com/en/products/socs/esp32

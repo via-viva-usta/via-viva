@@ -8,7 +8,7 @@ GitHub y VS Code muestran estos diagramas directamente (Mermaid).
 flowchart LR
     subgraph NODO["Nodo a bordo (carro)"]
         direction TB
-        subgraph S3["ESP32-S3 · nodo-sensores"]
+        subgraph S3["ESP32 WROOM-32 · nodo-sensores"]
             direction TB
             C1["Núcleo 1<br/>adquisición → filtro → características → inferencia int8"]
             C0["Núcleo 0<br/>cola de eventos → microSD → Wi-Fi (store-and-forward)"]
@@ -22,13 +22,13 @@ flowchart LR
         BTN["Pulsador<br/>etiqueta de campo"]
         CAM["ESP32-CAM · nodo-camara<br/>OV2640 → foto → difuminado"]
 
-        ADXL -- "SPI2 (FSPI) + INT1" --> S3
+        ADXL -- "VSPI + INT1 (GPIO 34)" --> S3
         MPU -- "I2C 0x68" --> S3
         TOF -- "I2C 0x29" --> S3
-        GPS -- "UART1 9600 baud" --> S3
-        S3 -- "SPI3" --> SD
-        BTN -- "GPIO 1" --> S3
-        S3 <-- "UART2: FOTO / OK" --> CAM
+        GPS -- "UART2 9600 baud" --> S3
+        S3 -- "HSPI (matriz GPIO)" --> SD
+        BTN -- "GPIO 26" --> S3
+        S3 <-- "UART1: FOTO / OK" --> CAM
     end
 
     subgraph FUENTES["Otras fuentes"]
@@ -55,19 +55,19 @@ flowchart LR
     DB --> MAPA
 ```
 
-## Reparto de trabajo dentro del ESP32-S3
+## Reparto de trabajo dentro del ESP32
 
 ```mermaid
 flowchart TB
-    INT["ISR GPIO 14<br/>(watermark FIFO = 32 muestras,<br/>cada 160 ms a 200 Hz)"] -- "notificación" --> TA
+    INT["ISR GPIO 34<br/>(watermark FIFO = 31 muestras,<br/>cada 155 ms a 200 Hz)"] -- "notificación" --> TA
     subgraph N1["Núcleo 1 (APP_CPU)"]
-        TA["tareaAdquisicion<br/>lee 32 muestras por SPI"] --> PP["búfer ping-pong<br/>A | B"]
+        TA["tareaAdquisicion<br/>lee el lote por SPI + DMA"] --> PP["búfer ping-pong<br/>A | B"]
         PP --> TP["tareaProcesamiento<br/>ventana → filtro → características<br/>→ clasificador"]
     end
     subgraph N0["Núcleo 0 (PRO_CPU)"]
         TG["tareaGPS<br/>NMEA → posición + hora UTC"]
         TS["tareaRegistro<br/>microSD (crudo + eventos)"]
-        TC["tareaCamara<br/>orden FOTO por UART2"]
+        TC["tareaCamara<br/>orden FOTO por UART1"]
         TI["tareaI2C<br/>MPU-6050 + VL53L0X"]
     end
     TP -- "colaEventos" --> TS
@@ -82,7 +82,7 @@ Texto ASCII, una orden por línea (terminada en salto de línea), 115200 baud.
 
 ```mermaid
 sequenceDiagram
-    participant S as ESP32-S3 (sensores)
+    participant S as ESP32 (sensores)
     participant C as ESP32-CAM
     S->>C: FOTO,id_evento,ts_utc
     activate C

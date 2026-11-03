@@ -3,7 +3,7 @@
 Documentación del proyecto.
 
 - `03_VIA_VIVA_desarrollo.md` — diseño completo (adquisición, arquitectura, procesamiento, estructuras, capa predictiva).
-- `propuesta/` — propuesta en formato IEEE (`main.tex` + `referencias.bib`).
+- `propuesta/` — propuesta en formato IEEE (`main.tex` + `referencias.bib`). Es el documento entregado (con ESP32-S3); no se modifica. El informe final está en `report/`.
 - `diagramas/` — diagramas en Mermaid (arquitectura, flujo de datos, entidad-relación, clases UML del tablero).
 
 **Estado:** diseño, propuesta y diagramas (arquitectura, flujo de datos, entidad-relación, clases del tablero) listos.

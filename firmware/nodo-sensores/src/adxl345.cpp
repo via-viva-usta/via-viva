@@ -7,6 +7,9 @@
 static constexpr uint8_t SPI_LEER = 0x80;
 static constexpr uint8_t SPI_MULTIBYTE = 0x40;
 
+// VSPI (SPI3_HOST) en la ESP32 normal; el HSPI (SPI2_HOST) queda para la microSD
+static constexpr spi_host_device_t HOST_SPI = SPI3_HOST;
+
 bool ADXL345::iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi) {
     spi_bus_config_t bus;
     memset(&bus, 0, sizeof(bus));
@@ -16,7 +19,7 @@ bool ADXL345::iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi
     bus.quadwp_io_num = -1;
     bus.quadhd_io_num = -1;
     bus.max_transfer_sz = 64;
-    if (spi_bus_initialize(SPI2_HOST, &bus, SPI_DMA_CH_AUTO) != ESP_OK) return false;
+    if (spi_bus_initialize(HOST_SPI, &bus, SPI_DMA_CH_AUTO) != ESP_OK) return false;
 
     spi_device_interface_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
@@ -24,7 +27,7 @@ bool ADXL345::iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi
     cfg.clock_speed_hz = hzSpi;
     cfg.spics_io_num = pinCs;
     cfg.queue_size = MAX_LOTE;       // permite encolar un lote completo de lecturas
-    if (spi_bus_add_device(SPI2_HOST, &cfg, &dev_) != ESP_OK) return false;
+    if (spi_bus_add_device(HOST_SPI, &cfg, &dev_) != ESP_OK) return false;
 
     tx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_LECTURA, MALLOC_CAP_DMA);
     rx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_LECTURA, MALLOC_CAP_DMA);

@@ -1,7 +1,7 @@
-// VÍA VIVA — nodo de sensores (ESP32-S3-DevKitC-1 N16R8)
+// VÍA VIVA — nodo de sensores (ESP32 DevKit de 30 pines, WROOM-32, entorno esp32dev)
 //
 // Reparto de tareas (FreeRTOS, doble núcleo):
-//   Núcleo 1: tareaAdquisicion (ADXL345 por SPI + DMA) → búfer ping-pong → tareaProcesamiento
+//   Núcleo 1: tareaAdquisicion (ADXL345 por VSPI + DMA) → búfer ping-pong → tareaProcesamiento
 //   Núcleo 0: tareaGPS, tareaI2C (MPU-6050 + VL53L0X), tareaRegistro (microSD), tareaCamara, tareaEstadisticas
 //
 // Lo que solo se puede validar con la placa real está marcado con [VALIDAR EN PLACA].
@@ -70,7 +70,7 @@ static ADXL345 adxl;
 static MPU6050 mpu;
 static VL53L0X tof;
 static TinyGPSPlus gps;
-static SPIClass spiSD(HSPI);     // SPI3, separado del bus del acelerómetro
+static SPIClass spiSD(HSPI);     // HSPI (SPI2) por la matriz GPIO, separado del VSPI del acelerómetro
 
 static EstadoGPS estadoGPS;
 static EstadoI2C estadoI2C;
@@ -290,7 +290,7 @@ static void tareaProcesamiento(void*) {
 // ============================================================================
 static void tareaGPS(void*) {
     for (;;) {
-        while (Serial1.available()) gps.encode(Serial1.read());
+        while (Serial2.available()) gps.encode(Serial2.read());
         if (gps.location.isUpdated()) {
             EstadoGPS e;
             e.valido = gps.location.isValid();
@@ -352,19 +352,19 @@ static void tareaI2C(void*) {
 }
 
 // Protocolo con la ESP32-CAM (docs/diagramas/01_arquitectura.md):
-//   S3 → CAM: "FOTO,<id>,<utc_fix>+<ms>"   CAM → S3: "OK,<id>,<bytes>" o "ERR,<id>,<codigo>"
+//   nodo → CAM: "FOTO,<id>,<utc_fix>+<ms>"   CAM → nodo: "OK,<id>,<bytes>" o "ERR,<id>,<codigo>"
 static void tareaCamara(void*) {
-    Serial2.setTimeout(TIMEOUT_CAMARA_MS);
-    Serial2.print("PING\n");
-    const String pong = Serial2.readStringUntil('\n');
+    Serial1.setTimeout(TIMEOUT_CAMARA_MS);
+    Serial1.print("PING\n");
+    const String pong = Serial1.readStringUntil('\n');
     Serial.printf("[CAM] PING → %s\n", pong.length() ? pong.c_str() : "(sin respuesta)");
 
     Evento ev;
     for (;;) {
         xQueueReceive(colaCamara, &ev, portMAX_DELAY);
-        while (Serial2.available()) Serial2.read();   // descarta basura previa
-        Serial2.printf("FOTO,%lu,%s+%ld\n", (unsigned long)ev.id, ev.gps.utc, (long)ev.msDesdeFix);
-        String r = Serial2.readStringUntil('\n');
+        while (Serial1.available()) Serial1.read();   // descarta basura previa
+        Serial1.printf("FOTO,%lu,%s+%ld\n", (unsigned long)ev.id, ev.gps.utc, (long)ev.msDesdeFix);
+        String r = Serial1.readStringUntil('\n');
         r.trim();
         RespuestaFoto rf{};
         rf.idEvento = ev.id;
@@ -486,12 +486,12 @@ static void tareaEstadisticas(void*) {
         // Línea CSV fácil de copiar del monitor serie para el informe de E1/E4
         Serial.printf("E1,modo=%d,seg=%.1f,muestras=%lu,esperadas=%.0f,overruns=%lu,bloques_perdidos=%lu,"
                       "timeouts=%lu,int=%lu,intervalo_us=%.1f,jitter_us=%.1f,min_us=%lld,max_us=%lld,"
-                      "lectura_ocupada_pct=%.2f,cpu0_pct=%.1f,cpu1_pct=%.1f,i2c_mpu_us=%lu,heap=%u,psram=%u\n",
+                      "lectura_ocupada_pct=%.2f,cpu0_pct=%.1f,cpu1_pct=%.1f,i2c_mpu_us=%lu,heap=%u\n",
                       MODO_ADQ, seg, (unsigned long)s.muestras, esperadas, (unsigned long)s.overruns,
                       (unsigned long)s.bloquesPerdidos, (unsigned long)s.timeouts, (unsigned long)s.interrupciones,
                       s.mediaIntervalo, jitter, (long long)(s.nIntervalos ? s.minIntervalo : 0),
                       (long long)s.maxIntervalo, 100.0 * s.usOcupado / (seg * 1e6), cpu[0], cpu[1],
-                      (unsigned long)i2c.usLecturaMpu, ESP.getFreeHeap(), ESP.getFreePsram());
+                      (unsigned long)i2c.usLecturaMpu, ESP.getFreeHeap());
     }
 }
 
@@ -503,9 +503,9 @@ void setup() {
     delay(500);
     Serial.println("\n=== VÍA VIVA · nodo de sensores ===");
     Serial.printf("Modo de adquisición (E1): %d · fs = %u Hz · watermark = %u\n", MODO_ADQ, FS_HZ, FIFO_WATERMARK);
-    // [VALIDAR EN PLACA] Con N16R8 deben verse ~16 MB de flash y ~8 MB de PSRAM
-    Serial.printf("Flash: %u B · PSRAM: %u B · heap libre: %u B\n", ESP.getFlashChipSize(), ESP.getPsramSize(),
-                  ESP.getFreeHeap());
+    // [VALIDAR EN PLACA] La WROOM-32 debe mostrar 4 MB de flash (no tiene PSRAM)
+    Serial.printf("Flash: %u B · heap libre: %u B · programa: %u B\n", ESP.getFlashChipSize(), ESP.getFreeHeap(),
+                  ESP.getSketchSize());
 
     pinMode(PIN_LED, OUTPUT);
     pinMode(PIN_PULSADOR, INPUT_PULLUP);
@@ -530,21 +530,21 @@ void setup() {
     referenciaIdle[0] = max<uint32_t>(1, contadorIdle[0] - i0);
     referenciaIdle[1] = max<uint32_t>(1, contadorIdle[1] - i1);
 
-    // ---- ADXL345 (SPI2 + DMA) ----
+    // ---- ADXL345 (VSPI + DMA) ----
     // [VALIDAR EN PLACA] DEVID = 0xE5 y lectura de vuelta de la configuración
     const bool adxlOk = adxl.iniciar(PIN_ADXL_SCK, PIN_ADXL_MOSI, PIN_ADXL_MISO, PIN_ADXL_CS, SPI_ADXL_HZ);
     const bool cfgOk = adxlOk && adxl.configurar(FS_HZ, MODO_ADQ, FIFO_WATERMARK);
     Serial.printf("[ADXL345] DEVID=0x%02X (%s) · configuración %s\n", adxl.devid(),
                   adxlOk ? "OK" : "NO RESPONDE", cfgOk ? "OK" : "FALLÓ");
 
-    // ---- microSD (SPI3) ----
+    // ---- microSD (HSPI por la matriz GPIO) ----
     spiSD.begin(PIN_SD_SCK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_CS);
     sdOk = SD.begin(PIN_SD_CS, spiSD, SPI_SD_HZ);
     Serial.printf("[SD] %s\n", sdOk ? "OK" : "NO DETECTADA (se sigue sin registro)");
 
     // ---- UARTs ----
-    Serial1.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
-    Serial2.begin(CAM_BAUD, SERIAL_8N1, PIN_CAM_RX, PIN_CAM_TX);
+    Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);   // UART2: GPS
+    Serial1.begin(CAM_BAUD, SERIAL_8N1, PIN_CAM_RX, PIN_CAM_TX);   // UART1: ESP32-CAM
 
     // ---- Tareas ----
     e1.tInicio = esp_timer_get_time();

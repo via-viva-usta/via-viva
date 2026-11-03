@@ -1,6 +1,6 @@
 // VÍA VIVA — nodo de cámara (ESP32-CAM AI-Thinker, OV2640)
 //
-// Espera órdenes del nodo de sensores por UART y responde (docs/diagramas/01_arquitectura.md):
+// Espera órdenes del nodo de sensores (ESP32 WROOM-32) por UART y responde (docs/diagramas/01_arquitectura.md):
 //   "PING"              → "PONG"
 //   "FOTO,<id>,<hora>"  → captura → difumina → JPEG en PSRAM → "OK,<id>,<bytes>" o "ERR,<id>,<codigo>"
 //
@@ -12,12 +12,12 @@
 #include "esp_camera.h"
 #include "img_converters.h"
 
-// ---- Enlace UART con el ESP32-S3 ----
+// ---- Enlace UART con el nodo de sensores (ESP32 WROOM-32) ----
 // [VALIDAR EN PLACA] CLAUDE.md deja como candidatos 13/14 o 14/15 (pines de la microSD interna, que no se usa).
 // Se elige RX = 13 y TX = 14: el GPIO 14 emite una señal al arrancar, y como TX solo manda
-// basura al S3 (que la descarta); como RX pelearía con el TX del S3. Poner 1 kΩ en serie en cada línea.
-#define PIN_ENLACE_RX 13   // ← GPIO 15 (TX) del ESP32-S3
-#define PIN_ENLACE_TX 14   // → GPIO 16 (RX) del ESP32-S3
+// basura al nodo (que la descarta); como RX pelearía con el TX del nodo. Poner 1 kΩ en serie en cada línea.
+#define PIN_ENLACE_RX 13   // ← GPIO 25 (TX) del nodo de sensores
+#define PIN_ENLACE_TX 14   // → GPIO 35 (RX) del nodo de sensores
 #define ENLACE_BAUD 115200
 #define PIN_FLASH 4        // LED de flash: apagado (deslumbra a otros conductores)
 
@@ -129,7 +129,7 @@ static void tomarFoto(const String& id) {
     free(ultimaFoto);
     ultimaFoto = jpg;
     ultimaFotoBytes = bytes;
-    // [PENDIENTE] enviar la miniatura al S3 (UART) o a la red; hoy solo queda en PSRAM.
+    // [PENDIENTE] enviar la miniatura al nodo (UART) o a la red; hoy solo queda en PSRAM.
     Serial2.printf("OK,%s,%u\n", id.c_str(), (unsigned)bytes);
     Serial.printf("[FOTO] id=%s %u bytes, difuminado %lu ms\n", id.c_str(), (unsigned)bytes, (unsigned long)msDifuminado);
 }
@@ -146,7 +146,7 @@ void setup() {
     const bool camOk = iniciarCamara();
     Serial.printf("[CAM] OV2640 %s\n", camOk ? "OK" : "NO INICIA");
     if (!camOk) {
-        // Sigue respondiendo por UART para que el S3 sepa que la cámara falló
+        // Sigue respondiendo por UART para que el nodo sepa que la cámara falló
         for (;;) {
             if (Serial2.available()) {
                 String linea = Serial2.readStringUntil('\n');

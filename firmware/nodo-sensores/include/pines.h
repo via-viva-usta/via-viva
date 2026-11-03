@@ -1,32 +1,36 @@
-// Pines del nodo de sensores (CLAUDE.md, sección 5).
-// PROPUESTA: verificar contra la placa real antes de soldar.
-// Evitados: 0, 3, 45, 46 (arranque) · 19-20 (USB) · 26-32 (flash) · 35-37 (PSRAM octal) · 43-44 (UART0, monitor).
+// Pines del nodo de sensores — ESP32 DevKit de 30 pines (WROOM-32, entorno esp32dev).
+// Fuente: CLAUDE.md, sección 5. Verificar contra la placa real antes de soldar.
+//
+// Prohibidos o limitados: 0, 2, 5, 12, 15 (arranque) · 6-11 (flash interna) · 1 y 3 (UART0, monitor)
+// · 34-39 solo entradas y SIN pull-up interno.
 #pragma once
 
-// ADXL345 por SPI2 (FSPI), manejado con el driver spi_master de ESP-IDF (con DMA)
-#define PIN_ADXL_CS    10
-#define PIN_ADXL_MOSI  11
-#define PIN_ADXL_SCK   12
-#define PIN_ADXL_MISO  13
-#define PIN_ADXL_INT1  14   // watermark de la FIFO (o DATA_READY en el modo 1)
+// ADXL345 por VSPI (SPI3_HOST), con el driver spi_master de ESP-IDF y DMA.
+// SCK/MISO/MOSI en sus pines nativos de VSPI; el CS nativo (GPIO 5) es de arranque, por eso va en el 4.
+#define PIN_ADXL_SCK   18
+#define PIN_ADXL_MISO  19
+#define PIN_ADXL_MOSI  23
+#define PIN_ADXL_CS    4
+#define PIN_ADXL_INT1  34   // solo entrada: sirve porque el INT1 del ADXL345 es push-pull
 
-// microSD por SPI3 (HSPI en Arduino), bus separado del acelerómetro
-#define PIN_SD_CS    4
-#define PIN_SD_MOSI  5
-#define PIN_SD_SCK   6
-#define PIN_SD_MISO  7
+// microSD por HSPI (SPI2_HOST) enrutado por la matriz GPIO.
+// Los pines nativos de HSPI (14/12/13/15) chocan con 12 y 15, que son de arranque.
+#define PIN_SD_SCK   14
+#define PIN_SD_MISO  27
+#define PIN_SD_MOSI  13
+#define PIN_SD_CS    32
 
 // I2C: MPU-6050 (0x68) y VL53L0X (0x29)
-#define PIN_I2C_SDA  8
-#define PIN_I2C_SCL  9
+#define PIN_I2C_SDA  21
+#define PIN_I2C_SCL  22
 
-// GPS NEO-6M por UART1: TX del GPS → GPIO 17 (RX del ESP), RX del GPS ← GPIO 18 (TX del ESP)
-#define PIN_GPS_RX   17
-#define PIN_GPS_TX   18
+// GPS NEO-6M por UART2: TX del GPS → GPIO 16 (RX del ESP32), RX del GPS ← GPIO 17 (TX del ESP32)
+#define PIN_GPS_RX   16
+#define PIN_GPS_TX   17
 
-// Enlace con la ESP32-CAM por UART2: GPIO 15 = TX del S3, GPIO 16 = RX del S3
-#define PIN_CAM_TX   15
-#define PIN_CAM_RX   16
+// Enlace con la ESP32-CAM por UART1: GPIO 25 = TX del nodo, GPIO 35 = RX del nodo (solo entrada, basta)
+#define PIN_CAM_TX   25
+#define PIN_CAM_RX   35
 
-#define PIN_PULSADOR 1      // a GND, con pull-up interno
-#define PIN_LED      2
+#define PIN_PULSADOR 26     // a GND, con pull-up interno (los pines 34-39 no lo tienen)
+#define PIN_LED      33

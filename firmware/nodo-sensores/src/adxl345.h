@@ -30,7 +30,7 @@ public:
     static constexpr uint8_t INT_WATERMARK  = 0x02;
     static constexpr uint8_t INT_OVERRUN    = 0x01;
 
-    // Inicia el bus SPI2 con DMA y registra el dispositivo. Devuelve false si no responde.
+    // Inicia el bus VSPI (SPI3_HOST) con DMA y registra el dispositivo. Devuelve false si no responde.
     bool iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi);
 
     // modo: 0 polling, 1 DATA_READY por muestra, 2 FIFO en modo stream con watermark

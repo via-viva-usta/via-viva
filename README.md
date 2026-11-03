@@ -7,7 +7,7 @@ Es el Proyecto Integrador 2026-2 de Ingeniería de Datos e Inteligencia Artifici
 
 ## Cómo funciona
 
-1. **Nodo a bordo (IA en el borde).** Un ESP32-S3 con acelerómetro, unidad inercial, láser de distancia y GPS va en un carro,
+1. **Nodo a bordo (IA en el borde).** Un ESP32 con acelerómetro, unidad inercial, láser de distancia y GPS va en un carro,
    clasifica eventos (hueco, resalto, impacto fuerte) y mide la rugosidad de la vía. Una ESP32-CAM toma una foto de evidencia
    **solo cuando hay evento** y difumina placas y rostros antes de que la imagen salga del nodo.
 2. **Reportes ciudadanos.** Un bot de Telegram recibe reportes con foto y ubicación donde el carro no pasa.
@@ -24,13 +24,15 @@ VÍA VIVA **no** genera multas ni lee placas.
 | Carpeta | Contenido |
 |---|---|
 | `docs/` | Diseño, propuesta IEEE y diagramas (Mermaid) |
-| `firmware/nodo-sensores/` | PlatformIO, ESP32-S3 (sensores, detección) |
+| `firmware/nodo-sensores/` | PlatformIO, ESP32 `esp32dev` (sensores, detección, página web del nodo) |
 | `firmware/nodo-camara/` | PlatformIO, ESP32-CAM (foto de evidencia) |
 | `db/` | Esquema SQLite |
 | `etl/` | OpenStreetMap, scraping, limpieza y carga |
 | `analysis/` | Notebooks de señales y clasificador |
 | `risk_model/` | Modelo predictivo por tramo |
 | `bot/` | Bot ciudadano de Telegram |
+| `web/` | Mapa web estático (Leaflet) |
+| `report/` | Informe final IEEE (LaTeX) |
 | `dashboard-java/` | Tablero Java Swing (NetBeans, Ant) |
 | `data/` | Solo muestras pequeñas y anonimizadas |
 
@@ -61,7 +63,7 @@ cp .env.example .env        # y llenar los valores
 ## Summary (English)
 
 **VÍA VIVA** is a low-cost edge-AI system that detects, maps and predicts road hazards (potholes, speed bumps, severe impacts
-and obstacles) in Tunja, Colombia. A vehicle-mounted ESP32-S3 node with an accelerometer, IMU, laser time-of-flight sensor and
+and obstacles) in Tunja, Colombia. A vehicle-mounted ESP32 node with an accelerometer, IMU, laser time-of-flight sensor and
 GPS classifies events on-device, and an ESP32-CAM captures anonymized evidence only when an event occurs. An ETL pipeline merges
 node events, citizen reports (Telegram bot), web-scraped public sources and the OpenStreetMap street graph into SQLite.
 A georeferenced model estimates the risk of unreported hazards per street segment, and a Java Swing dashboard ranks inspections

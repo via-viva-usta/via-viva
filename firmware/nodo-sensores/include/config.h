@@ -26,7 +26,8 @@ constexpr uint8_t TAM_BLOQUE = 32;          // capacidad de cada mitad del búfe
 // Hasta 1,6 MHz el byte de dirección ya da los 5 µs que la FIFO necesita entre lecturas
 // (hoja de datos ADXL345). Por encima habría que agregar retardo entre transacciones.
 constexpr int SPI_ADXL_HZ = 1500000;
-constexpr int SPI_SD_HZ = 20000000;
+// La microSD va por la matriz GPIO (máx. ~26 MHz); 10 MHz deja margen con cables largos
+constexpr int SPI_SD_HZ = 10000000;
 
 // ---- Ventana y detección (provisional hasta tener el modelo int8) ----
 constexpr uint16_t VENTANA_MUESTRAS = 400;   // 2 s a 200 Hz (2,4 KB con 3 ejes int16)
