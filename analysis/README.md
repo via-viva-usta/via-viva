@@ -17,24 +17,75 @@ analysis\.venv\Scripts\python -m pip install -r analysis\requirements.txt
 Abrir el notebook en VS Code (extensión Jupyter) y elegir el intérprete `analysis\.venv`.
 No se usa JupyterLab: en Windows sin rutas largas activadas su instalación falla.
 
-## Cómo entregar los recorridos
+## Protocolo de recorridos con phyphox (para Pipe)
+
+### 1. Configurar phyphox (una vez)
+
+1. phyphox → **+** → *Add simple experiment* → marcar **Accelerometer** (con g, NO "linear acceleration"),
+   **Gyroscope** y **Location (GPS)**. Tasa: la máxima que permita el teléfono. Nombre: `VIA VIVA`.
+2. Ajustes del teléfono: GPS en alta precisión, ahorro de batería apagado, pantalla siempre encendida.
+3. Probar en la casa: 1 minuto quieto → exportar → revisar que salgan `Accelerometer.csv`, `Gyroscope.csv`
+   y `Location.csv` (la ubicación bajo techo puede salir vacía: es normal).
+
+### 2. En el carro
+
+| Regla | Por qué |
+|---|---|
+| Celular **fijo** en un soporte rígido (no en la mano, no suelto en la consola) | Si se mueve, la vibración ya no es la de la vía |
+| Siempre en la **misma posición** y orientación en todos los recorridos | Para comparar recorridos |
+| **Máximo 30 km/h**, conducción normal | Seguridad y comparabilidad (decisión del 2-nov) |
+| Esperar fijación GPS (≥ 6 satélites) antes de *play* | Sin GPS no hay map-matching |
+| El **copiloto** etiqueta; el conductor solo conduce | Seguridad |
+| 1 minuto detenidos al inicio, con *play* ya oprimido | Línea base y estimación de la gravedad |
+
+**Cómo etiquetar:** phyphox muestra el tiempo del experimento en pantalla. El copiloto lleva un cronómetro o anota el
+tiempo de phyphox **en el instante** en que la llanta pasa por el hueco o el resalto, y la clase. Al final se transcribe
+a `<recorrido>_etiquetas.csv`. Error aceptable: ±1 s (el procesamiento busca el candidato más cercano en ±1 s).
+
+### 3. Entregar los archivos
 
 Todo va en `data/raw/phyphox/` (ignorada por Git; se comparte por la carpeta del equipo). Por cada recorrido:
 
 | Archivo | Obligatorio | Contenido |
 |---|---|---|
 | `<recorrido>.zip` **o** `<recorrido>/` **o** `<recorrido>.csv` | Sí | Export de phyphox tal cual (zip, carpeta descomprimida o un solo CSV) |
-| `<recorrido>_etiquetas.csv` | Para entrenar | Columnas `t_s,clase`. `t_s` = segundos desde que se oprimió *play* en phyphox; `clase` ∈ `hueco`, `resalto`, `impacto_fuerte` |
+| `<recorrido>_etiquetas.csv` | Para entrenar y para el modelo de riesgo | Columnas `t_s,clase` (ver ejemplo) |
 
-En phyphox: un experimento propio con **"Aceleración con g"** y **"Ubicación (GPS)"**, a la tasa más alta del teléfono.
-Exportar como CSV (coma o punto y coma, cualquiera sirve). Nombre sugerido: `2026-10-28_ruta1_30kmh_seco`.
+Nombre sugerido: `2026-11-03_ruta1_pipe` (fecha, ruta, quién). Ejemplo de `2026-11-03_ruta1_pipe_etiquetas.csv`:
 
-Con los datos en su sitio, el notebook los detecta solo. Desde Python:
+```csv
+t_s,clase
+62.4,hueco
+95.1,resalto
+130.8,hueco
+171.0,impacto_fuerte
+240.2,otro
+```
+
+`t_s` = segundos desde que se oprimió *play* en phyphox. `clase` ∈ `hueco`, `resalto`, `impacto_fuerte`, `otro`.
+
+### 4. Procesar
+
+```powershell
+etl\.venv\Scripts\python -m etl.recorridos          # pre-etiquetas, tramos revisados y eventos a la base
+```
+
+Sale `data/campo/preetiquetas_<recorrido>.csv` (candidatos del **detector por umbrales**, con la etiqueta del copiloto al
+lado: sirve para revisar y corregir) y `data/campo/tramos_revisados.csv` (entrada del modelo de riesgo, plan B).
+Con los datos en su sitio, el notebook también los detecta solo:
 
 ```python
 from senales import procesar_carpeta
 r = procesar_carpeta("../data/raw/phyphox")   # recorridos, ventanas y (si hay ≥2 etiquetados) modelos
 ```
+
+### Prueba con datos sintéticos
+
+`python -m etl.recorrido_sintetico --n 3` genera recorridos **SINTÉTICOS** en formato phyphox sobre calles reales de
+Tunja (en `data/raw/phyphox_sintetico/`, nunca en la carpeta real). Prueba del 2-nov (solo prueba el software):
+3 recorridos de ~3 km; 434/434, 473/473 y 422/422 fijaciones GPS asignadas a tramos; de 29 tramos con hueco puesto, 28 quedaron
+marcados con hueco y 26 coinciden (las diferencias son por el ruido del GPS cerca de intersecciones: el map-matching es
+por vecino más cercano). Estos números no describen las vías de Tunja.
 
 ## Qué hace cada paso
 

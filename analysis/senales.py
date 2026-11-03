@@ -53,45 +53,58 @@ def _buscar(cols, *patrones):
 
 
 def _separar(df: pd.DataFrame):
-    """De un DataFrame de phyphox saca acelerómetro y GPS (si los hay)."""
+    """De un DataFrame de phyphox saca acelerómetro, giroscopio y GPS (los que haya)."""
     cols = list(df.columns)
     t = _buscar(cols, r"^time", r"tiempo")
     ax = _buscar(cols, r"acceleration x", r"aceleraci[oó]n x", r"\bax\b")
     ay = _buscar(cols, r"acceleration y", r"aceleraci[oó]n y", r"\bay\b")
     az = _buscar(cols, r"acceleration z", r"aceleraci[oó]n z", r"\baz\b")
+    gx = _buscar(cols, r"gyroscope x", r"giroscopio x", r"\bgx\b")
+    gy = _buscar(cols, r"gyroscope y", r"giroscopio y", r"\bgy\b")
+    gz = _buscar(cols, r"gyroscope z", r"giroscopio z", r"\bgz\b")
     lat = _buscar(cols, r"latitud")
     lon = _buscar(cols, r"longitud")
     vel = _buscar(cols, r"velocity", r"velocidad", r"speed")
-    acc = gps = None
+    acc = giro = gps = None
     if t and ax and ay and az:
         acc = pd.DataFrame({"t": df[t], "ax": df[ax], "ay": df[ay], "az": df[az]}).dropna()
         acc.attrs["con_g"] = not re.search(r"linear|lineal|without|sin g", ax, re.IGNORECASE)
+    if t and gx and gy and gz:
+        giro = pd.DataFrame({"t": df[t], "gx": df[gx], "gy": df[gy], "gz": df[gz]}).dropna()   # rad/s
     if t and lat and lon:
         gps = pd.DataFrame({"t": df[t], "lat": df[lat], "lon": df[lon],
                             "vel": df[vel] if vel else np.nan}).dropna(subset=["lat", "lon"])
-    return acc, gps
+    return acc, giro, gps
+
+
+def _tablas(ruta: Path) -> list[pd.DataFrame]:
+    if ruta.is_dir():
+        return [_leer_csv_flexible(p) for p in sorted(ruta.glob("*.csv"))]
+    if ruta.suffix.lower() == ".zip":
+        with zipfile.ZipFile(ruta) as z:
+            return [_leer_csv_flexible(z.open(n)) for n in z.namelist()
+                    if n.lower().endswith(".csv") and not n.startswith("meta/")]
+    return [_leer_csv_flexible(ruta)]
+
+
+def cargar_phyphox_completo(ruta) -> dict:
+    """{'acc', 'giro', 'gps'}: acelerómetro (t, ax, ay, az en m/s²), giroscopio (t, gx, gy, gz en rad/s) y GPS
+    (t, lat, lon, vel en m/s). giro y gps pueden ser None si el experimento no los tenía."""
+    ruta = Path(ruta)
+    salida = {"acc": None, "giro": None, "gps": None}
+    for df in _tablas(ruta):
+        for clave, valor in zip(("acc", "giro", "gps"), _separar(df)):
+            if salida[clave] is None and valor is not None:
+                salida[clave] = valor.reset_index(drop=True)
+    if salida["acc"] is None:
+        raise ValueError(f"{ruta}: no se encontraron columnas de aceleración x/y/z")
+    return salida
 
 
 def cargar_phyphox(ruta) -> tuple[pd.DataFrame, pd.DataFrame | None]:
     """Devuelve (acelerómetro, gps). acelerómetro: t [s], ax, ay, az [m/s²]; gps: t, lat, lon, vel [m/s]."""
-    ruta = Path(ruta)
-    tablas = []
-    if ruta.is_dir():
-        tablas = [_leer_csv_flexible(p) for p in sorted(ruta.glob("*.csv"))]
-    elif ruta.suffix.lower() == ".zip":
-        with zipfile.ZipFile(ruta) as z:
-            tablas = [_leer_csv_flexible(z.open(n)) for n in z.namelist()
-                      if n.lower().endswith(".csv") and not n.startswith("meta/")]
-    else:
-        tablas = [_leer_csv_flexible(ruta)]
-    acc = gps = None
-    for df in tablas:
-        a, g = _separar(df)
-        acc = acc if acc is not None else a
-        gps = gps if gps is not None else g
-    if acc is None:
-        raise ValueError(f"{ruta}: no se encontraron columnas de aceleración x/y/z")
-    return acc.reset_index(drop=True), gps
+    d = cargar_phyphox_completo(ruta)
+    return d["acc"], d["gps"]
 
 
 # ============================================================================
