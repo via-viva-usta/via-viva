@@ -54,11 +54,11 @@
 \maketitle
 
 \begin{abstract}
-Road damage in Tunja, Colombia, is still assessed through manual field surveys. V\'IA VIVA is a low-cost system that combines a vehicle-mounted edge-AI node, citizen reports and a georeferenced predictive model to build a live risk map of road hazards. The node uses an ESP32 microcontroller with an ADXL345 accelerometer read through a FIFO, watermark interrupt and DMA double buffering, an MPU-6050 inertial unit, a VL53L0X laser range sensor, a GPS receiver and a microSD logger; a threshold detector and a quantized (int8) one-dimensional convolutional network classify events on the node, and the gyroscope separates turns and hard braking from potholes. A Telegram bot collects citizen reports, an ETL pipeline merges them with OpenStreetMap (\NTramos{} street segments of Tunja), IDEAM rainfall and terrain slope in SQLite, and logistic-regression and random-forest models estimate the probability of unreported hazards per segment with spatial cross-validation by neighborhood. A Java Swing dashboard (hash table, binary heap and breadth-first search) and a static web map present the results. On the node, the int8 network needs 872~bytes of weights versus 3\,152~bytes in float32. Detection F1 is \pendiente{F1 of potholes (leave-one-drive-out)}, inference latency is \pendiente{E3 latency}, and the risk model reaches a spatial AUC of \pendiente{AUC}.
+Road damage in Tunja, Colombia, is still assessed through manual field surveys. V\'IA VIVA is a low-cost system that combines a vehicle-mounted edge-AI node, citizen reports and a georeferenced predictive model to build a live risk map of road hazards. The node uses an ESP32 microcontroller with an ADXL345 accelerometer read through a FIFO, watermark interrupt and DMA double buffering, an MPU-6050 inertial unit, a VL53L0X laser range sensor, BME280 and BH1750 environmental sensors, a GPS receiver and a microSD logger; a threshold detector and a quantized (int8) one-dimensional convolutional network classify events on the node, and the gyroscope separates turns and hard braking from potholes. Visual evidence comes from a smartphone, used as the edge device for images: an own dataset of geotagged photos of nine road classes (potholes, speed bumps, cracks, patches, manholes, obstacles, lane lines, crosswalks and sound pavement) with weather metadata, an ArUco reference card for metric scale, and a MobileNetV3 classifier exported to TensorFlow Lite int8 and evaluated with a site-grouped split. A Telegram bot collects citizen reports, an ETL pipeline merges them with OpenStreetMap (\NTramos{} street segments of Tunja), IDEAM rainfall and terrain slope in SQLite, and logistic-regression and random-forest models estimate the probability of unreported hazards per segment with spatial cross-validation by neighborhood. A Java Swing dashboard (hash table, binary heap and breadth-first search) and a static web map present the results. On the node, the int8 network needs 872~bytes of weights versus 3\,152~bytes in float32. Detection F1 is \pendiente{F1 of potholes (leave-one-drive-out)}, inference latency is \pendiente{E3 latency}, the photo classifier reaches a macro-F1 of \pendiente{macro-F1 float32 and int8, test split by site}, and the risk model reaches a spatial AUC of \pendiente{AUC}.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Edge AI, TinyML, pothole detection, ESP32, DMA, spatial cross-validation, geospatial risk map, ETL, data structures.
+Edge AI, TinyML, pothole detection, ESP32, DMA, road image dataset, ArUco, spatial cross-validation, geospatial risk map, ETL, data structures.
 \end{IEEEkeywords}
 
 % =============================================================================================
@@ -73,7 +73,7 @@ Accelerometer-based road monitoring started with dedicated vehicle sensors \cite
 
 % =============================================================================================
 \section{System Overview}
-Fig.~\ref{fig:arch} shows the architecture. The vehicle node detects and logs events; citizens report hazards with a Telegram bot (photo, location and type); an ETL pipeline merges all sources and the street graph into SQLite; a risk model scores every segment; the authority uses a Java dashboard and citizens a static web map. Following the project decision of 2 Nov.\ 2026, the main board is an ESP32 (WROOM-32) instead of the ESP32-S3 of the proposal, the data store is SQLite behind a data-access layer, and citizen services run without a backend.
+Fig.~\ref{fig:arch} shows the architecture. The vehicle node detects and logs events; citizens report hazards with a Telegram bot (photo, location and type); an ETL pipeline merges all sources and the street graph into SQLite; a risk model scores every segment; the authority uses a Java dashboard and citizens a static web map. Following the project decision of 2 Nov.\ 2026, the main board is an ESP32 (WROOM-32) instead of the ESP32-S3 of the proposal, the data store is SQLite behind a data-access layer, and citizen services run without a backend. Following the change approved on 3 Nov.\ 2026, the ESP32-CAM and its USB-serial programmer were removed: photographs are taken with a smartphone, which provides a better camera, GPS and EXIF metadata, and are processed on the PC (Section~\ref{sec:fotos}); the node gained environmental sensors to annotate those photos.
 
 \begin{figure}[!t]
 \centering
@@ -84,16 +84,16 @@ Fig.~\ref{fig:arch} shows the architecture. The vehicle node detects and logs ev
   outb/.style={draw, rounded corners, fill=green!12, align=center, minimum height=0.75cm, text width=2.3cm},
   arr/.style={-{Stealth}, thick}
 ]
-\node[blk] (sens) {Sensor MCU: ESP32\\ADXL345, MPU-6050,\\VL53L0X, GPS, SD};
-\node[blk, right=1.0cm of sens] (cam) {Camera MCU:\\ESP32-CAM\\capture + blur};
-\draw[arr] (sens) -- node[above, font=\tiny]{UART} (cam);
+\node[blk] (sens) {Sensor MCU: ESP32\\ADXL345, MPU-6050,\\VL53L0X, BME280,\\BH1750, GPS, SD};
+\node[blk, right=1.5cm of sens] (cam) {Smartphone:\\geotagged photos\\+ ArUco card};
+\draw[arr, dashed] (sens) -- node[above, font=\tiny]{time, weather} (cam);
 \begin{scope}[on background layer]
-\node[draw, dashed, rounded corners, fit=(sens)(cam), inner sep=4pt, label={[font=\scriptsize\bfseries]above:Vehicle node}] (node) {};
+\node[draw, dashed, rounded corners, fit=(sens)(cam), inner sep=4pt, label={[font=\scriptsize\bfseries]above:Field devices}] (node) {};
 \end{scope}
 \node[blk, below=2.1cm of node.south, anchor=north, text width=3.4cm] (etl) {ETL + SQLite + risk model\\per-segment features $\rightarrow$ risk};
 \node[src, left=0.25cm of etl.north west, anchor=south east, yshift=0.45cm] (cit) {Telegram bot\\photo + location};
 \node[src, right=0.25cm of etl.north east, anchor=south west, yshift=0.45cm] (web) {OSM, IDEAM,\\SRTM, open data};
-\draw[arr] (node.south) -- node[right, font=\tiny, align=left]{events} (etl.north);
+\draw[arr] (node.south) -- node[right, font=\tiny, align=left]{events, photos} (etl.north);
 \draw[arr] (cit.south) |- ([yshift=-0.15cm]etl.west);
 \draw[arr] (web.south) |- ([yshift=-0.15cm]etl.east);
 \node[outb, below=0.7cm of etl.south, anchor=north, xshift=-1.35cm] (dash) {Java dashboard\\(hash, heap, BFS)};
@@ -108,7 +108,7 @@ Fig.~\ref{fig:arch} shows the architecture. The vehicle node detects and logs ev
 % =============================================================================================
 \section{Data Acquisition}
 \subsection{Sensors and Sampling}
-The ADXL345 (\(\pm 16\)~g, full resolution, 3.9~mg/LSB \cite{adi_adxl345}) is the main sensor, sampled at 200~Hz. The sampling rate was set as a hypothesis (200~Hz, anti-aliasing near 80~Hz) and is validated from the power spectral density of the first drives: the lowest rate keeping 95\,\% of the energy is \pendiente{f\textsubscript{95} and minimum f\textsubscript{s} from the spectrum of real drives}. The MPU-6050 adds a gyroscope, the VL53L0X measures the distance to the pavement, and a NEO-6M GPS provides position, speed and UTC time. The first datasets were recorded with a phone (phyphox \cite{staacks2018phyphox}: accelerometer with gravity, gyroscope and GPS) at up to 30~km/h, following a written protocol (fixed mount, co-driver labeling); \pendiente{number of drives, km and labeled events}.
+The ADXL345 (\(\pm 16\)~g, full resolution, 3.9~mg/LSB \cite{adi_adxl345}) is the main sensor, sampled at 200~Hz. The sampling rate was set as a hypothesis (200~Hz, anti-aliasing near 80~Hz) and is validated from the power spectral density of the first drives: the lowest rate keeping 95\,\% of the energy is \pendiente{f\textsubscript{95} and minimum f\textsubscript{s} from the spectrum of real drives}. The MPU-6050 adds a gyroscope, the VL53L0X measures the distance to the pavement, and a NEO-6M GPS provides position, speed and UTC time. A BME280 (temperature, humidity and pressure; a DHT22 replaces it if only a BMP280 is available) and a BH1750 light sensor are read every 10~s and logged with GPS time to annotate the photo dataset. The first datasets were recorded with a phone (phyphox \cite{staacks2018phyphox}: accelerometer with gravity, gyroscope and GPS) at up to 30~km/h, following a written protocol (fixed mount, co-driver labeling); \pendiente{number of drives, km and labeled events}.
 
 \subsection{Synchronization and Orientation}
 Each event stores the UTC time of the last GPS fix and the milliseconds elapsed since it, so the ETL interpolates time and position. The node uses the orientation-free magnitude \(|a| - 1\,g\); the phone pipeline projects the dynamic acceleration on the gravity direction estimated with a 0.3~Hz low-pass filter.
@@ -119,10 +119,10 @@ As requested by the Computer Architecture course, a threshold detector serves as
 % =============================================================================================
 \section{Computer Architecture of the Node}
 \subsection{Buses and Pins}
-The ADXL345 uses VSPI (native SCK/MISO/MOSI pins; chip select moved off the boot pin GPIO~5) with the ESP-IDF \texttt{spi\_master} driver and DMA. The microSD uses HSPI routed through the GPIO matrix, because the native HSPI pins include GPIO~12 and~15, which are boot-strapping pins (GPIO~12 selects the flash voltage). The matrix limits SPI to about 26~MHz, enough for the card at 10~MHz. The MPU-6050 and VL53L0X share I\textsuperscript{2}C at 400~kHz, the GPS uses UART2 and the camera link UART1.
+The ADXL345 uses VSPI (native SCK/MISO/MOSI pins; chip select moved off the boot pin GPIO~5) with the ESP-IDF \texttt{spi\_master} driver and DMA. The microSD uses HSPI routed through the GPIO matrix, because the native HSPI pins include GPIO~12 and~15, which are boot-strapping pins (GPIO~12 selects the flash voltage). The matrix limits SPI to about 26~MHz, enough for the card at 10~MHz. The MPU-6050, VL53L0X, BME280 and BH1750 share I\textsuperscript{2}C at 400~kHz (the slow environmental sensors are read in the same task, so no bus lock is needed) and the GPS uses UART2. Removing the camera freed GPIO~25 and~35; GPIO~25 hosts the optional DHT22 one-wire line.
 
 \subsection{FIFO, Interrupt and DMA Ping-Pong}
-The ADXL345 FIFO works in stream mode with a watermark of 31 samples (the field has 5~bits), so the interrupt on GPIO~34 arrives every 155~ms at 200~Hz. The acquisition task (core~1, highest priority) queues one DMA transaction per FIFO entry at 1.5~MHz (below 1.6~MHz no extra delay is needed between FIFO reads) and fills one half of a ping-pong buffer while the processing task (core~1) works on the other; if processing lags, the lost block is counted. Wi-Fi, the web page, GPS, I\textsuperscript{2}C, camera link, microSD and statistics run on core~0.
+The ADXL345 FIFO works in stream mode with a watermark of 31 samples (the field has 5~bits), so the interrupt on GPIO~34 arrives every 155~ms at 200~Hz. The acquisition task (core~1, highest priority) queues one DMA transaction per FIFO entry at 1.5~MHz (below 1.6~MHz no extra delay is needed between FIFO reads) and fills one half of a ping-pong buffer while the processing task (core~1) works on the other; if processing lags, the lost block is counted. Wi-Fi, the web page, GPS, I\textsuperscript{2}C (motion and environment), microSD and statistics run on core~0.
 
 \subsection{Experiments}
 Table~\ref{tab:exp} lists the experiments, which the firmware logs to the microSD (\texttt{exp\_NNN.csv}); E2--E4 are measured at boot, before the application tasks start. The quantized network occupies 872~bytes against 3\,152~bytes in float32 (788 parameters). Measured results:
@@ -152,6 +152,21 @@ E4 & I\textsuperscript{2}C (MPU-6050) vs.\ SPI (ADXL345) & Read time, \(\mu\)s p
 % =============================================================================================
 \section{Signal Processing and Edge AI}
 For each detector trigger the node keeps a 2~s window (1.5~s before, 0.5~s after) and computes peak, RMS, kurtosis, crest factor, maximum jerk and the sign of the peak; the training pipeline replicates exactly this computation. Two classifiers are compared: a random forest (10 trees, depth \(\le 6\)) exported to C with emlearn \cite{emlearn,pedregosa2011sklearn}, and a 1-D convolutional network (two convolutions with 8 and 16 channels, global average pooling and a dense layer; 788 parameters) trained with PyTorch \cite{paszke2019pytorch} on 128 samples around the trigger. The network is quantized after training with symmetric per-tensor int8 scales \cite{jacob2018quant}: multiply-accumulate operations run in integers and only re-quantization uses a float multiplier; Python and C use the same rounding, so both produce identical outputs. All models are validated leave-one-drive-out, at window level and at event level over every detector trigger, against the threshold detector alone. Results: \pendiente{window F1 (forest, CNN float32, CNN int8) and event-level precision, recall, F1 and false positives per km vs.\ the threshold detector}.
+
+% =============================================================================================
+\section{Image Dataset and Classifier}
+\label{sec:fotos}
+\subsection{Collection Protocol}
+Public road-image datasets do not cover Colombia \cite{arya2022rdd}, so the team builds its own. The target is at least 500 photos and 50 per class over nine classes: pothole, speed bump, crack, patch, manhole cover, obstacle, lane line, crosswalk and sound pavement, with a three-level severity for damage classes. At each site the phone (location on, JPEG, landscape, 1\(\times\) lens) takes four or five photos: context, front, side, a nadir view with the ArUco card, and the thermo-hygrometer display. Photos are taken at different times of day, light conditions, road classes and wet or dry surfaces, from the sidewalk and never by the driver, and are uploaded to a shared drive without messaging apps, which strip EXIF metadata. Collected so far: \pendiente{photos, sites and photos per class}.
+
+\subsection{Ingestion and Metadata}
+A Python pipeline reads JPEG and HEIC files, takes date, time and GPS from EXIF, derives the time of day, and assigns the nearest OpenStreetMap segment (\(\le 30\)~m) and its neighborhood. Temperature and humidity come, in this order, from the thermo-hygrometer reading, from the node log within \(\pm 30\)~min, or from an hourly historical weather API for Tunja \cite{openmeteo}, and daily rainfall from the nearest IDEAM station. Faces and plates are blurred with Haar cascades \cite{viola2001rapid} (face candidates must contain skin tones; without this check the detector fired on crosswalk stripes), EXIF is removed, and a quality report lists photos without GPS or date, blurred (variance of the Laplacian) or near-duplicate (difference hash from the same author within 2~min), and the count per class, time of day, light and road class. A local web tool lets two team members label class, severity, angle, light, wet surface and road class with keyboard shortcuts.
+
+\subsection{Scale and Perspective}
+A printed \(10\times10\)~cm card carries an ArUco marker \cite{garrido2014aruco} of 80~mm. Its four corners, refined to sub-pixel accuracy, define a homography \cite{hartley2004mvg} from the image to the pavement plane, which rectifies the photo to a nadir view at 1~mm per pixel; the damage is segmented as the largest dark region not touching the image border, and its area is reported in cm\textsuperscript{2}. The estimate refers to the opening of the damage in the pavement plane and fails with hard shadows or standing water. It is validated against length and width measured with a tape in the field (ellipse approximation): \pendiente{area error vs.\ tape measurements}.
+
+\subsection{Classifier}
+A MobileNetV3-Small \cite{howard2019mobilenetv3} pretrained on ImageNet is fine-tuned on \(224\times224\) inputs with augmentation and class weights. Train, validation and test sets are split \emph{by site} with stratified group folds: all photos of the same spot (within 15~m) fall on the same side, because a per-photo split would let the model recognize places instead of classes. The model is exported to TensorFlow Lite in float32 and with full-integer int8 post-training quantization \cite{jacob2018quant}, and the int8 model is evaluated on the same test set. The whole pipeline was verified end to end with synthetic images, which are flagged and never reported as results. Results: \pendiente{per-class precision, recall and F1, confusion matrix and macro-F1 for float32 and int8, model sizes}.
 
 % =============================================================================================
 \section{Data Structures}
@@ -214,6 +229,9 @@ Event position error & \(\leq 5\) m & \pendiente{m} \\
 Inference latency per window & \(\leq 50\) ms & \pendiente{ms} \\
 Lost samples under full load & 0 & \pendiente{E1} \\
 Weights, int8 vs.\ float32 & smaller & 872 vs.\ 3\,152 B \\
+Own photo dataset & \(\geq 500\); \(\geq 50\)/class & \pendiente{photos} \\
+Photo classifier macro-F1, int8 (by site) & reported & \pendiente{F1} \\
+Damage area error vs.\ tape & reported & \pendiente{\%} \\
 Nearest-segment comparisons & \(\ll n\) & 108 vs.\ 5\,775 \\
 Risk-model AUC (spatial CV) & \(\geq 0.70\) & \pendiente{AUC} \\
 Top-10 risk vs.\ random & higher & \pendiente{field visit} \\
@@ -226,9 +244,11 @@ Table~\ref{tab:metrics} gathers the targets of the proposal. Only implementation
 \section{Discussion and Limitations}
 OpenStreetMap lacks surface information for most segments, neighborhoods are available as points (segments are assigned to the nearest point), and five rain gauges barely resolve spatial rainfall differences inside the city. The orientation-free magnitude \(|a|-1\,g\) on the node is simpler than projecting on gravity, at the cost of mixing lateral motion; the maneuver detector mitigates turns and braking. The VL53L0X loses range under strong sunlight. Map matching by nearest segment errs near intersections (in a synthetic test it recovered 26 of 28 segments with potholes). \pendiente{discussion of the measured results}.
 
+Future work, outside the scope of this delivery: a laser grid module (structured light) to measure pothole depth, which could not be obtained in time; an optional read-only OBD-II link (ELM327 over Bluetooth) to use the vehicle speed as a backup for GPS; and automatic on-vehicle capture with a camera module, whose firmware is kept in the repository but removed from the design.
+
 % =============================================================================================
 \section{Ethical and Legal Considerations}
-Faces and plates are personal data under Law 1581 of 2012 \cite{ley1581}: the camera blurs the frame before it leaves the module, citizen photos are not published, the bot stores only a salted hash of the user, and the system keeps events and lists of reviewed segments, not trajectories. V\'IA VIVA issues no fines \cite{ley1843}. Only sources that allow automated access are scraped, and municipal data requested by letter are not published without permission.
+Faces and plates are personal data under Law 1581 of 2012 \cite{ley1581}: faces and plates in the photo dataset are blurred and EXIF metadata removed before analysis, photos are taken avoiding people and plates and are not published, citizen photos are not published, the bot stores only a salted hash of the user, and the system keeps events and lists of reviewed segments, not trajectories. V\'IA VIVA issues no fines \cite{ley1843}. Only sources that allow automated access are scraped, and municipal data requested by letter are not published without permission.
 
 % =============================================================================================
 \section{Conclusion}
