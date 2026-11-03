@@ -9,6 +9,7 @@
 
 #include "esp_timer.h"
 #include "estado.h"
+#include "experimentos.h"
 
 #if __has_include("secretos.h")
 #include "secretos.h"
@@ -59,7 +60,7 @@ async function actualizar(){try{const r=await fetch('/estado');const e=await r.j
 document.getElementById('vel').textContent=e.gps.vel.toFixed(1);
 document.getElementById('gps').textContent=e.gps.valido?('Fijación: '+e.gps.sat+' satélites · '+e.gps.utc):'Sin señal GPS (bajo techo no hay)';
 document.getElementById('sens').innerHTML=chip('ADXL345',e.adxl)+chip('MPU-6050',e.mpu)+chip('VL53L0X',e.tof)+chip('microSD',e.sd)+chip('Cámara',e.cam)+chip('GPS',e.gps.valido);
-document.getElementById('extra').textContent='Sesión '+e.sesion+' · '+e.muestras_s.toFixed(0)+' muestras/s · '+e.eventos+' eventos · '+e.etiquetas+' etiquetas · maniobra: '+e.maniobra+' · láser '+e.dist_mm+' mm';
+document.getElementById('extra').textContent='Sesión '+e.sesion+' · '+e.muestras_s.toFixed(0)+' muestras/s · '+e.eventos+' eventos · '+e.etiquetas+' etiquetas · modo E1: '+e.modo_e1+' · maniobra: '+e.maniobra+' · láser '+e.dist_mm+' mm';
 document.getElementById('mesa').checked=e.mesa;
 if(e.ultimo){const u=e.ultimo;document.getElementById('evento').textContent='#'+u.id+' '+u.clase+' · pico '+u.pico.toFixed(2)+' g · '+u.vel.toFixed(0)+' km/h · hace '+u.hace_s.toFixed(0)+' s'}
 }catch(x){}}
@@ -82,12 +83,12 @@ static void manejarEstado() {
     char json[700];
     snprintf(json, sizeof(json),
              "{\"adxl\":%s,\"mpu\":%s,\"tof\":%s,\"sd\":%s,\"cam\":%s,\"sesion\":%d,\"muestras_s\":%.1f,"
-             "\"eventos\":%lu,\"etiquetas\":%lu,\"maniobra\":\"%s\",\"dist_mm\":%u,\"mesa\":%s,"
+             "\"eventos\":%lu,\"etiquetas\":%lu,\"maniobra\":\"%s\",\"dist_mm\":%u,\"mesa\":%s,\"modo_e1\":\"%s\","
              "\"gps\":{\"valido\":%s,\"vel\":%.1f,\"sat\":%u,\"utc\":\"%s\"},\"ultimo\":%s}",
              n.adxlOk ? "true" : "false", i.mpuOk ? "true" : "false", i.tofOk ? "true" : "false",
              n.sdOk ? "true" : "false", n.camOk ? "true" : "false", n.sesion, n.muestrasPorSegundo,
              (unsigned long)n.eventos, (unsigned long)n.etiquetas, nombreManiobra(i.maniobra), i.distanciaMm,
-             modoMesa ? "true" : "false", g.valido ? "true" : "false", g.velKmh, g.satelites, g.utc, ultimo);
+             modoMesa ? "true" : "false", nombreModoAdq(), g.valido ? "true" : "false", g.velKmh, g.satelites, g.utc, ultimo);
     servidor.send(200, "application/json", json);
 }
 

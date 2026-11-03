@@ -14,6 +14,7 @@
 
 #include "esp_timer.h"
 #include "estado.h"
+#include "experimentos.h"
 #include "pines.h"
 
 // ---- Estado global (declarado en estado.h) ----
@@ -106,6 +107,7 @@ void setup() {
     colaGpsSD = xQueueCreate(8, sizeof(EstadoGPS));
     colaEtiquetas = xQueueCreate(8, sizeof(Etiqueta));
     colaFotosSD = xQueueCreate(4, sizeof(RespuestaFoto));
+    colaExp = xQueueCreate(64, sizeof(FilaExp));
 
     iniciarMedicionOcio();   // 1 s sin tareas propias: referencia para el % de CPU
 
@@ -122,6 +124,9 @@ void setup() {
     Serial.printf("[SD] %s\n", sdOk ? "OK" : "NO DETECTADA (se sigue sin registro)");
     estadoNodo.adxlOk = adxlOk && cfgOk;
     estadoNodo.sdOk = sdOk;
+
+    // ---- E2, E3, E4 y memoria: se miden ahora, sin tareas propias que interfieran ----
+    if (estadoNodo.adxlOk) experimentosArranque();
 
     // ---- UARTs ----
     Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);   // UART2: GPS

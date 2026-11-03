@@ -2,6 +2,7 @@
 #include "esp_timer.h"
 #include "estadisticas.h"
 #include "estado.h"
+#include "experimentos.h"
 
 void tareaEstadisticas(void*) {
     uint32_t idleAnt[2] = {contadorIdle[0], contadorIdle[1]};
@@ -9,10 +10,13 @@ void tareaEstadisticas(void*) {
         vTaskDelay(pdMS_TO_TICKS(PERIODO_ESTADISTICAS_MS));
         const int64_t ahora = esp_timer_get_time();
         EstadisticasE1 s;
+        uint32_t sumaI2c, nI2c, maxI2c;
         portENTER_CRITICAL(&muxE1);
         s = e1;
         e1 = EstadisticasE1();
         e1.tInicio = ahora;
+        sumaI2c = i2cSumaUs; nI2c = i2cN; maxI2c = i2cMaxUs;
+        i2cSumaUs = i2cN = i2cMaxUs = 0;
         portEXIT_CRITICAL(&muxE1);
 
         const double seg = (ahora - s.tInicio) / 1e6;
@@ -34,5 +38,28 @@ void tareaEstadisticas(void*) {
                       s.mediaIntervalo, jitter, (long long)(s.nIntervalos ? s.minIntervalo : 0),
                       (long long)s.maxIntervalo, 100.0 * s.usOcupado / (seg * 1e6), cpu[0], cpu[1],
                       (unsigned long)i2c.usLecturaMpu, ESP.getFreeHeap());
+
+        // Las mismas cifras, en filas, para exp_NNN.csv (las lee analysis/experimentos.py)
+        const char* m = nombreModoAdq();
+        registrarExp("E1", m, "segundos", seg);
+        registrarExp("E1", m, "muestras", s.muestras);
+        registrarExp("E1", m, "esperadas", esperadas);
+        registrarExp("E1", m, "perdidas_pct", esperadas > 0 ? 100.0 * (esperadas - s.muestras) / esperadas : 0);
+        registrarExp("E1", m, "overruns", s.overruns);
+        registrarExp("E1", m, "bloques_perdidos", s.bloquesPerdidos);
+        registrarExp("E1", m, "timeouts", s.timeouts);
+        registrarExp("E1", m, "intervalo_us", s.mediaIntervalo);
+        registrarExp("E1", m, "jitter_us", jitter);
+        registrarExp("E1", m, "min_us", s.nIntervalos ? s.minIntervalo : 0);
+        registrarExp("E1", m, "max_us", s.maxIntervalo);
+        registrarExp("E1", m, "lectura_ocupada_pct", 100.0 * s.usOcupado / (seg * 1e6));
+        registrarExp("E1", m, "cpu0_pct", cpu[0]);
+        registrarExp("E1", m, "cpu1_pct", cpu[1]);
+        registrarExp("E1", m, "heap_libre_B", ESP.getFreeHeap());
+        if (nI2c) {
+            registrarExp("E4", "operacion", "i2c_media_us", (float)sumaI2c / nI2c);
+            registrarExp("E4", "operacion", "i2c_max_us", maxI2c);
+        }
+        if (s.muestras) registrarExp("E4", "operacion", "spi_us_por_muestra", (float)s.usOcupado / s.muestras);
     }
 }

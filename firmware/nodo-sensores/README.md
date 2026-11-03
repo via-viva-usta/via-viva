@@ -19,7 +19,8 @@ Proyecto PlatformIO (framework Arduino sobre ESP-IDF) para la **ESP32 DevKit de 
 | GPS NEO-6M por UART2 | TinyGPSPlus; hora UTC de la fijación + `esp_timer` de llegada para interpolar en el ETL | `perifericos.cpp` |
 | microSD por HSPI | Por sesión: `crudo_NNN.csv`, `eventos_NNN.csv`, `gps_NNN.csv`, `etiquetas_NNN.csv` (tipo y origen: web o botón), `fotos_NNN.csv` | `registro.cpp` |
 | Enlace con la cámara | UART1, `PING` / `FOTO,id,hora` → `OK` / `ERR` | `perifericos.cpp` |
-| Experimento E1 | Cada 5 s una línea `E1,...` por el monitor serie | `estadisticas.cpp` |
+| **Experimentos E1–E4** | E1 por entorno (polling / interrupción / FIFO+DMA), cada 5 s; E2 (flash vs. SRAM), E3 (float32 vs. int8 y bosque) y E4 (I2C vs. SPI) medidos al arrancar; todo a `exp_NNN.csv` en la microSD. Procedimiento en `docs/experimentos.md` | `experimentos.cpp`, `estadisticas.cpp` |
+| Modelos exportados | `modelo_cnn.h` (red 1D float32 + int8) y `modelo_bosque.h` (emlearn), generados por `analysis/entrenar_detector.py`. **Hoy entrenados con datos sintéticos**: solo para medir latencia | `modelo_*.h` |
 
 **Reparto en los dos núcleos:** núcleo 1 (APP_CPU) = adquisición (prioridad 20) y procesamiento (10).
 Núcleo 0 (PRO_CPU) = Wi-Fi y página web (el Wi-Fi de ESP-IDF corre en el núcleo 0), GPS, I2C y maniobras, cámara,
@@ -67,8 +68,8 @@ Si `pio` no se reconoce, usar `%USERPROFILE%\.platformio\penv\Scripts\pio.exe` o
 
 ## Estado (2-nov-2026)
 
-**Compila** (`espressif32 @ 6.9.0`, `esp32dev`, tabla de particiones `min_spiffs.csv`): RAM estática 53 028 B (16,2 %),
-flash 899 681 B (45,8 % de 1,9 MB). La única advertencia (`portUSING_MPU_WRAPPERS redefined`) viene del framework.
+**Compila** (`espressif32 @ 6.9.0`, `esp32dev`, tabla de particiones `min_spiffs.csv`): RAM estática 60 156 B (18,4 %),
+flash 916 145 B (46,6 % de 1,9 MB), con los experimentos y los modelos incluidos. La única advertencia (`portUSING_MPU_WRAPPERS redefined`) viene del framework.
 **Nada se ha probado en hardware.**
 
 ### Solo se puede validar con la placa real `[VALIDAR EN PLACA]`

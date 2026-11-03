@@ -15,3 +15,6 @@ extern EstadisticasE1 e1;
 extern portMUX_TYPE muxE1;
 extern volatile uint32_t contadorIdle[2];
 extern uint32_t referenciaIdle[2];   // conteos/s sin carga, medidos al arrancar
+
+// E4 en operación: duración de las lecturas I2C del MPU-6050 (las escribe tareaI2C)
+extern uint32_t i2cSumaUs, i2cN, i2cMaxUs;

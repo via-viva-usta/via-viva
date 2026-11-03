@@ -4,6 +4,7 @@
 #include <SD.h>
 
 #include "estado.h"
+#include "experimentos.h"
 
 static File abrirSiguiente(const char* prefijo, int sesion, const char* encabezado) {
     char ruta[32];
@@ -16,7 +17,7 @@ static File abrirSiguiente(const char* prefijo, int sesion, const char* encabeza
 void tareaRegistro(void*) {
     const bool sdOk = copiarNodo().sdOk;
     int sesion = 0;
-    File fCrudo, fEventos, fGps, fEtiq, fFotos;
+    File fCrudo, fEventos, fGps, fEtiq, fFotos, fExp;
     if (sdOk) {
         char ruta[32];
         do {
@@ -30,6 +31,7 @@ void tareaRegistro(void*) {
         fGps = abrirSiguiente("gps", sesion, "t_us,utc,lat,lon,vel_kmh,hdop,satelites");
         fEtiq = abrirSiguiente("etiquetas", sesion, "t_us,utc_fix,ms_desde_fix,tipo,origen");
         fFotos = abrirSiguiente("fotos", sesion, "id_evento,respuesta");
+        fExp = abrirSiguiente("exp", sesion, "t_ms,experimento,condicion,variable,valor");
         if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
             estadoNodo.sesion = sesion;
             xSemaphoreGive(mutexNodo);
@@ -41,6 +43,7 @@ void tareaRegistro(void*) {
     EstadoGPS g;
     Etiqueta et;
     RespuestaFoto rf;
+    FilaExp fe;
     uint32_t ultimoFlush = millis();
     char linea[64];
 
@@ -84,8 +87,12 @@ void tareaRegistro(void*) {
             Serial.printf("[CAM] evento #%lu → %s\n", (unsigned long)rf.idEvento, rf.texto);
             if (sdOk) fFotos.printf("%lu,%s\n", (unsigned long)rf.idEvento, rf.texto);
         }
+        while (xQueueReceive(colaExp, &fe, 0) == pdTRUE) {
+            if (sdOk) fExp.printf("%lu,%s,%s,%s,%.4f\n", (unsigned long)fe.tMs, fe.experimento, fe.condicion,
+                                  fe.variable, fe.valor);
+        }
         if (sdOk && millis() - ultimoFlush > 1000) {   // como máximo se pierde 1 s si se corta la energía
-            fCrudo.flush(); fEventos.flush(); fGps.flush(); fEtiq.flush(); fFotos.flush();
+            fCrudo.flush(); fEventos.flush(); fGps.flush(); fEtiq.flush(); fFotos.flush(); fExp.flush();
             ultimoFlush = millis();
         }
         vTaskDelay(pdMS_TO_TICKS(10));

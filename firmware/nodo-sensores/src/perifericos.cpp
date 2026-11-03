@@ -4,6 +4,7 @@
 #include <Wire.h>
 
 #include "esp_timer.h"
+#include "estadisticas.h"
 #include "estado.h"
 #include "mpu6050.h"
 #include "pines.h"
@@ -80,6 +81,11 @@ void tareaI2C(void*) {
             const int64_t t0 = esp_timer_get_time();
             mpu.leerTodo(l);
             us = (uint32_t)(esp_timer_get_time() - t0);
+            portENTER_CRITICAL(&muxE1);
+            i2cSumaUs += us;
+            i2cN++;
+            if (us > i2cMaxUs) i2cMaxUs = us;
+            portEXIT_CRITICAL(&muxE1);
         }
         uint16_t dist = 0;
         if (tofOk) {

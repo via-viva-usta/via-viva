@@ -11,6 +11,7 @@ EstadisticasE1 e1;
 portMUX_TYPE muxE1 = portMUX_INITIALIZER_UNLOCKED;
 volatile uint32_t contadorIdle[2] = {0, 0};
 uint32_t referenciaIdle[2] = {1, 1};
+uint32_t i2cSumaUs = 0, i2cN = 0, i2cMaxUs = 0;
 
 void IRAM_ATTR isrAdxl() {
     tIsrUs = esp_timer_get_time();
