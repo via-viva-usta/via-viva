@@ -47,7 +47,7 @@ Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota de
 |---|---|---|
 | Sistemas de Adquisición (SADP) | Muestreo justificado (espectro/Nyquist), filtros, sincronía GPS, características, métricas de detección | `analysis/`, `firmware/.../caracteristicas.h` |
 | Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4) | `firmware/nodo-sensores/`, `docs/experimentos.md` |
-| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `dashboard-java/`, `firmware/.../bufer_circular.h`, `etl/geohash.py` |
+| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
 | Requisitos extra | ETL, web scraping, IA ligera, demo | `etl/`, `analysis/`, `docs/demo.md` |
 
 Pendiente del diseño original de Estructuras: bitácora por fechas con `TreeMap` y "peligros" agrupados (cuando haya eventos).
