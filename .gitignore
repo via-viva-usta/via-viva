@@ -90,5 +90,8 @@ desktop.ini
 .idea/
 *.swp
 
+# ===== Bot: fotos de los ciudadanos (no se publican) =====
+data/fotos_bot/
+
 # ===== Firmware: claves del punto de acceso =====
 firmware/**/include/secretos.h
