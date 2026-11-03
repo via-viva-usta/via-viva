@@ -11,8 +11,7 @@ DATA = RAIZ / "data"
 OSM_DIR = DATA / "osm"
 ESQUEMA_SQL = RAIZ / "db" / "schema.sql"
 
-_db = os.getenv("VIA_VIVA_DB", "data/via_viva.db")
-DB_PATH = Path(_db) if Path(_db).is_absolute() else RAIZ / _db
+# La base se abre por la capa de acceso db/acceso.py (VIA_VIVA_DB_URL en .env)
 
 USER_AGENT = os.getenv(
     "SCRAPER_USER_AGENT",
