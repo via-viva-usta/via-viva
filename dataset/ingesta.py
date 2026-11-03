@@ -381,13 +381,15 @@ def conteo(df: pd.DataFrame, col: str, valores: list[str]) -> list[tuple[str, in
 
 def reporte(meta: pd.DataFrame, cal: pd.DataFrame, salida: Path, sintetico: bool, avisos: list[str]) -> str:
     n = len(meta)
-    etiq = meta[meta["clase"] != ""]
+    excluidas = meta["notas"].str.contains("EXCLUIR")
+    etiq = meta[(meta["clase"] != "") & ~excluidas]
     l = [f"# Reporte de calidad del dataset de fotos{' — SINTÉTICO (solo prueba del flujo)' if sintetico else ''}", "",
          f"Generado: {datetime.now(ZONA_LOCAL):%Y-%m-%d %H:%M} (hora de Colombia) por `dataset/ingesta.py`.", "",
          "## Resumen", "",
          "| Qué | Cantidad |", "|---|---|",
          f"| Fotos | **{n}** (meta ≥ {META_TOTAL}) |",
          f"| Etiquetadas (con clase) | {len(etiq)} |",
+         f"| Excluidas en el etiquetador (privacidad o foto mala) | {int(excluidas.sum())} |",
          f"| Sitios (fotos del mismo punto agrupadas) | {meta['sitio'].nunique() if n else 0} |",
          f"| Sin GPS | {int(cal['sin_gps'].sum())} |", f"| Sin fecha | {int(cal['sin_fecha'].sum())} |",
          f"| Borrosas (nitidez < {UMBRAL_NITIDEZ:g}) | {int(cal['borrosa'].sum())} |",
