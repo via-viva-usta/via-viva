@@ -99,7 +99,7 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`, 24 creados, 22 abiertos; #3 
 ### Dany Cipamocha (área A) — issues #1, #2, #3, #4
 1. **Montar el nodo** siguiendo `docs/montaje.md` y correr las **7 pruebas** de `firmware/nodo-sensores/pruebas/`; anotar PASA/FALLA en #1. *(4-nov)*
 2. Subir el **firmware completo** (`pio run -t upload`): arranque con microSD, `overruns = 0`, página http://192.168.4.1, etiquetas en la microSD; confirmar el signo del giro del MPU (#2). *(5-nov)*
-3. ~~ESP32-CAM (#3)~~ **cerrado**: salió del diseño. En su lugar: **comprar DHT22 + BH1750 y correr las pruebas** (#18). *(5-nov)*
+3. ~~ESP32-CAM (#3)~~ **cerrado**: salió del diseño. En su lugar: **comprar en Ferretrónica el DHT22 (decidido) + BH1750 y correr las pruebas `dht22` y `bh1750`** (#18). *(5-nov)*
 4. **E1–E4 y corriente** con el tester USB según `docs/experimentos.md`; copiar `exp_*.csv` a `data/raw/nodo/` (#4). *(6-nov)*
 5. Necesita **permiso de escritura** en el repo para trabajar con PR (lo da Andrés, #17).
 

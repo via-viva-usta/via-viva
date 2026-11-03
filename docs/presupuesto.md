@@ -23,7 +23,7 @@ consultados en ferretronica.com el 3-nov. **Precios de cotización, no de factur
 | LEDs, resistencias, headers | 1 | 6.500 | sigue |
 | VL53L0X | 1 | 25.000 | sigue |
 | ESP32 DevKit 30 pines (WROOM-32) | 1 | 35.000 | sigue (decisión 2-nov) |
-| **DHT22** (temperatura y humedad) | 1 | **22.000** | **nuevo** (el BME280 no aparece en Ferretrónica el 3-nov) |
+| **DHT22** (temperatura y humedad) | 1 | **22.000** | **nuevo — decidido el 3-nov** (el BME280 no aparece en Ferretrónica) |
 | **BH1750** (luz), opcional | 1 | **8.000** | **nuevo** |
 | **Subtotal** | | **256.100** | |
 | Imprevistos 5 % | | 12.800 | |
@@ -32,7 +32,7 @@ consultados en ferretronica.com el 3-nov. **Precios de cotización, no de factur
 
 **Retirado:** ESP32-CAM con placa de programación (48.000 en la cotización), CP2102, ESP32-S3 + envío (87.000).
 **Trabajo futuro (sin costo hoy):** módulo láser de cuadrícula, OBD2 ELM327 Bluetooth de solo lectura.
-**Alternativa:** BME280 en Sigma Electrónica (Bogotá) a 23.800 + envío, en lugar del DHT22 (el firmware acepta
+**Alternativa descartada el 3-nov:** BME280 en Sigma Electrónica (Bogotá) a 23.800 + envío (el firmware igual acepta
 cualquiera de los dos y detecta si un "BME280" es en realidad un BMP280 sin humedad).
 **Sin costo:** el celular de cada integrante, la impresión de la tarjeta ArUco (`docs/tarjeta_aruco.pdf`) y un metro o
 regla. Termohigrómetro de mano solo si alguien tiene uno.

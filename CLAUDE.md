@@ -42,7 +42,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | **3-nov** | **Cambio de plan aprobado por el docente de Arquitectura:** (a) el **módulo láser de cuadrícula** queda como trabajo futuro (no se consigue a tiempo); (b) **dataset propio de fotos con el celular** (≥ 500, ≥ 50 por clase, 9 clases, con fecha, hora, ubicación, tipo, temperatura y humedad); (c) se **eliminan la ESP32-CAM y el CP2102**; se agrega **BME280 (o DHT22) y BH1750** al nodo; (d) **OBD2** (ELM327 Bluetooth, solo lectura) = módulo opcional futuro |
 | 3-nov | Clima de cada foto: termohigrómetro (a mano) > nodo (± 30 min) > API Open-Meteo por hora (`fuente_clima`); lluvia IDEAM del día |
 | 3-nov | Modelo de fotos: MobileNetV3-Small, división **por sitio** (nunca por foto), TFLite int8. TensorFlow en `%USERPROFILE%\.venvs\vv-modelo` (rutas largas) |
-| 3-nov | Presupuesto **268.900 COP** (nuevo por comprar: DHT22 + BH1750 = 30.000); BME280 no aparece en Ferretrónica |
+| 3-nov | Presupuesto **268.900 COP** (nuevo por comprar: DHT22 + BH1750 = 30.000) |
+| **3-nov** | **Sensor de temperatura y humedad: DHT22 de Ferretrónica** (GPIO 25). No se pide el BME280 a Bogotá (no hay en Ferretrónica). El firmware sigue aceptando un BME280 si aparece |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/propuesta/`
 (propuesta entregada, con ESP32-S3: **no se modifica**), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
