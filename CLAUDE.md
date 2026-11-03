@@ -11,9 +11,11 @@ VÍA VIVA es el Proyecto Integrador 2026-2 (2.º semestre, Ingeniería de Datos 
 Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las vías de Tunja (Colombia).
 
 - **Nodo en el carro (IA en el borde):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
-  láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador. Detector por umbrales + clasificador int8 en el nodo;
-  maniobras con el giroscopio; página web propia (punto de acceso Wi-Fi) para etiquetar. Una ESP32-CAM (OV2640) toma foto
-  solo cuando hay evento y la difumina.
+  láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador + **BME280 o DHT22 y BH1750** (ambiente). Detector por
+  umbrales + clasificador int8 en el nodo; maniobras con el giroscopio; página web propia (punto de acceso Wi-Fi) para etiquetar.
+- **Celular = dispositivo de borde para imágenes (desde el 3-nov):** dataset propio de ≥ 500 fotos de 9 clases con fecha,
+  hora, GPS, temperatura y humedad; tarjeta ArUco para la escala; clasificador MobileNetV3 → TFLite int8 (`dataset/`).
+  La ESP32-CAM y el CP2102 **salieron del diseño** (`futuro/`).
 - **PC / portátil:** ETL (nodo + phyphox + bot + scraping + OpenStreetMap) → SQLite → modelo de riesgo por tramo de calle →
   tablero Java Swing (autoridad) + mapa web estático (ciudadanía). Bot de Telegram para reportes con foto y ubicación.
 - **No** genera multas ni lee placas.
@@ -26,8 +28,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 24-oct | Capa predictiva georreferenciada por tramo (sugerencia del docente y comité curricular); láser VL53L0X para profundidad |
 | 26-oct | Repositorio privado `via-viva-usta/via-viva`; Python en `.venv`; firmware PlatformIO; tablero NetBeans *Java with Ant* |
 | **2-nov** | **Placa principal: ESP32 normal (WROOM-32, DevKit de 30 pines, entorno `esp32dev`).** La ESP32-S3 quedó descartada |
-| 2-nov | ESP32-CAM se programa con adaptador USB-TTL **CP2102** (sin base MB) |
-| 2-nov | Presupuesto aproximado **330.000 COP** (antes 342.400 con la S3) |
+| ~~2-nov~~ | ~~ESP32-CAM se programa con adaptador USB-TTL CP2102~~ → reemplazado el 3-nov (sin ESP32-CAM) |
+| ~~2-nov~~ | ~~Presupuesto aproximado 330.000 COP~~ → 268.900 COP el 3-nov (`docs/presupuesto.md`) |
 | 2-nov | Atención al ciudadano = **bot de Telegram + mapa web estático, sin backend**; para la demo el bot corre en el portátil |
 | 2-nov | Base de datos **SQLite** detrás de la capa de acceso `db/acceso.py` (lista para migrar a PostgreSQL/PostGIS) |
 | 2-nov | Datos: recorridos normales en carro a **máx. 30 km/h**; primero celular (**phyphox**), luego el nodo |
@@ -37,10 +39,15 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 2-nov | E2 = pesos en flash vs. SRAM; E3 = float32 vs. int8 (sin PSRAM ni instrucciones vectoriales en la ESP32 normal) |
 | 3-nov | Informe IEEE (`report/`) se compila con **MiKTeX** en el PC de Andrés; `main.pdf` no se sube a Git |
 | 3-nov | Cuenta de GitHub del proyecto: **`andresscardens`** (ver sección 11) |
+| **3-nov** | **Cambio de plan aprobado por el docente de Arquitectura:** (a) el **módulo láser de cuadrícula** queda como trabajo futuro (no se consigue a tiempo); (b) **dataset propio de fotos con el celular** (≥ 500, ≥ 50 por clase, 9 clases, con fecha, hora, ubicación, tipo, temperatura y humedad); (c) se **eliminan la ESP32-CAM y el CP2102**; se agrega **BME280 (o DHT22) y BH1750** al nodo; (d) **OBD2** (ELM327 Bluetooth, solo lectura) = módulo opcional futuro |
+| 3-nov | Clima de cada foto: termohigrómetro (a mano) > nodo (± 30 min) > API Open-Meteo por hora (`fuente_clima`); lluvia IDEAM del día |
+| 3-nov | Modelo de fotos: MobileNetV3-Small, división **por sitio** (nunca por foto), TFLite int8. TensorFlow en `%USERPROFILE%\.venvs\vv-modelo` (rutas largas) |
+| 3-nov | Presupuesto **268.900 COP** (nuevo por comprar: DHT22 + BH1750 = 30.000); BME280 no aparece en Ferretrónica |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/propuesta/`
 (propuesta entregada, con ESP32-S3: **no se modifica**), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
-`docs/experimentos.md`, `docs/demo.md`, `docs/poster.md`, `docs/ESTADO.md`.
+`docs/experimentos.md`, `docs/demo.md`, `docs/poster.md`, `docs/ESTADO.md`, `docs/protocolo_fotos.md`,
+`docs/presupuesto.md`, `docs/tarjeta_aruco.pdf`, `dataset/README.md`, `futuro/README.md`.
 
 ## 3. Materias que el código debe evidenciar
 | Materia | Qué debe quedar demostrable | Dónde está |
@@ -48,7 +55,7 @@ Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota de
 | Sistemas de Adquisición (SADP) | Muestreo justificado (espectro/Nyquist), filtros, sincronía GPS, características, métricas de detección | `analysis/`, `firmware/.../caracteristicas.h` |
 | Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4) | `firmware/nodo-sensores/`, `docs/experimentos.md` |
 | Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
-| Requisitos extra | ETL, web scraping, IA ligera, demo | `etl/`, `analysis/`, `docs/demo.md` |
+| Requisitos extra | ETL, web scraping, IA ligera, demo | `etl/`, `analysis/`, `dataset/`, `docs/demo.md` |
 
 Pendiente del diseño original de Estructuras: bitácora por fechas con `TreeMap` y "peligros" agrupados (cuando haya eventos).
 
@@ -59,17 +66,18 @@ via-viva/
 ├── docs/            diseño, propuesta, diagramas Mermaid, ESTADO, montaje, experimentos, demo, póster
 ├── firmware/
 │   ├── nodo-sensores/   PlatformIO esp32dev: src/ (módulos), include/ (pines.h, config.h, secretos.example.h),
-│   │                    pruebas/ (un programa por sensor), wokwi/ (simulación), diagram.json + wokwi.toml
-│   └── nodo-camara/     PlatformIO esp32cam
+│                        pruebas/ (un programa por sensor), wokwi/ (simulación), diagram.json + wokwi.toml
 ├── db/              schema.sql (8 tablas), acceso.py (capa de acceso), reconstruir.ps1
 ├── etl/             osm_tunja, barrios_tunja, elevacion, scraping/ (clima IDEAM, noticias), recorridos, recorrido_sintetico
 ├── analysis/        senales.py, detector_umbral.py, modelo_cnn.py, entrenar_detector.py, experimentos.py, notebook
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
 ├── bot/             bot.py, reportes.py, cambiar_estado.py
 ├── web/             index.html (Leaflet) + exportar.py → datos.js (generado, ignorado)
+├── dataset/         fotos del celular: comun, tarjeta_aruco, ingesta, etiquetador, escala, modelo, sintetico
+├── futuro/          trabajo futuro: nodo-camara (ESP32-CAM), láser de cuadrícula, OBD2
 ├── dashboard-java/  NetBeans Ant, Java 21: estructuras/ (TablaHash, MonticuloMax, GrafoCalles, IndiceGeohash)
 ├── report/          main.tex (IEEE), referencias.bib, figuras/generar.py, tablas/ (generadas por experimentos.py)
-└── data/            solo README y muestras; raw/, alcaldia/, osm/, campo/, fotos_bot/ y la base .db están ignorados
+└── data/            solo README y muestras; raw/, alcaldia/, osm/, campo/, fotos_bot/, procesado*/ y la base .db ignorados
 ```
 
 ## 5. Reglas obligatorias
@@ -114,7 +122,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 
 ## 7. Firmware del nodo (`firmware/nodo-sensores`)
 - **Tareas:** núcleo 1 = `tareaAdquisicion` (prioridad 20) y `tareaProcesamiento` (10); núcleo 0 = Wi-Fi + web, GPS, I2C +
-  maniobras, cámara, microSD, estadísticas. `loop()` se elimina para medir el ocio del núcleo 1.
+  maniobras + ambiente (cada 10 s), microSD, estadísticas. `loop()` se elimina para medir el ocio del núcleo 1.
 - **Adquisición:** ADXL345 a 200 Hz, ±16 g resolución completa (3,9 mg/LSB), FIFO *stream* con **watermark 31** (el campo tiene
   5 bits → interrupción cada 155 ms), lote por DMA a 1,5 MHz (≤ 1,6 MHz no necesita pausa entre lecturas de la FIFO),
   búfer **ping-pong** de 2 mitades con semáforos; `bloques_perdidos` si el procesamiento se atrasa.
@@ -124,15 +132,15 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   usando el valor anterior) y > **0,30 g**, con **1 s** refractario y 2 s de calentamiento. Señal = \|a\| − 1 g. **Sin calibrar.**
 - **Maniobras** (`src/maniobras.h`): giro si \|ω vertical filtrada (τ 0,25 s)\| > **15 °/s** durante **1 s** con velocidad > 5 km/h
   (positivo = izquierda); frenada si aceleración longitudinal < −**0,30 g** durante **0,5 s** o caída GPS > **2,5 m/s²**. Un golpe
-  durante una maniobra se atribuye a la maniobra y no se pide foto.
+  durante una maniobra se atribuye a la maniobra.
 - **Clase del evento:** hoy **provisional por reglas** (`clasificarProvisional`); el modelo int8 existe pero está entrenado con
   datos SINTÉTICOS (`MODELO_SINTETICO 1` en `src/modelo_cnn.h`): sirve para medir latencia, no para clasificar.
 - **Página web** (`src/servidor_web.cpp`): red `VIA-VIVA-NODO`, http://192.168.4.1, botones Hueco/Resalto/Otro, "modo mesa"
-  (ignora la velocidad para probar sin carro), estado de sensores y modo E1.
+  (ignora la velocidad para probar sin carro), estado de sensores, modo E1 y tarjeta **Ambiente** (°C, % HR, hPa, lx).
 - **microSD por sesión:** `crudo_NNN.csv` (t_us, cuentas), `eventos_NNN.csv`, `gps_NNN.csv`, `etiquetas_NNN.csv`
-  (tipo, origen web/botón), `fotos_NNN.csv`, `exp_NNN.csv` (experimentos).
+  (tipo, origen web/botón), `ambiente_NNN.csv` (utc_fix + ms_desde_fix, lugar, sensor, °C, % HR, hPa, lx), `exp_NNN.csv`.
 - **Experimentos:** E1 cada 5 s; E2/E3/E4 y memoria **al arrancar** antes de crear tareas (`src/experimentos.cpp`).
-- Tamaño (esp32dev): RAM estática 60 156 B (18,4 %), flash 916 145 B (46,6 %), partición `min_spiffs.csv`.
+- Tamaño (esp32dev, 3-nov): RAM estática 60 260 B (18,4 %), flash 920 305 B (46,8 %), partición `min_spiffs.csv`.
 
 ## 8. Señal, detector y entrenamiento
 - Muestreo de trabajo 200 Hz (hipótesis; se valida con el espectro de los primeros recorridos: 95 % de la energía).
@@ -167,10 +175,29 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   etiquetados, ≥ 5 por clase y ≥ 3 barrios. `--lista-campo` = top-10 de riesgo no reportados vs. 10 al azar.
 - `--demo-sintetico` solo prueba el flujo (versión `DEMO-SINTETICO`, aviso rojo en tablero y mapa).
 
+## 10b. Dataset de fotos del celular (`dataset/`, desde el 3-nov)
+- **Protocolo:** `docs/protocolo_fotos.md`. 9 clases: `hueco, resalto, grieta, parche, tapa, obstaculo, linea_carril,
+  paso_peatonal, via_buena`; severidad leve/media/alta solo en daños; 4–5 fotos por punto (contexto, frente, lado, cenital
+  con tarjeta, termohigrómetro). Drive → `data/raw/fotos/AAAA-MM-DD_nombre/` (nunca WhatsApp: borra el EXIF).
+- **Esquema** (`dataset/comun.py`, `COLUMNAS`): id, archivo, autor, fecha, hora, momento_dia, lat, lon, id_tramo, barrio,
+  tipo_via, clase, severidad, angulo, distancia_m, luz, superficie_mojada, temperatura, humedad, lux, fuente_clima,
+  lluvia_ideam, notas, largo_regla_cm, ancho_regla_cm (las 2 últimas opcionales). id = SHA-1[:12] del archivo.
+- **Ingesta** (`dataset.ingesta`): EXIF (hora local UTC-5 si no trae zona), tramo OSM ≤ 30 m, barrio, tipo de vía sugerido,
+  clima (termohigrómetro > nodo ± 30 min > Open-Meteo), lluvia IDEAM, difuminado (Haar; caras exigen ≥ 15 % de piel YCrCb
+  porque sin eso se borraban las cebras), copia sin EXIF ≤ 2048 px a `data/procesado/fotos/`, `calidad.csv` y
+  `reporte_calidad.md`. Nunca pisa lo etiquetado. Notas con `EXCLUIR` = fuera del modelo.
+- **Etiquetador** (`dataset.etiquetador`): http.server de la biblioteca estándar en 127.0.0.1:8765, teclas 1–9/QWE/ASDF/ZXCV/M.
+- **Escala** (`dataset.escala`): ArUco DICT_4X4_50 de **80 mm** (`tarjeta_aruco.py`), homografía de 4 puntos, vista cenital
+  a 1 mm/px, área = mancha oscura (Otsu ≤ 65 % de la mediana) que no toque el borde. Aproximada; se valida con regla.
+- **Modelo** (`dataset.modelo`): MobileNetV3-Small ImageNet 224 px, StratifiedGroupKFold **por sitio** (≤ 15 m, o mismo autor
+  ≤ 10 min), cabeza + ajuste fino, TFLite float32 e int8 (entrada uint8). Mínimo 3 sitios por clase.
+- **Sintético** (`dataset.sintetico`, `--sintetico` en todo): `data/raw/fotos_sintetico` → `data/procesado_sintetico`, nunca
+  se mezcla ni se reporta. Prueba del 3-nov: float 0,98 / int8 0,81 (la cuantización pierde: medir con datos reales).
+
 ## 11. Entorno de desarrollo (PC de Andrés, Windows 11)
 | Herramienta | Dónde / cómo |
 |---|---|
-| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (incluye torch CPU y emlearn), `bot\.venv` |
+| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (incluye torch CPU y emlearn), `bot\.venv`, `dataset\.venv` (OpenCV **< 5**: la 5 no trae las cascadas de Haar) y **`%USERPROFILE%\.venvs\vv-modelo`** (TensorFlow 2.21: no cabe en la ruta del repo sin rutas largas de Windows) |
 | PlatformIO | `%USERPROFILE%\.platformio\penv\Scripts\pio.exe` (no está en el PATH) |
 | MiKTeX 25.12 | Instalado por usuario con winget; `pdflatex main`, `bibtex main`, `pdflatex main` ×2 en `report/`. Incluye `pdftoppm` |
 | Java / NetBeans | JDK 25 (`C:\Program Files\Java\jdk-25.0.4.1`), NetBeans 25 con Ant en `C:\Program Files\NetBeans-25\netbeans\extide\ant`; para compilar por consola pasar `-Dlibs.CopyLibs.classpath=...\java\ant\extra\org-netbeans-modules-java-j2seproject-copylibstask.jar` |
@@ -186,6 +213,9 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 - El panel del navegador abre archivos locales como copia estática (no carga `datos.js`): servir `web/` con
   `python -m http.server` para probar el mapa.
 - Descargar ejecutables (p. ej. Tectonic) puede ser bloqueado por los permisos de la sesión; pedirlo al usuario.
+- Keras 3: `compile(optimizer=..., loss=..., metrics=...)` **con nombre** (el 3.er posicional es `loss_weights`). Para TFLite se
+  exporta un modelo de inferencia SIN capas de aumento (sus operaciones aleatorias no existen en TFLite).
+- PlatformIO no busca librerías desde `../include`: un programa de `pruebas/` que use `ambiente.h` debe incluir `<Wire.h>`.
 
 ## 12. Equipo
 | Persona | GitHub | Área principal | Apoyo |
@@ -202,7 +232,9 @@ Andrés opera Claude Code; los demás prueban, aportan datos y revisan por Pull 
 |---|---|---|
 | 1 | 26–30 oct | Repo, ETL/OSM, scraping, base, diagramas — **hecha** |
 | 2 | 28 oct – 2 nov | Firmware sin hardware, bot, mapa web, tablero — **hecha (compila)** |
-| 3 | 2–6 nov | Hardware y recorridos: montaje, pruebas por sensor, phyphox, E1–E4 |
+| 3 | 2–6 nov | Hardware y recorridos: montaje, pruebas por sensor (+ ambiente), phyphox, E1–E4; tarjetas ArUco y Drive |
+| 3b | 4–9 nov | **Salidas de fotos** (≥ 500); ingesta diaria |
+| 4b | 8–11 nov | Etiquetado (Pipe y Juan Diego), escala validada, modelo de fotos e int8 |
 | 4 | 3–8 nov | Detector int8 y modelo de riesgo con datos reales |
 | 5 | 6–9 nov | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** |
 | 6 | 9–13 nov | Tablero y mapa con datos reales, informe, póster, video, pitch |
