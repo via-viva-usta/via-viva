@@ -89,3 +89,6 @@ Thumbs.db
 desktop.ini
 .idea/
 *.swp
+
+# ===== Firmware: claves del punto de acceso =====
+firmware/**/include/secretos.h

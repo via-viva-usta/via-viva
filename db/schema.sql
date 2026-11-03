@@ -71,12 +71,16 @@ CREATE TABLE IF NOT EXISTS eventos (
     error_pos_m     REAL,                      -- error estimado de posición (HDOP, interpolación)
     velocidad_kmh   REAL,
     clase           TEXT NOT NULL
-                    CHECK (clase IN ('hueco', 'resalto', 'impacto_fuerte', 'normal', 'obstaculo')),
+                    CHECK (clase IN ('hueco', 'resalto', 'impacto_fuerte', 'normal', 'obstaculo',
+                                     'giro_izquierda', 'giro_derecha', 'frenada_brusca')),  -- maniobras (MPU-6050)
     severidad       REAL CHECK (severidad BETWEEN 0 AND 1),
     confianza       REAL CHECK (confianza BETWEEN 0 AND 1),
     rugosidad       REAL,                      -- índice de rugosidad de la ventana (acelerómetro)
     profundidad_mm  REAL,                      -- profundidad estimada con el VL53L0X
     etiqueta_manual TEXT,                      -- etiqueta del pulsador (verdad de campo), si la hay
+    origen          TEXT NOT NULL DEFAULT 'nodo'  -- nodo (umbral/modelo), phyphox o simulado
+                    CHECK (origen IN ('nodo', 'phyphox', 'simulado')),
+    razon_umbral    REAL,                      -- p2p / vibración de fondo en el disparo del detector
     foto_ruta       TEXT,                      -- ruta de la miniatura YA difuminada (nunca la original)
     modelo_version  TEXT,                      -- versión del clasificador del nodo
     id_tramo        INTEGER REFERENCES tramos (id_tramo),  -- tramo asignado por el ETL (ajuste a la calle)

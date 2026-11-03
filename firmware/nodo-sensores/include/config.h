@@ -29,12 +29,36 @@ constexpr int SPI_ADXL_HZ = 1500000;
 // La microSD va por la matriz GPIO (máx. ~26 MHz); 10 MHz deja margen con cables largos
 constexpr int SPI_SD_HZ = 10000000;
 
-// ---- Ventana y detección (provisional hasta tener el modelo int8) ----
+// ---- Ventana y detección ----
 constexpr uint16_t VENTANA_MUESTRAS = 400;   // 2 s a 200 Hz (2,4 KB con 3 ejes int16)
 constexpr uint16_t POST_DISPARO = 100;       // muestras que se esperan después del disparo (0,5 s)
-constexpr float UMBRAL_DISPARO_G = 0.5f;     // |a| - 1 g
-constexpr float UMBRAL_IMPACTO_G = 2.0f;
-constexpr uint32_t REFRACTARIO_MS = 1000;    // no disparar dos eventos en menos de 1 s
+constexpr float UMBRAL_IMPACTO_G = 2.0f;     // clasificación provisional: pico mayor → impacto fuerte
+
+// Detector por umbrales (src/detector_umbral.h; mismos valores por defecto que analysis/detector_umbral.py)
+constexpr float UMBRAL_V_MIN_KMH = 5.0f;
+constexpr float UMBRAL_K_REL = 6.0f;
+constexpr float UMBRAL_P2P_MIN_G = 0.30f;
+constexpr float UMBRAL_TAU_BASE_S = 2.0f;
+constexpr float UMBRAL_VENTANA_P2P_S = 0.05f;
+constexpr float UMBRAL_REFRACTARIO_S = 1.0f;
+
+// ---- Maniobras (src/maniobras.h) ----
+// Montaje del MPU-6050 (docs/montaje.md): X hacia adelante del carro, Z hacia arriba.
+// Si se monta distinto, cambiar el eje (0 = X, 1 = Y, 2 = Z) y el signo.
+constexpr int EJE_GIRO_MPU = 2;              // giro alrededor del eje vertical
+constexpr float SIGNO_GIRO_MPU = 1.0f;       // +1: positivo = antihorario visto desde arriba = izquierda
+constexpr int EJE_LONG_MPU = 0;              // aceleración hacia adelante
+constexpr float SIGNO_LONG_MPU = 1.0f;
+constexpr float MANIOBRA_GIRO_MIN_DPS = 15.0f;
+constexpr float MANIOBRA_DUR_GIRO_S = 1.0f;
+constexpr float MANIOBRA_FRENADA_MIN_G = 0.30f;
+constexpr float MANIOBRA_DUR_FRENADA_S = 0.5f;
+constexpr float MANIOBRA_FRENADA_GPS_MS2 = 2.5f;
+
+// ---- Punto de acceso Wi-Fi y página web (src/servidor_web.cpp) ----
+// El nombre y la clave vienen de include/secretos.h (ignorado por Git); si no existe se usa secretos.example.h.
+constexpr uint8_t AP_CANAL = 6;
+constexpr uint8_t AP_MAX_CLIENTES = 2;
 
 // ---- Otros ----
 constexpr uint32_t GPS_BAUD = 9600;

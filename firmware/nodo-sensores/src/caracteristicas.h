@@ -45,13 +45,17 @@ inline Caracteristicas calcularCaracteristicas(const float* a, int n, float fs) 
     return c;
 }
 
-enum class ClaseEvento : uint8_t { NORMAL = 0, HUECO, RESALTO, IMPACTO_FUERTE };
+// Las tres últimas son maniobras (giroscopio del MPU-6050), no defectos de la vía.
+enum class ClaseEvento : uint8_t { NORMAL = 0, HUECO, RESALTO, IMPACTO_FUERTE, GIRO_IZQUIERDA, GIRO_DERECHA, FRENADA_BRUSCA };
 
 inline const char* nombreClase(ClaseEvento c) {
     switch (c) {
         case ClaseEvento::HUECO: return "hueco";
         case ClaseEvento::RESALTO: return "resalto";
         case ClaseEvento::IMPACTO_FUERTE: return "impacto_fuerte";
+        case ClaseEvento::GIRO_IZQUIERDA: return "giro_izquierda";
+        case ClaseEvento::GIRO_DERECHA: return "giro_derecha";
+        case ClaseEvento::FRENADA_BRUSCA: return "frenada_brusca";
         default: return "normal";
     }
 }
