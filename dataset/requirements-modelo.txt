@@ -1,0 +1,8 @@
+# Modelo de fotos (dataset/modelo.py). TensorFlow NO cabe en la ruta del repo en Windows sin rutas largas:
+# instalar en un venv de ruta corta:  py -3.11 -m venv %USERPROFILE%\.venvs\vv-modelo
+tensorflow
+numpy
+pandas
+pillow
+scikit-learn
+matplotlib
