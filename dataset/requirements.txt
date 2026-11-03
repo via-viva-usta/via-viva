@@ -1,0 +1,8 @@
+# dataset/ — ingesta, etiquetador, escala ArUco y tarjeta (venv: dataset\.venv, Python 3.11)
+numpy
+pandas
+pillow
+pillow-heif
+opencv-contrib-python-headless
+requests
+reportlab
