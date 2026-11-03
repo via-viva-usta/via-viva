@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "author": "VIA VIVA",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "imu", "top": -140, "left": 160, "attrs": {} },
+    { "type": "wokwi-microsd-card", "id": "sd", "top": 60, "left": 260, "attrs": {} },
+    { "type": "wokwi-pushbutton", "id": "boton", "top": 200, "left": 200, "attrs": { "color": "red", "label": "Etiqueta" } },
+    { "type": "wokwi-led", "id": "led", "top": 150, "left": -120, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 210, "left": -130, "attrs": { "value": "330" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "imu:VCC", "esp:3V3", "red", [] ],
+    [ "imu:GND", "esp:GND.2", "black", [] ],
+    [ "imu:SDA", "esp:21", "green", [] ],
+    [ "imu:SCL", "esp:22", "blue", [] ],
+    [ "sd:VCC", "esp:3V3", "red", [] ],
+    [ "sd:GND", "esp:GND.2", "black", [] ],
+    [ "sd:SCK", "esp:14", "orange", [] ],
+    [ "sd:DO", "esp:27", "purple", [] ],
+    [ "sd:DI", "esp:13", "gray", [] ],
+    [ "sd:CS", "esp:32", "white", [] ],
+    [ "boton:1.l", "esp:26", "green", [] ],
+    [ "boton:2.l", "esp:GND.1", "black", [] ],
+    [ "esp:33", "r1:1", "yellow", [] ],
+    [ "r1:2", "led:A", "yellow", [] ],
+    [ "led:C", "esp:GND.1", "black", [] ]
+  ],
+  "dependencies": {}
+}

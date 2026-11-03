@@ -1,0 +1,6 @@
+# Wokwi para VS Code: simula el firmware COMPLETO compilado con PlatformIO (pio run -e esp32dev).
+# Las piezas que Wokwi no tiene (ADXL345, VL53L0X, GPS, ESP32-CAM) aparecen como "NO RESPONDE" en el monitor.
+[wokwi]
+version = 1
+firmware = '.pio/build/esp32dev/firmware.bin'
+elf = '.pio/build/esp32dev/firmware.elf'
