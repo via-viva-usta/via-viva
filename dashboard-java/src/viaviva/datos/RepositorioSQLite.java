@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import viaviva.estructuras.TablaHash;
 import viaviva.modelo.Corrida;
+import viaviva.modelo.Peligro;
 import viaviva.modelo.Tramo;
 
 /** Lectura de la base SQLite que llena el ETL (db/schema.sql). Solo lectura. */
@@ -76,6 +77,78 @@ public class RepositorioSQLite implements AutoCloseable {
             }
         }
         return n;
+    }
+
+    /** Clases de eventos que son daño u obstáculo de la vía (las mismas que publica web/exportar.py). */
+    public static final String CLASES_VIA_SQL = "('hueco', 'resalto', 'impacto_fuerte', 'obstaculo')";
+
+    /** Reportes ciudadanos (bot). DEMO si hash_usuario o descripcion dicen "demo". Vacío si la tabla no existe. */
+    public List<Peligro> leerReportes() throws SQLException {
+        List<Peligro> lista = new ArrayList<>();
+        if (!existeTabla("reportes")) return lista;
+        String sql = "SELECT id_reporte, canal, hash_usuario, ts_utc, lat, lon, tipo, descripcion, foto_ruta, estado, "
+                + "id_tramo FROM reportes ORDER BY id_reporte";
+        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                boolean demo = contieneDemo(rs.getString("hash_usuario")) || contieneDemo(rs.getString("descripcion"));
+                lista.add(new Peligro(Peligro.Fuente.REPORTE, rs.getInt("id_reporte"), rs.getString("tipo"), null,
+                        rs.getString("estado"), rs.getString("ts_utc"), rs.getDouble("lat"), rs.getDouble("lon"),
+                        enteroONull(rs, "id_tramo"), rs.getString("foto_ruta"), rs.getString("canal"), demo));
+            }
+        }
+        return lista;
+    }
+
+    /**
+     * Eventos de la vía (hueco, resalto, impacto fuerte, obstáculo) del nodo o de phyphox. Las maniobras y 'normal'
+     * no son peligros de la vía y no se leen. DEMO si origen = 'simulado' o el nodo o el modelo dicen "demo".
+     */
+    public List<Peligro> leerEventos() throws SQLException {
+        List<Peligro> lista = new ArrayList<>();
+        if (!existeTabla("eventos")) return lista;
+        String sql = "SELECT id_evento, id_nodo, ts_utc, lat, lon, clase, severidad, origen, foto_ruta, modelo_version, "
+                + "id_tramo FROM eventos WHERE clase IN " + CLASES_VIA_SQL + " ORDER BY id_evento";
+        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                String origen = rs.getString("origen");
+                boolean demo = "simulado".equals(origen) || contieneDemo(rs.getString("id_nodo"))
+                        || contieneDemo(rs.getString("modelo_version"));
+                double sev = rs.getDouble("severidad");
+                Double severidad = rs.wasNull() ? null : sev;
+                lista.add(new Peligro(Peligro.Fuente.EVENTO, rs.getInt("id_evento"), rs.getString("clase"), severidad,
+                        null, rs.getString("ts_utc"), rs.getDouble("lat"), rs.getDouble("lon"),
+                        enteroONull(rs, "id_tramo"), rs.getString("foto_ruta"), origen, demo));
+            }
+        }
+        return lista;
+    }
+
+    /** Eventos que no son de la vía (maniobras y 'normal'): solo se cuentan para avisarlo en el panel. */
+    public int contarEventosNoVia() throws SQLException {
+        if (!existeTabla("eventos")) return 0;
+        try (Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM eventos WHERE clase NOT IN " + CLASES_VIA_SQL)) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    private boolean existeTabla(String nombre) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")) {
+            ps.setString(1, nombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private static Integer enteroONull(ResultSet rs, String columna) throws SQLException {
+        int v = rs.getInt(columna);
+        return rs.wasNull() ? null : v;
+    }
+
+    private static boolean contieneDemo(String s) {
+        return s != null && s.toUpperCase().contains("DEMO");
     }
 
     /** "LINESTRING (lon lat, lon lat, ...)" → {lats, lons}. */

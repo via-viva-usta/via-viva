@@ -21,6 +21,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
@@ -30,16 +31,20 @@ import viaviva.control.ControladorTablero;
 import viaviva.estructuras.GrafoCalles;
 import viaviva.estructuras.TablaHash;
 import viaviva.modelo.Corrida;
+import viaviva.modelo.Peligro;
 import viaviva.modelo.Tramo;
 
 /**
  * Contenido completo del tablero (sin el JFrame, para poder dibujarlo también fuera de pantalla).
- * Centro: mapa. Derecha: corrida, ranking (heap), corredor y zonas (BFS), detalle del tramo.
+ * Centro: pestañas "Mapa" y "Reportes y eventos" (heap por prioridad). Derecha: corrida, ranking (heap),
+ * corredor y zonas (BFS), detalle del tramo.
  */
 public class PanelTablero extends JPanel {
 
     private final ControladorTablero ctl;
     private final PanelMapa mapa;
+    private final PanelPeligros panelPeligros;
+    private final JTabbedPane pestanas = new JTabbedPane();
     private final JLabel avisoDemo = new JLabel();
     private final JComboBox<Corrida> comboCorrida = new JComboBox<>();
     private final JSpinner spK = new JSpinner(new SpinnerNumberModel(15, 1, 500, 1));
@@ -66,6 +71,7 @@ public class PanelTablero extends JPanel {
         super(new BorderLayout());
         this.ctl = ctl;
         this.mapa = new PanelMapa(ctl);
+        this.panelPeligros = new PanelPeligros(ctl);
 
         avisoDemo.setOpaque(true);
         avisoDemo.setBackground(Paleta.AVISO_DEMO);
@@ -73,7 +79,10 @@ public class PanelTablero extends JPanel {
         avisoDemo.setFont(avisoDemo.getFont().deriveFont(Font.BOLD, 13f));
         avisoDemo.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         add(avisoDemo, BorderLayout.NORTH);
-        add(mapa, BorderLayout.CENTER);
+        pestanas.addTab("Mapa", mapa);
+        pestanas.addTab("Reportes y eventos (" + panelPeligros.cantidad() + ")", panelPeligros);
+        add(pestanas, BorderLayout.CENTER);
+        panelPeligros.alIrAlMapa(this::irAlPeligro);
         add(construirLateral(), BorderLayout.EAST);
         estado.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
         add(estado, BorderLayout.SOUTH);
@@ -239,6 +248,21 @@ public class PanelTablero extends JPanel {
         detalle.setCaretPosition(0);
     }
 
+    /** Doble clic en un reporte/evento: vuelve al mapa y selecciona su tramo. */
+    private void irAlPeligro(Peligro p) {
+        if (p.tramo == null) {
+            JOptionPane.showMessageDialog(this, p + " no tiene un tramo a ≤ "
+                    + (int) ControladorTablero.MAX_DIST_TRAMO_M + " m.");
+            return;
+        }
+        pestanas.setSelectedComponent(mapa);
+        mapa.seleccionar(p.tramo, true);
+        mostrarDetalle(p.tramo);
+        detalle.append("\n\n" + p + (p.demo ? " (DEMO: no es un resultado)" : "") + "\nPrioridad "
+                + p.prioridad + " = severidad " + p.nivelSeveridad + " × tránsito " + p.pesoTransito
+                + " × reincidencia " + p.reincidencia);
+    }
+
     private void calcularCorredor() {
         if (seleccionado == null) {
             JOptionPane.showMessageDialog(this, "Primero selecciona un tramo en el mapa o en el ranking.");
@@ -283,12 +307,17 @@ public class PanelTablero extends JPanel {
         return mapa;
     }
 
+    /** Muestra la pestaña de reportes y eventos (para la captura sin pantalla). */
+    public void mostrarPestanaPeligros() {
+        pestanas.setSelectedComponent(panelPeligros);
+    }
+
     public void seleccionarPrimeroDelRanking() {
         if (!filasRanking.isEmpty()) tablaRanking.setRowSelectionInterval(0, 0);
     }
 
     public void ejecutarCorredor() {
-        calcularCorredor();
+        if (seleccionado != null) calcularCorredor();   // sin corrida no hay ranking ni tramo (y sin pantalla no hay diálogo)
     }
 
     public void ejecutarZonas() {
