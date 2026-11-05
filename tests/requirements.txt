@@ -9,3 +9,4 @@ scikit-learn==1.7.2
 requests
 python-dotenv
 pytest
+reportlab
