@@ -65,8 +65,11 @@ void tareaAdquisicion(void*) {
     b->n = 0;
     int64_t tAnterior = 0;
     [[maybe_unused]] TickType_t ultimoDespertar = xTaskGetTickCount();
+    esp_task_wdt_add(nullptr);   // si la lectura del ADXL345 se cuelga 10 s, el nodo se reinicia
+    int64_t wdt = 0;
 
     for (;;) {
+        avisarWdt(wdt);
 #if MODO_ADQ == MODO_ADQ_FIFO_DMA
         // Espera la interrupción de watermark. El tiempo de espera cubre el caso en que INT1
         // ya estaba en alto al arrancar (no hay flanco): se lee igual y se cuenta como timeout.

@@ -37,13 +37,23 @@ void tareaProcesamiento(void*) {
     uint32_t muestrasSeg = 0, crudoPerdido = 0;
     int64_t tSeg = esp_timer_get_time();
 
+    esp_task_wdt_add(nullptr);
+    int64_t wdt = 0;
+
     for (;;) {
+        avisarWdt(wdt);
         int i;
-        xQueueReceive(colaBloques, &i, portMAX_DELAY);
+        // Espera con límite: si no llegan bloques (ADXL345 sin responder) la tarea sigue viva y lo informa
+        if (xQueueReceive(colaBloques, &i, pdMS_TO_TICKS(1000)) != pdTRUE) {
+            if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
+                estadoNodo.muestrasPorSegundo = 0;
+                xSemaphoreGive(mutexNodo);
+            }
+            continue;
+        }
         const Bloque& b = pingPong[i];
         // Copia para el registro crudo (si la cola está llena se pierde y se cuenta)
         if (xQueueSend(colaCrudo, &b, 0) != pdTRUE) crudoPerdido++;
-        digitalWrite(PIN_LED, !digitalRead(PIN_LED));   // parpadeo = adquiriendo
         const float velocidad = modoMesa ? 99.0f : copiarGPS().velKmh;
 
         for (int k = 0; k < b.n; k++) {

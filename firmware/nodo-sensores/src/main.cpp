@@ -6,7 +6,7 @@
 //   Núcleo 0 (PRO_CPU): Wi-Fi + página web, GPS, I2C (MPU-6050 + VL53L0X + maniobras + ambiente), microSD, estadísticas
 //
 // Archivos: adquisicion.cpp, procesamiento.cpp, perifericos.cpp (GPS, I2C y ambiente), registro.cpp (microSD),
-// servidor_web.cpp, estadisticas.cpp. Lo que solo se puede validar con la placa real está marcado [VALIDAR EN PLACA].
+// servidor_web.cpp + ajustes.cpp (página y umbrales en la flash), estadisticas.cpp, led_estado.cpp (códigos del LED). Lo que solo se puede validar con la placa real está marcado [VALIDAR EN PLACA].
 
 #include <Arduino.h>
 
@@ -88,6 +88,7 @@ void setup() {
                   ESP.getSketchSize());
 
     pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, HIGH);   // encendido fijo = arrancando (después lo maneja tareaLED, src/led_estado.cpp)
     pinMode(PIN_PULSADOR, INPUT_PULLUP);
     pinMode(PIN_ADXL_INT1, INPUT);
 
@@ -145,6 +146,8 @@ void setup() {
     xTaskCreatePinnedToCore(tareaRegistro, "sd", 8192, nullptr, 4, nullptr, 0);
     xTaskCreatePinnedToCore(tareaWeb, "web", 8192, nullptr, 3, nullptr, 0);
     xTaskCreatePinnedToCore(tareaEstadisticas, "stats", 4096, nullptr, 2, nullptr, 0);
+    xTaskCreatePinnedToCore(tareaLED, "led", 2048, nullptr, 1, nullptr, 0);
+    // Con watchdog: adq, proc, gps, i2c y sd. Sin watchdog: web (una descarga larga la ocupa), stats y led.
 
     if (MODO_ADQ != MODO_ADQ_POLLING) attachInterrupt(PIN_ADXL_INT1, isrAdxl, RISING);
     attachInterrupt(PIN_PULSADOR, isrPulsador, FALLING);

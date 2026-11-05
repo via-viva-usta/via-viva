@@ -112,6 +112,7 @@ void tareaI2C(void*);
 void tareaRegistro(void*);
 void tareaEstadisticas(void*);
 void tareaWeb(void*);
+void tareaLED(void*);
 void IRAM_ATTR isrAdxl();
 void registrarEtiqueta(int64_t tUs, const char* tipo, const char* origen);
 void iniciarMedicionOcio();
