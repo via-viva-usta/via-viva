@@ -21,6 +21,7 @@ import viaviva.vista.PanelTablero;
  * <pre>
  * Uso:  java -jar TableroViaViva.jar [ruta/a/via_viva.db]
  *       java -jar TableroViaViva.jar [ruta/a/via_viva.db] --captura salida.png   (imagen sin abrir ventana)
+ *       java -jar TableroViaViva.jar [ruta/a/via_viva.db] --captura salida.png --pestana reportes
  * </pre>
  * Sin ruta, busca ../data/via_viva.db (desde dashboard-java/) y data/via_viva.db; si no la encuentra, pregunta.
  */
@@ -28,15 +29,17 @@ public class TableroApp {
 
     public static void main(String[] args) throws Exception {
         String ruta = null, captura = null;
+        boolean pestanaReportes = false;
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--captura") && i + 1 < args.length) captura = args[++i];
+            else if (args[i].equals("--pestana") && i + 1 < args.length) pestanaReportes = args[++i].startsWith("reporte");
             else ruta = args[i];
         }
         if (ruta == null) ruta = buscarBase();
 
         if (captura != null) {
             System.setProperty("java.awt.headless", "true");
-            capturar(ruta, new File(captura));
+            capturar(ruta, new File(captura), pestanaReportes);
             return;
         }
         final String rutaFinal = ruta;
@@ -83,7 +86,7 @@ public class TableroApp {
     }
 
     /** Dibuja el tablero completo en un PNG sin mostrar ventanas (sirve para documentar y para probar). */
-    private static void capturar(String ruta, File salida) throws Exception {
+    private static void capturar(String ruta, File salida, boolean pestanaReportes) throws Exception {
         if (ruta == null) throw new IllegalArgumentException("No se encontró via_viva.db; pásala como argumento.");
         ControladorTablero ctl = new ControladorTablero(ruta);
         ctl.cargar();
@@ -96,6 +99,10 @@ public class TableroApp {
         panel.ejecutarCorredor();
         acomodar(panel);
         panel.mapa().ajustarVista(panel.mapa().getWidth(), panel.mapa().getHeight());   // ciudad completa
+        if (pestanaReportes) {
+            panel.mostrarPestanaPeligros();
+            acomodar(panel);
+        }
         BufferedImage img = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         panel.paint(g);
