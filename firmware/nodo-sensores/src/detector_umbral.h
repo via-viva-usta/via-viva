@@ -37,6 +37,16 @@ public:
         reiniciar();
     }
 
+    // Cambia los umbrales sin borrar la línea base ni repetir el calentamiento (ajuste desde la página web).
+    // La regla es la misma; solo cambian los números.
+    void ajustarUmbrales(float kRel, float p2pMinG, float vMinKmh, float refractarioS) {
+        p_.kRel = kRel;
+        p_.p2pMinG = p2pMinG;
+        p_.vMinKmh = vMinKmh;
+        p_.refractarioS = refractarioS;
+        refractarioMuestras_ = (uint32_t)(refractarioS * fs_);
+    }
+
     void reiniciar() {
         cuenta_ = 0;
         llenas_ = 0;

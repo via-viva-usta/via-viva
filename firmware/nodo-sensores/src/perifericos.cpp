@@ -58,12 +58,52 @@ static void leerAmbiente(EstadoAmbiente& a) {
     a.tUs = esp_timer_get_time();
 }
 
+volatile uint32_t gpsBytes = 0, gpsReinicios = 0, gpsUltimoByteMs = 0;
+
+// GPS robusto:
+//   * Si no llega NINGÚN byte en GPS_SIN_DATOS_MS (el NEO-6M manda frases cada 1 s aunque no tenga fijación), se
+//     reinicia la UART2 y se cuenta en gpsReinicios (lo muestra la página). Si sigue en cero: cables o alimentación.
+//   * Si la fijación no se actualiza en GPS_FIX_VIEJO_MS (túnel, antena tapada, módulo desconectado), el GPS pasa a
+//     no válido y la velocidad a 0: así el detector no sigue usando una velocidad vieja (sin GPS no detecta,
+//     salvo en "modo mesa").
 void tareaGPS(void*) {
+    esp_task_wdt_add(nullptr);
+    int64_t wdt = 0;
     float velAnterior = 0;
     int64_t tAnterior = 0;
+    bool fixVigente = false;
+    uint32_t ultimoReinicio = millis();
     for (;;) {
-        while (Serial2.available()) gps.encode(Serial2.read());
+        avisarWdt(wdt);
+        uint32_t n = 0;
+        while (Serial2.available()) {
+            gps.encode(Serial2.read());
+            n++;
+        }
+        const uint32_t ahoraMs = millis();
+        if (n) {
+            gpsBytes += n;
+            gpsUltimoByteMs = ahoraMs;
+        } else if (ahoraMs - gpsUltimoByteMs > GPS_SIN_DATOS_MS && ahoraMs - ultimoReinicio > GPS_SIN_DATOS_MS) {
+            // [VALIDAR EN PLACA] que reiniciar la UART recupere un GPS que dejó de enviar
+            Serial2.end();
+            Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
+            gpsReinicios++;
+            ultimoReinicio = ahoraMs;
+            Serial.printf("[GPS] sin datos en %lu s: UART2 reiniciada (%lu veces)\n",
+                          (unsigned long)(GPS_SIN_DATOS_MS / 1000), (unsigned long)gpsReinicios);
+        }
+        if (fixVigente && esp_timer_get_time() - tAnterior > (int64_t)GPS_FIX_VIEJO_MS * 1000) {
+            fixVigente = false;
+            if (xSemaphoreTake(mutexGPS, pdMS_TO_TICKS(5)) == pdTRUE) {
+                estadoGPS.valido = false;
+                estadoGPS.velKmh = 0;
+                xSemaphoreGive(mutexGPS);
+            }
+            Serial.println("[GPS] fijación perdida: velocidad 0 hasta la próxima");
+        }
         if (gps.location.isUpdated()) {
+            fixVigente = true;
             EstadoGPS e;
             e.valido = gps.location.isValid();
             e.lat = gps.location.lat();
@@ -121,8 +161,12 @@ void tareaI2C(void*) {
     maniobras.configurar(pm, 1000.0f / PERIODO_I2C_MS);
     uint32_t idManiobra = 0;
 
+    // El watchdog se activa después de iniciar los sensores (el DHT22 puede tardar ~6 s en responder)
+    esp_task_wdt_add(nullptr);
+    int64_t wdt = 0;
     TickType_t ultimo = xTaskGetTickCount();
     for (;;) {
+        avisarWdt(wdt);
         LecturaMPU l{};
         uint32_t us = 0;
         if (mpuOk) {

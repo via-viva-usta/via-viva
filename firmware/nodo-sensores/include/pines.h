@@ -1,5 +1,5 @@
 // Pines del nodo de sensores — ESP32 DevKit de 30 pines (WROOM-32, entorno esp32dev).
-// Fuente: CLAUDE.md, sección 5. Verificar contra la placa real antes de soldar.
+// Fuente: CLAUDE.md, sección 6; conexiones completas en docs/montaje.md. Verificar contra la placa real antes de soldar.
 //
 // Prohibidos o limitados: 0, 2, 5, 12, 15 (arranque) · 6-11 (flash interna) · 1 y 3 (UART0, monitor)
 // · 34-39 solo entradas y SIN pull-up interno.
@@ -28,7 +28,8 @@
 #define PIN_GPS_RX   16
 #define PIN_GPS_TX   17
 
-// DHT22: solo si no hay BME280 (plan B de temperatura y humedad). Un hilo bidireccional con pull-up de 10 kΩ:
+// DHT22: sensor de temperatura y humedad del nodo (3-nov; el código prefiere un BME280 si lo encuentra en el I2C,
+// pero no se compró). Un hilo bidireccional con pull-up de 10 kΩ a 3V3:
 // necesita un pin de entrada/salida (el 35 no sirve). El 25 quedó libre al retirar la ESP32-CAM (3-nov).
 #define PIN_DHT22    25
 

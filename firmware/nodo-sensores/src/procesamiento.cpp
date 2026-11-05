@@ -1,8 +1,11 @@
 // Núcleo 1: procesamiento (ventana → detector por umbrales → características → clase → evento).
+#include "ajustes.h"
 #include "bufer_circular.h"
 #include "detector_umbral.h"
 #include "estado.h"
-#include "pines.h"
+#include "senal_vivo.h"
+
+SenalVivo senalVivo;   // gráfica en vivo de la página web (senal_vivo.h)
 
 // La página web puede activar el "modo mesa": ignora la velocidad del GPS para probar el detector
 // golpeando el nodo sobre una mesa, sin carro ni señal GPS.
@@ -22,28 +25,52 @@ void tareaProcesamiento(void*) {
     static float lineal[VENTANA_MUESTRAS];
     DetectorUmbral detector;
     ParametrosUmbral p;
-    p.vMinKmh = UMBRAL_V_MIN_KMH;
-    p.kRel = UMBRAL_K_REL;
-    p.p2pMinG = UMBRAL_P2P_MIN_G;
+    // K, piso, velocidad mínima y refractario vienen de la flash (ajustes.cpp; por defecto los de config.h)
+    uint32_t versionAplicada;
+    const AjustesDetector aj = leerAjustes(&versionAplicada);
+    p.vMinKmh = aj.vMinKmh;
+    p.kRel = aj.kRel;
+    p.p2pMinG = aj.p2pMinG;
     p.tauBaseS = UMBRAL_TAU_BASE_S;
     p.ventanaP2PS = UMBRAL_VENTANA_P2P_S;
-    p.refractarioS = UMBRAL_REFRACTARIO_S;
+    p.refractarioS = aj.refractarioS;
     detector.configurar(p, FS_HZ);
+
+    // Diezmado para la gráfica: de cada grupo de DIEZMADO muestras se guarda la de mayor magnitud
+    constexpr int DIEZMADO = FS_HZ / SENAL_VIVO_HZ;
+    float picoGrupo = 0;
+    int nGrupo = 0;
 
     uint32_t idEvento = 0;
     int restantes = -1;                 // muestras que faltan tras el disparo (-1 = sin disparo)
     int64_t tDisparo = 0;
     float razonDisparo = 0;
-    uint32_t muestrasSeg = 0;
+    uint32_t muestrasSeg = 0, crudoPerdido = 0;
     int64_t tSeg = esp_timer_get_time();
 
+    esp_task_wdt_add(nullptr);
+    int64_t wdt = 0;
+
     for (;;) {
+        avisarWdt(wdt);
         int i;
-        xQueueReceive(colaBloques, &i, portMAX_DELAY);
+        // Espera con límite: si no llegan bloques (ADXL345 sin responder) la tarea sigue viva y lo informa
+        if (xQueueReceive(colaBloques, &i, pdMS_TO_TICKS(1000)) != pdTRUE) {
+            if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
+                estadoNodo.muestrasPorSegundo = 0;
+                xSemaphoreGive(mutexNodo);
+            }
+            continue;
+        }
         const Bloque& b = pingPong[i];
-        xQueueSend(colaCrudo, &b, 0);   // copia para el registro crudo (si la cola está llena se pierde)
-        digitalWrite(PIN_LED, !digitalRead(PIN_LED));   // parpadeo = adquiriendo
+        // Copia para el registro crudo (si la cola está llena se pierde y se cuenta)
+        if (xQueueSend(colaCrudo, &b, 0) != pdTRUE) crudoPerdido++;
         const float velocidad = modoMesa ? 99.0f : copiarGPS().velKmh;
+        // ¿Cambiaron los umbrales desde la página? Se aplican aquí, entre dos bloques
+        if (versionAjustes() != versionAplicada) {
+            const AjustesDetector a = leerAjustes(&versionAplicada);
+            detector.ajustarUmbrales(a.kRel, a.p2pMinG, a.vMinKmh, a.refractarioS);
+        }
 
         for (int k = 0; k < b.n; k++) {
             // Hora de cada muestra reconstruida desde la más reciente del bloque
@@ -55,6 +82,12 @@ void tareaProcesamiento(void*) {
             // Pendiente: estimar la gravedad con el carro detenido y rotar al eje vertical.
             const float aDin = sqrtf(ax * ax + ay * ay + az * az) - 1.0f;
             ventana.agregar(aDin);
+            if (fabsf(aDin) > fabsf(picoGrupo)) picoGrupo = aDin;
+            if (++nGrupo >= DIEZMADO) {
+                senalVivo.agregar((int16_t)constrain(lroundf(picoGrupo * 1000.0f), -32000L, 32000L));
+                picoGrupo = 0;
+                nGrupo = 0;
+            }
 
             if (detector.procesar(aDin, velocidad) && restantes < 0) {
                 restantes = POST_DISPARO;
@@ -96,6 +129,7 @@ void tareaProcesamiento(void*) {
         if (ahora - tSeg >= 1000000) {
             if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
                 estadoNodo.muestrasPorSegundo = muestrasSeg * 1e6f / (ahora - tSeg);
+                estadoNodo.crudoPerdido = crudoPerdido;
                 xSemaphoreGive(mutexNodo);
             }
             muestrasSeg = 0;

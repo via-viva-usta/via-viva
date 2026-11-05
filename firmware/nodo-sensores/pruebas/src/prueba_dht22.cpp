@@ -1,4 +1,4 @@
-// Prueba del DHT22 (AM2302) en GPIO 25 (PIN_DHT22), solo si no hay BME280.
+// Prueba del DHT22 (AM2302) en GPIO 25 (PIN_DHT22): el sensor de temperatura y humedad del nodo (3-nov).
 // Usa el mismo controlador del nodo (include/ambiente.h). Pull-up de 10 kΩ a 3V3 (el módulo de 3 pines ya la trae).
 // 10 lecturas cada 2,5 s: cuenta errores (sin respuesta, tiempo de bit, suma) y revisa rangos y estabilidad.
 #include <Wire.h>   // la necesita ambiente.h (el buscador de librerías de PlatformIO no mira ../include)

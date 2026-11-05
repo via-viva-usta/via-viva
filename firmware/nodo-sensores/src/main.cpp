@@ -6,12 +6,13 @@
 //   Núcleo 0 (PRO_CPU): Wi-Fi + página web, GPS, I2C (MPU-6050 + VL53L0X + maniobras + ambiente), microSD, estadísticas
 //
 // Archivos: adquisicion.cpp, procesamiento.cpp, perifericos.cpp (GPS, I2C y ambiente), registro.cpp (microSD),
-// servidor_web.cpp, estadisticas.cpp. Lo que solo se puede validar con la placa real está marcado [VALIDAR EN PLACA].
+// servidor_web.cpp + ajustes.cpp (página y umbrales en la flash), estadisticas.cpp, led_estado.cpp (códigos del LED). Lo que solo se puede validar con la placa real está marcado [VALIDAR EN PLACA].
 
 #include <Arduino.h>
-#include <SD.h>
-#include <SPI.h>
 
+#include "ajustes.h"
+#include "esp_system.h"
+#include "esp_task_wdt.h"
 #include "esp_timer.h"
 #include "estado.h"
 #include "experimentos.h"
@@ -27,8 +28,6 @@ Bloque pingPong[2];
 SemaphoreHandle_t mitadLibre[2];
 QueueHandle_t colaBloques, colaCrudo, colaEventosSD, colaGpsSD, colaEtiquetas, colaAmbienteSD;
 TaskHandle_t hAdquisicion;
-
-static SPIClass spiSD(HSPI);     // HSPI (SPI2) por la matriz GPIO, separado del VSPI del acelerómetro
 
 EstadoGPS copiarGPS() {
     EstadoGPS e;
@@ -90,6 +89,7 @@ void setup() {
                   ESP.getSketchSize());
 
     pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, HIGH);   // encendido fijo = arrancando (después lo maneja tareaLED, src/led_estado.cpp)
     pinMode(PIN_PULSADOR, INPUT_PULLUP);
     pinMode(PIN_ADXL_INT1, INPUT);
 
@@ -101,12 +101,23 @@ void setup() {
         xSemaphoreGive(mitadLibre[i]);
     }
     colaBloques = xQueueCreate(2, sizeof(int));
-    colaCrudo = xQueueCreate(8, sizeof(Bloque));
+    colaCrudo = xQueueCreate(16, sizeof(Bloque));   // 2,5 s de margen si la tarjeta o la descarga por Wi-Fi demoran
     colaEventosSD = xQueueCreate(8, sizeof(Evento));
     colaGpsSD = xQueueCreate(8, sizeof(EstadoGPS));
     colaEtiquetas = xQueueCreate(8, sizeof(Etiqueta));
     colaAmbienteSD = xQueueCreate(4, sizeof(FilaAmbiente));
     colaExp = xQueueCreate(64, sizeof(FilaExp));
+
+    // Causa del último reinicio: si fue el watchdog o un bajo voltaje, queda en exp_NNN.csv y en la página web
+    estadoNodo.causaReinicio = (int)esp_reset_reason();
+    Serial.printf("Causa del reinicio: %d (1 = encendido, 4 = error, 5-7 = watchdog, 9 = bajo voltaje)\n",
+                  estadoNodo.causaReinicio);
+    registrarExp("ARR", "arranque", "causa_reinicio", estadoNodo.causaReinicio);
+    cargarAjustes();   // umbrales del detector guardados desde la página (flash/NVS); si no hay, los de config.h
+
+    // Watchdog de tareas: las tareas críticas se suscriben; si una se cuelga WDT_TAREAS_S, el nodo se reinicia
+    // (y empieza una sesión nueva en la microSD). El Arduino ya lo deja con 5 s; aquí se pasa a 10 s con reinicio.
+    esp_task_wdt_init(WDT_TAREAS_S, true);
 
     iniciarMedicionOcio();   // 1 s sin tareas propias: referencia para el % de CPU
 
@@ -117,12 +128,11 @@ void setup() {
     Serial.printf("[ADXL345] DEVID=0x%02X (%s) · configuración %s\n", adxl.devid(),
                   adxlOk ? "OK" : "NO RESPONDE", cfgOk ? "OK" : "FALLÓ");
 
-    // ---- microSD (HSPI por la matriz GPIO) ----
-    spiSD.begin(PIN_SD_SCK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_CS);
-    const bool sdOk = SD.begin(PIN_SD_CS, spiSD, SPI_SD_HZ);
-    Serial.printf("[SD] %s\n", sdOk ? "OK" : "NO DETECTADA (se sigue sin registro)");
+    // ---- microSD (HSPI por la matriz GPIO, src/registro.cpp) ----
+    // Aquí se elige la sesión (escribe el contador en la flash) antes de que corra la adquisición.
+    const bool sdOk = iniciarSD();
+    Serial.printf("[SD] %s\n", sdOk ? "OK" : "NO DETECTADA (se reintenta cada 10 s; mientras tanto no se guarda)");
     estadoNodo.adxlOk = adxlOk && cfgOk;
-    estadoNodo.sdOk = sdOk;
 
     // ---- E2, E3, E4 y memoria: se miden ahora, sin tareas propias que interfieran ----
     if (estadoNodo.adxlOk) experimentosArranque();
@@ -138,6 +148,8 @@ void setup() {
     xTaskCreatePinnedToCore(tareaRegistro, "sd", 8192, nullptr, 4, nullptr, 0);
     xTaskCreatePinnedToCore(tareaWeb, "web", 8192, nullptr, 3, nullptr, 0);
     xTaskCreatePinnedToCore(tareaEstadisticas, "stats", 4096, nullptr, 2, nullptr, 0);
+    xTaskCreatePinnedToCore(tareaLED, "led", 2048, nullptr, 1, nullptr, 0);
+    // Con watchdog: adq, proc, gps, i2c y sd. Sin watchdog: web (una descarga larga la ocupa), stats y led.
 
     if (MODO_ADQ != MODO_ADQ_POLLING) attachInterrupt(PIN_ADXL_INT1, isrAdxl, RISING);
     attachInterrupt(PIN_PULSADOR, isrPulsador, FALLING);
