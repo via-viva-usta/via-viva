@@ -3,7 +3,7 @@ osmnx>=2.0,<3
 geopandas>=1.0
 shapely>=2.0
 pyogrio>=0.9
-pandas>=2.2
+pandas==3.0.0   # 3.1.0 la bloquea Smart App Control de Windows (5-nov)
 numpy>=1.26
 requests>=2.32
 beautifulsoup4>=4.12

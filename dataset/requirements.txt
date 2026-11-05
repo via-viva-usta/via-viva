@@ -1,6 +1,6 @@
 # dataset/ — ingesta, etiquetador, escala ArUco y tarjeta (venv: dataset\.venv, Python 3.11)
 numpy
-pandas
+pandas==3.0.0   # 3.1.0 la bloquea Smart App Control de Windows (5-nov)
 pillow
 pillow-heif
 opencv-contrib-python-headless<5   # la 5.x ya no trae los clasificadores Haar (caras y placas)

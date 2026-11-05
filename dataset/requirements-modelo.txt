@@ -1,8 +1,8 @@
 # Modelo de fotos (dataset/modelo.py). TensorFlow NO cabe en la ruta del repo en Windows sin rutas largas:
 # instalar en un venv de ruta corta:  py -3.11 -m venv %USERPROFILE%\.venvs\vv-modelo
-tensorflow
+tensorflow==2.20.0   # 2.21 la bloquea Smart App Control de Windows (5-nov)
 numpy
-pandas
+pandas==3.0.0   # 3.1.0 la bloquea Smart App Control de Windows (5-nov)
 pillow
 scikit-learn
 matplotlib
