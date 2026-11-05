@@ -68,7 +68,31 @@ async def recibir_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivo = await foto.get_file()
     await archivo.download_to_drive(ruta)
     context.user_data["foto"] = str(ruta.relative_to(reportes.RAIZ))
+    s = await sugerir_clase(ruta)
+    if s:
+        context.user_data["sugerencia"] = s
+        nombre = NOMBRES_CLASE.get(s["clase"], s["clase"])
+        await update.message.reply_text(
+            f"🤖 Parece *{nombre}* ({s['confianza']:.0%}). Es solo una sugerencia: una persona revisa el reporte."
+            + ("\n_(modelo de prueba SINTÉTICO: todavía no es confiable)_" if s["sintetico"] else ""),
+            parse_mode="Markdown")
     return await pedir_ubicacion(update)
+
+
+NOMBRES_CLASE = {"hueco": "un hueco", "resalto": "un resalto", "grieta": "una grieta", "parche": "un parche",
+                 "tapa": "una tapa o alcantarilla", "obstaculo": "un obstáculo", "linea_carril": "una línea de carril",
+                 "paso_peatonal": "un paso peatonal", "via_buena": "vía en buen estado"}
+
+
+async def sugerir_clase(ruta) -> dict | None:
+    """La CNN de fotos (dataset/clasificar.py) sugiere la clase; si no hay modelo o falla, el bot sigue igual."""
+    import asyncio
+    try:
+        from dataset.clasificar import clasificar
+        return await asyncio.get_running_loop().run_in_executor(None, clasificar, ruta)
+    except Exception as e:                              # sin modelo, sin LiteRT o foto dañada
+        log.info("Sin sugerencia de la CNN: %s", e)
+        return None
 
 
 async def omitir_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -107,7 +131,7 @@ async def terminar(update: Update, context: ContextTypes.DEFAULT_TYPE, nota):
     d = context.user_data
     try:
         numero = reportes.guardar_reporte(reportes.hash_usuario(update.effective_user.id), d["tipo"], d["lat"],
-                                          d["lon"], d.get("foto"), nota)
+                                          d["lon"], d.get("foto"), nota, sugerencia=d.get("sugerencia"))
     except Exception:
         log.exception("No se pudo guardar el reporte")
         await update.message.reply_text("No pude guardar el reporte. Intenta de nuevo más tarde.")

@@ -112,7 +112,10 @@ CREATE TABLE IF NOT EXISTS reportes (
     ts_estado       TEXT,                      -- última vez que cambió el estado
     id_tramo        INTEGER REFERENCES tramos (id_tramo),
     geohash7        TEXT,
-    ts_carga        TEXT NOT NULL
+    ts_carga        TEXT NOT NULL,
+    clase_sugerida  TEXT,                      -- clase que sugirió la CNN de fotos (dataset/clasificar.py); la decide una persona
+    confianza_sugerida REAL,                   -- probabilidad de esa clase (0-1)
+    modelo_sugerencia TEXT                     -- versión del modelo (termina en -SINTETICO si es de prueba)
 );
 CREATE INDEX IF NOT EXISTS idx_reportes_tramo   ON reportes (id_tramo);
 CREATE INDEX IF NOT EXISTS idx_reportes_geohash ON reportes (geohash7);

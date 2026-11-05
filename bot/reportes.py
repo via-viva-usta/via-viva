@@ -44,19 +44,25 @@ def ubicacion_valida(lat: float, lon: float) -> bool:
 
 
 def guardar_reporte(hash_usr: str, tipo: str, lat: float, lon: float, foto_ruta: str | None = None,
-                    descripcion: str | None = None, canal: str = "telegram", con=None) -> int:
-    """Inserta el reporte con estado 'nuevo' y devuelve su número."""
+                    descripcion: str | None = None, canal: str = "telegram", con=None,
+                    sugerencia: dict | None = None) -> int:
+    """Inserta el reporte con estado 'nuevo' y devuelve su número. sugerencia = salida de dataset.clasificar."""
     if tipo not in TIPOS:
         raise ValueError(f"tipo inválido: {tipo}")
     if not ubicacion_valida(lat, lon):
         raise ValueError("ubicación fuera de Tunja")
     con = con or conectar()
     ahora = ahora_utc()
+    s = sugerencia or {}
     with con:
         cur = con.execute(
             "INSERT INTO reportes (canal, hash_usuario, ts_utc, lat, lon, tipo, descripcion, foto_ruta, estado, "
-            "ts_estado, geohash7, ts_carga) VALUES (?,?,?,?,?,?,?,?,'nuevo',?,?,?)",
-            (canal, hash_usr, ahora, lat, lon, tipo, descripcion, foto_ruta, ahora, codificar(lat, lon, 7), ahora))
+            "ts_estado, geohash7, ts_carga, clase_sugerida, confianza_sugerida, modelo_sugerencia) "
+            "VALUES (?,?,?,?,?,?,?,?,'nuevo',?,?,?,?,?,?)",
+            (canal, hash_usr, ahora, lat, lon, tipo, descripcion, foto_ruta, ahora, codificar(lat, lon, 7), ahora,
+             s.get("clase"), s.get("confianza"), s.get("version") and s["version"] + ("" if not s.get("sintetico") or
+                                                                                       "SINTETICO" in s["version"]
+                                                                                       else "-SINTETICO")))
     return cur.lastrowid
 
 
