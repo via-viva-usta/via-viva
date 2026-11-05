@@ -6,7 +6,7 @@
 numpy>=1.26
 scipy>=1.13
 pandas==3.0.0   # 3.1.0 la bloquea Smart App Control de Windows (5-nov)
-scikit-learn>=1.5
+scikit-learn==1.7.2   # 1.9.1 la bloquea Smart App Control de Windows (5-nov)
 matplotlib>=3.8
 ipykernel>=6.29
 nbclient>=0.10
