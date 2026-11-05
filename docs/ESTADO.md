@@ -1,151 +1,167 @@
 # Estado de VÍA VIVA
 
-Última actualización: **3-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
-Tareas: issues de GitHub (`via-viva-usta/via-viva`, 24 creados, 22 abiertos; #3 cerrado: ESP32-CAM fuera). Flujo de trabajo: `CONTRIBUTING.md`.
+Última actualización: **5-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
 ## Resumen
 
-0. **Cambio de plan del 3-nov** (docente de Arquitectura): **dataset propio de fotos con el celular** (≥ 500, 9 clases) en
-   lugar de la ESP32-CAM; el nodo suma **BME280/DHT22 y BH1750**; láser de cuadrícula y OBD2 = trabajo futuro (`futuro/`).
-   Software listo y probado **solo con datos sintéticos**; **0 fotos reales** todavía.
-1. **Todo el software existe y compila o corre**, pero **nada se ha probado en hardware** (la placa llega esta semana).
-2. **No hay ningún dato real de recorridos todavía**: detector, entrenamiento y modelo de riesgo se probaron solo con datos
-   **sintéticos** (marcados) y no tienen resultados.
-3. La base real tiene el grafo de Tunja, barrios, pendiente y lluvia; **0 eventos, 0 reportes, 0 etiquetas, 0 corridas de riesgo**.
-4. El informe compila (MiKTeX, 5 páginas) con **30 marcas `[PENDIENTE]`** en el PDF que solo se llenan con mediciones reales.
-5. Lo que destraba todo: **montar el nodo (Dany) y los primeros recorridos con phyphox (Pipe)**.
+1. **Todo el software existe, compila y tiene pruebas** (34 pytest; GitHub Actions para Python y firmware), pero
+   **nada se ha probado en hardware** (el ESP32 DevKit V1, DHT22 y BH1750 están por llegar) y **no hay datos reales**:
+   las salidas de campo empiezan esta semana.
+2. Todo lo que tiene números (detector, modelo de riesgo, modelo de fotos, escala) se probó **solo con datos SINTÉTICOS**
+   marcados; no son resultados. En el informe siguen como `[PENDIENTE]`.
+3. Campo listo: protocolo de fotos (iPhone 15 de Juan Diego), planilla de campo, cronómetro por vueltas para phyphox
+   (iPhone 17 de Pipe, ~100 Hz) con su conversor, y **validador** que dice "bien / corregir" antes de procesar.
+4. Demo lista en un comando (`demo\iniciar.ps1`) con base DEMO separada; el clasificador corre en el navegador del celular
+   (probado en el PC, falta el iPhone) y el bot sugiere la clase.
+5. Lo que destraba todo: **primeras salidas de campo** (fotos + phyphox) y **montar el nodo** cuando llegue el hardware.
 
 ## Fases
 
 | # | Fase | Fechas | Estado |
 |---|---|---|---|
 | 1 | Repositorio, datos y modelado | 26–30 oct | ✅ Hecha |
-| 2 | Firmware sin hardware, bot, mapa web, tablero | 28 oct – 2 nov | ✅ Hecha (compila; sin probar en placa) |
-| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–6 nov | 🟡 Software listo; **falta hardware y recorridos** |
-| 3b | **Salidas de fotos con el celular** (≥ 500, ≥ 50 por clase) + tarjetas ArUco + Drive | 4–9 nov | 🟡 Protocolo, tarjeta, ingesta y etiquetador listos; **0 fotos** |
-| 4b | Etiquetado, escala validada y modelo de fotos (MobileNetV3 → TFLite int8) | 8–11 nov | 🟡 Cadena completa probada con **sintéticas**; faltan fotos reales |
-| 4 | Detector int8 y modelo de riesgo con datos reales | 3–8 nov | 🟡 Cadenas listas (probadas con sintéticos); faltan datos |
-| 5 | Validación en campo (top-10 vs. 10 al azar) | 6–9 nov | ⬜ Depende de 3 y 4. **9-nov: si no hay datos de la Alcaldía → plan B** |
-| 6 | Entrega: datos reales en tablero y mapa, informe, póster, video, pitch | 9–13 nov | 🟡 Informe, guiones y póster escritos con [PENDIENTE] |
+| 2 | Firmware sin hardware, bot, mapa web, tablero | 28 oct – 2 nov | ✅ Hecha |
+| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–9 nov | 🟡 Software listo; **hardware por llegar; 0 recorridos** |
+| 3b | Salidas de fotos (≥ 500) + planilla + validación | 5–9 nov | 🟡 Todo listo; **0 fotos** |
+| 4 | Detector int8 y modelo de riesgo con datos reales | 6–9 nov | 🟡 Cadenas listas (sintéticos); faltan datos |
+| 4b | Etiquetado, escala validada, modelo de fotos (int8), clasificador en el iPhone | 8–11 nov | 🟡 Cadena completa con sintéticos; faltan fotos |
+| 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
+| 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
-## Hecho (y dónde está)
+## Hecho el 5-nov (y dónde está)
 
-| Área | Qué | Dónde |
+| Bloque | Qué | Dónde |
 |---|---|---|
-| A | Firmware **ESP32 normal**: ADXL345 FIFO (watermark 31) + DMA ping-pong por VSPI, microSD por HSPI en la matriz GPIO, MPU-6050, VL53L0X, GPS, botón, LED; tareas en 2 núcleos | `firmware/nodo-sensores/` |
-| A | **Detector por umbrales** y **maniobras** (ajustes del docente), iguales en C y Python | `src/detector_umbral.h`, `src/maniobras.h`, `analysis/detector_umbral.py` |
-| A | **Página web del nodo** (punto de acceso `VIA-VIVA-NODO`, botones Hueco/Resalto/Otro, modo mesa) | `src/servidor_web.cpp` |
-| A | **E1–E4** + memoria a `exp_NNN.csv`; procedimiento y medición de corriente | `src/experimentos.cpp`, `docs/experimentos.md` |
-| A | **7 programas de prueba por sensor** (PASA/FALLA) y **guía de montaje** | `firmware/nodo-sensores/pruebas/`, `docs/montaje.md` |
-| A | Wokwi (ESP32, MPU-6050, microSD, botón, LED) | `firmware/nodo-sensores/wokwi/` |
-| A | **Ambiente (3-nov):** BME280 (detecta BMP280) o DHT22 + BH1750 con controladores propios, cada 10 s a `ambiente_NNN.csv` con hora GPS y en la página web; 3 pruebas nuevas (`bme280` con autoprueba de la fórmula de Bosch, `dht22`, `bh1750`) | `firmware/nodo-sensores/include/ambiente.h`, `pruebas/` |
-| A | ESP32-CAM **retirada del diseño** (3-nov): código conservado | `futuro/nodo-camara/` |
-| B/C | **Dataset de fotos:** esquema, ingesta (EXIF, tramo, barrio, clima nodo > API > IDEAM, difuminado, calidad), etiquetador local, escala ArUco + homografía, MobileNetV3 por sitio → TFLite int8, generador sintético | `dataset/` |
-| D | Tarjeta ArUco imprimible (4 por hoja, regla), protocolo de fotos, presupuesto del 3-nov, informe con la sección de imágenes | `docs/tarjeta_aruco.pdf`, `docs/protocolo_fotos.md`, `docs/presupuesto.md`, `report/` |
-| B | **Cadena de entrenamiento en un comando** (bosque emlearn + red 1D int8 → C; LODO; vs. umbral) | `analysis/entrenar_detector.py`, `analysis/modelo_cnn.py` |
-| B | Notebook phyphox y **protocolo de recorridos** (con formato de `_etiquetas.csv`) | `analysis/` |
-| B | Tablas y gráficas de E1–E4 para el informe | `analysis/experimentos.py` |
-| C | Base SQLite (8 tablas), capa de acceso, **reconstrucción desde cero probada** | `db/` |
-| C | ETL: OSM, barrios, elevación/pendiente, lluvia IDEAM, noticias (robots.txt) | `etl/` |
-| C | **Recorridos → map-matching → tramos revisados** + generador de recorridos sintéticos | `etl/recorridos.py`, `etl/recorrido_sintetico.py` |
-| C | Modelo de riesgo con validación por barrios y **plan B** (`--fuente`, fuente registrada) | `risk_model/` |
-| C | **Bot de Telegram** (foto + ubicación + tipo → número de reporte; `/estado`) | `bot/` |
-| C | **Mapa web estático** (Leaflet) y **tablero Java** (tabla hash, heap, BFS, geohash) | `web/`, `dashboard-java/` |
-| D | **Informe IEEE** con figuras y cifras generadas desde la base; compila con MiKTeX | `report/` |
-| D | Guion de demo y video, contenido del póster | `docs/demo.md`, `docs/poster.md` |
-| D | GitHub: etiquetas por área, 6 hitos, 17 issues; `CONTRIBUTING.md` | GitHub |
-| D | Paquete para Juan Diego: `.docx` (Introduction, Related Work, Methodology con notas de lo que falta), PDF del informe, póster y demo | `05_SOFTWARE\para_anzola\` (**fuera del repo**) |
+| A1 | Auditoría: roles de GitHub (abajo), issues con usuarios reales y fechas, textos alineados (DHT22, sin S3/CAM) | issues, `CLAUDE.md`, `docs/` |
+| A2 | `tipo_via` automático desde OSM; columna nueva **`superficie`**; **planilla de campo** (CSV de Google Sheets) unida a las fotos por hora (± 5 min) y sitio; rutas de Drive reales | `dataset/planilla.py`, `dataset/ingesta.py`, `docs/protocolo_fotos.md`, `analysis/README.md` |
+| A3 | **Conversor de vueltas** del cronómetro del iPhone → `_etiquetas.csv`; paradas = carro detenido (el detector no busca ahí) | `analysis/vueltas_a_etiquetas.py`, `etl/recorridos.py` |
+| A4 | **Validador de campo**: phyphox (columnas, Hz, cortes, GPS, quieto 1 min), fotos (EXIF, GPS, HEIC, nitidez, ArUco), planilla | `herramientas/validar_campo.py` |
+| B1 | Revisión de datasets externos: Kaggle usable (DbCL), Hugging Face **descartado** (licencia no documentada) | `docs/datasets_externos.md`, `dataset/externos.py` |
+| B2 | CNN con aumentos para Tunja, pre-entrenamiento externo opcional, **PTQ vs. QAT**, Grad-CAM, latencia, comparación MobileNetV3 vs. V2 | `dataset/modelo.py` |
+| B3 | **Clasificador en el navegador del celular** (TFLite int8 en WebAssembly, sin internet tras cargar) | `web/clasificador/` |
+| B4 | **Bot sugiere la clase** con la CNN y la guarda (`clase_sugerida`, `confianza_sugerida`, `modelo_sugerencia`) | `bot/`, `dataset/clasificar.py`, `db/` |
+| C1 | Firmware: gráfica en vivo, umbrales en NVS, descarga de CSV por WiFi, watchdog, reintentos GPS/SD, LED de estado; arreglado `exp_NNN.csv` (límite de 5 archivos de la librería SD) | `firmware/nodo-sensores/` |
+| C2 | Montaje final del DevKit V1 con todos los sensores, diagrama y Wokwi actualizado | `docs/montaje.md`, `firmware/nodo-sensores/wokwi/` |
+| D1 | Tablero: pestaña **Reportes y eventos** ordenada con el heap (severidad × tránsito × reincidencia) | `dashboard-java/` |
+| D2 | **Demo en un comando** con base DEMO separada; guion de 5 min | `demo/`, `docs/demo.md` |
+| D3 | **34 pruebas pytest** + GitHub Actions (pytest y PlatformIO, solo si cambian sus carpetas, con caché) | `tests/`, `.github/workflows/` |
+| E1 | Texto en inglés para Overleaf (sección por sección) y `informe_overleaf.zip` | `docs/cambios_informe.md`, `05_SOFTWARE\para_anzola\` |
+
+Hecho antes (3-nov y anteriores): firmware base (ADXL345 FIFO+DMA, detector, maniobras, E1–E4), ETL + SQLite, modelo de
+riesgo con plan B, bot, mapa, tablero, dataset de fotos (ingesta, etiquetador, escala ArUco), tarjeta ArUco, informe IEEE.
 
 ## Probado y NO probado
 
 | Pieza | Probado | NO probado |
 |---|---|---|
-| Firmware del nodo (3 entornos) | **Compila** (RAM 18,4 %, flash 46,6 %) | **Nada en la placa**: pines, FIFO/DMA, overruns, web, microSD, GPS |
-| Pruebas por sensor (10, con ambiente) | **Compilan** | En hardware |
-| Controlador BME280 | Fórmula de compensación = ejemplo de la hoja de datos de Bosch (25,08 °C; ≈ 100 653 Pa), comprobado en Python con aritmética entera de C | Con el sensor; DHT22 y BH1750 tampoco |
-| Tarjeta ArUco | PDF rasterizado a 300 dpi: OpenCV detecta los 4 ids y mide 79,9 mm de 80 | **Impresa** y medida con regla |
-| Ingesta de fotos | 432 fotos **sintéticas** con EXIF: GPS, fecha, tramo, barrio, lluvia IDEAM y clima de la **API real** (Open-Meteo) en todas; rama del nodo con un `ambiente_001.csv` de prueba; 0 falsos difuminados tras la verificación de piel | Fotos **reales** de celular, **HEIC**, caras y placas reales |
-| Etiquetador | En el navegador: teclas, guardado por fila, validación, termohigrómetro, Excluir; la ingesta no pisa lo etiquetado | Con Pipe y Juan Diego |
-| Escala ArUco | **Sintético**: tarjeta en 105/108 cenitales; área en 18 de 25 daños, mediana del error −17 % | Con fotos y medidas con regla reales |
-| Modelo de fotos | **Sintético** (prueba del flujo): float 0,98 / int8 0,81 en test por sitio; TFLite float = Keras | Con fotos reales; **la caída del int8 hay que medirla** |
-| Wokwi | `sketch.ino` compila; `diagram.json` válido | La simulación |
-| Detector por umbrales y maniobras | En Python con datos sintéticos | En C en la placa; **parámetros sin calibrar** |
-| Base y ETL | Reconstrucción desde una copia limpia (305 s); corrida real contra OSM, IDEAM, datos abiertos y OpenTopoData | PostgreSQL/PostGIS (solo preparado) |
-| Recorridos y map-matching | Con 3 recorridos **sintéticos** sobre calles reales: 26 de 28 tramos con hueco recuperados | Con un export **real** de phyphox (los nombres de columnas pueden variar) |
-| Cadena del detector | Completa con 6 recorridos **sintéticos**; int8 = float32 en el 100 % de las ventanas | Con datos reales. **Los modelos del firmware son sintéticos** (`MODELO_SINTETICO 1`) |
-| Experimentos E1–E4 | El lector, con un archivo de **ejemplo inventado** | **Ninguna medición real**; corriente sin medir |
-| Modelo de riesgo (plan B) | De punta a punta en una base **temporal** con datos sintéticos (AUC ≈ 0,5, lo esperado) | Con etiquetas reales (hoy **0**) |
-| Bot | Lógica con base temporal; app con token falso. **El token ya está en `.env`** (3-nov) | **Con Telegram real** (`/reportar` con celulares) |
-| Mapa web | En navegador con base de prueba (aviso DEMO, capas, leyenda) | Publicado (no se publica hasta que el equipo apruebe) |
-| Tablero Java | Compila con Ant; `PruebaEstructuras` pasa con la base real | Abrirlo en el **IDE** NetBeans; uso con el ratón |
-| Informe | **Compila** con MiKTeX 25.12: 5 páginas (con la sección del dataset de imágenes), sin errores ni referencias sin resolver | Con resultados reales (30 `[PENDIENTE]`) |
+| Firmware (3 entornos + 10 pruebas) | **Compila** (RAM 66 348 B, 20,2 %; flash 944 269 B, 48,0 %); JS de la página revisado con Node | **Nada en placa** (remontaje de SD, reinicio de UART2, watchdog, LED, descarga por WiFi, overruns de E1) |
+| Wokwi | `diagram.json` con DevKit V1 + DHT22 | La simulación |
+| Conversor de vueltas | 15 pruebas (formatos, sinónimos, paradas, errores) | Con un cronómetro real del iPhone |
+| Validador de campo | Con exports y fotos fabricados y con los sintéticos | Con un export **real de phyphox iOS** (los nombres de columnas pueden variar: el validador dice cuáles vio) y fotos HEIC reales |
+| Planilla | Con una planilla de ejemplo sobre las fotos sintéticas | Con el CSV real de Google Sheets |
+| Ingesta, etiquetador, escala | Con 432 fotos SINTÉTICAS (3-nov) | Con fotos reales del iPhone |
+| Modelo de fotos | **SINTÉTICO**: V3 int8 cae (0,90 → 0,57–0,70) y corre en núcleos de referencia; V2 int8 PTQ 0,93; QAT de 3 épocas 0,88 | Con fotos reales; QAT con más épocas; pre-entrenamiento con Kaggle (no descargado) |
+| Clasificador en el navegador | Chromium del PC: int8 V2 SINTÉTICO, 19 ms, misma clase que Python | **En el iPhone** (Safari) |
+| Bot con CNN | `dataset.clasificar` en el venv del bot (LiteRT); guardado de la sugerencia (pytest) | **Con Telegram real** |
+| Tablero Java | Compila con Ant; `PruebaPrioridad` y `PruebaEstructuras` pasan; capturas sin pantalla con datos DEMO | En el IDE NetBeans con el ratón |
+| Demo en un comando | Base DEMO (40 eventos, 10 reportes, riesgo DEMO-SINTETICO) generada; sintaxis del `.ps1` | `iniciar.ps1` de punta a punta (abre ventanas) |
+| Detector, recorridos, riesgo | Con sintéticos | Con datos reales |
+| GitHub Actions | Python: falló la 1.ª vez (faltaba `reportlab`), corregido; firmware en curso | Ver la pestaña *Actions* |
 
-## Cifras reales ya calculadas (se pueden usar)
+## Cifras reales ya calculadas (implementación, no resultados de campo)
 
 | Cifra | Valor | Fuente |
 |---|---|---|
-| Grafo de Tunja | 4 054 nodos, 5 775 tramos, 537,6 km; superficie en OSM solo en 11 % | `etl.osm_tunja` (OSM puede variar levemente entre días) |
-| Pendiente (SRTM 30 m) | 4 659 tramos ≥ 30 m; mediana 4,8 %, p90 13,7 % | `etl.elevacion` |
-| Barrios | 154 (9 veredas, 11 sectores) | datos abiertos `4ryc-k7fx` |
-| Lluvia | 5 estaciones IDEAM ≤ 15 km, diaria | `etl.scraping.clima_ideam` |
-| Tablero | Búsqueda del tramo más cercano: 108 comparaciones (geohash) vs. 5 775 (fuerza bruta), mismo resultado en 2 000 búsquedas | `PruebaEstructuras` |
-| Red 1D | 788 parámetros; 3 152 B float32 vs. 872 B int8 | `entrenar_detector.py` (independiente de los datos) |
-| Firmware (3-nov) | RAM 60 260 B (18,4 %), flash 920 305 B (46,8 %) | `pio run` |
-| MobileNetV3-Small exportado | 3 684 KB float32 vs. 1 213 KB int8 (tamaño de la arquitectura, no un resultado) | `dataset.modelo` |
-| Reconstrucción de la base | 305 s desde cero | `db/reconstruir.ps1` |
+| Grafo de Tunja | 4 054 nodos, 5 775 tramos, 537,6 km | `etl.osm_tunja` |
+| Firmware esp32dev (5-nov) | RAM 66 348 B (20,2 %), flash 944 269 B (48,0 %) | `pio run` |
+| Red 1D del nodo | 788 parámetros; 3 152 B float32 vs. 872 B int8 | `entrenar_detector.py` |
+| Modelos de fotos (tamaño del archivo, no depende de los datos) | MobileNetV3-Small: 3 653 KB float32 / 1 182 KB int8; MobileNetV2: 8 691 KB / 2 647 KB | `dataset.modelo` |
+| Tarjeta ArUco | 4 marcadores detectados, 79,9 mm de 80 (PDF a 300 dpi) | `dataset.tarjeta_aruco` |
+| Tablero | 108 comparaciones (geohash) vs. 5 775 por búsqueda | `PruebaEstructuras` |
 
-## Qué falta, por persona
+## GitHub: auditoría del 5-nov (no se cambió nada)
 
-### Dany Cipamocha (área A) — issues #1, #2, #3, #4
-1. **Montar el nodo** siguiendo `docs/montaje.md` y correr las **7 pruebas** de `firmware/nodo-sensores/pruebas/`; anotar PASA/FALLA en #1. *(4-nov)*
-2. Subir el **firmware completo** (`pio run -t upload`): arranque con microSD, `overruns = 0`, página http://192.168.4.1, etiquetas en la microSD; confirmar el signo del giro del MPU (#2). *(5-nov)*
-3. ~~ESP32-CAM (#3)~~ **cerrado**: salió del diseño. En su lugar: **comprar en Ferretrónica el DHT22 (decidido) + BH1750 y correr las pruebas `dht22` y `bh1750`** (#18). *(5-nov)*
-4. **E1–E4 y corriente** con el tester USB según `docs/experimentos.md`; copiar `exp_*.csv` a `data/raw/nodo/` (#4). *(6-nov)*
-5. Necesita **permiso de escritura** en el repo para trabajar con PR (lo da Andrés, #17).
+| Cuenta | Persona | Organización | Repo `via-viva` |
+|---|---|---|---|
+| `andresscardens` | Andrés | **owner** | admin |
+| `Juandi-1` | Juan Diego | **owner** | admin |
+| `juanfelipegarciacarvajal444-rgb` | Juan Felipe (Pipe) | **owner** | admin |
+| `dany286-ri` | Dany | member | **read** |
 
-### Todo el equipo — fotos (#21)
-**Salidas de fotos** según `docs/protocolo_fotos.md`: ~125 fotos (~30 sitios) por persona, 9 clases, distintas luces,
-horas, climas y tipos de vía; regla en ≥ 15 daños; subir a Drive `AAAA-MM-DD_nombre` el mismo día. *(4 al 9-nov)*
+Organización: permiso base *read*, los miembros pueden crear repos (también públicos), **2FA no obligatorio**, plan
+gratuito (no permite proteger `main` en un repo privado). **Recomendado** (lo aplica Andrés, issue #17):
+1. **Un solo owner** (Andrés); Juan Diego, Pipe y Dany como **Member** con rol **Write** en `via-viva`
+   (*Settings → Collaborators and teams*; o un equipo "via-viva" con Write).
+2. Exigir **2FA** a la organización y quitar a los miembros el permiso de crear repositorios públicos.
+3. Sin protección de ramas (plan gratuito): mantener la regla de `CONTRIBUTING.md` (PR y revisión de Andrés).
 
-### Juan Felipe García — Pipe (área B) — issues #5, #6, #7, #21, #23
-1. **≥ 3 recorridos con phyphox** (acelerómetro con g + giroscopio + GPS, ≤ 30 km/h, celular fijo) con su `_etiquetas.csv`, según `analysis/README.md`; dejarlos en la carpeta compartida → `data/raw/phyphox/` (#5). *(4-nov)*
-2. Con esos datos: **espectro y fs** (notebook) y **calibrar el detector por umbrales** (#6). *(5-nov)*
-3. Correr `analysis/entrenar_detector.py` con datos reales y **regenerar `modelo_cnn.h` / `modelo_bosque.h`** (#7). *(7-nov)*
-4. **Coordinar las salidas de fotos** (#21) y **etiquetar** con `dataset.etiquetador` junto con Juan Diego (#23). *(9 y 10-nov)*
-4. No está en la organización de GitHub: Andrés debe invitarlo (#17).
+## Discrepancias corregidas el 5-nov
 
-### Andrés Cárdenas (áreas C y D) — issues #8–#13, #15, #17, #20, #22, #24
-1. **Ya**: dar Write a `dany286-ri`, invitar a Pipe y confirmar si `Juandi-1` es Juan Diego (#17).
-1b. **Ya**: carpeta de Drive `VIA_VIVA_fotos` y verificar una foto de prueba de cada celular (#20). *(4-nov)*
-1c. **Ingesta diaria** de fotos y reporte de calidad (#22); **modelo de fotos y escala** con datos reales (#24). *(10 y 11-nov)*
-2. **Probar el bot con celulares** (el token ya está en `.env`): `bot\.venv\Scripts\python bot\bot.py` (#8). *(3-nov)*
-3. Con los recorridos: `python -m etl.recorridos` → `risk_model.variables` → `risk_model.modelo --fuente auto --guardar --lista-campo` (#9). *(8-nov)*
-4. **Validación en campo**: visitar los 20 tramos de la lista y guardar el resultado como `data/campo/tramos_revisados_visita_<fecha>.csv` (#10). *(9-nov)*
-5. Seguir los oficios a la Alcaldía/Tránsito; **9-nov decide plan B** (#12).
-6. Tablero en el IDE NetBeans, `web/exportar.py` con datos reales y publicar en Netlify cuando el equipo apruebe (#11). *(11-nov)*
-7. Llenar los `[PENDIENTE]` del informe y recompilar (#13). *(12-nov)*
-8. Antes de hacer público el repo: correos y nombres en `docs/propuesta/` y `docs/03_...` (#15). *(13-nov)*
+- `CLAUDE.md`, README, diagrama y experimentos decían "BME280 o DHT22": ahora **DHT22** elegido (BME280 solo opcional).
+- `docs/protocolo_fotos.md` y `dataset/README.md` usaban la carpeta `VIA_VIVA_fotos` (no existe): ahora
+  `VIA_VIVA/02_DATOS/fotos/AAAA-MM-DD_nombre/` y `.../phyphox/`.
+- `analysis/README.md`: phyphox "a la tasa máxima" → **iPhone ~100 Hz**, 1 min quieto al inicio **y al final**, cronómetro por vueltas.
+- Notebook mencionaba la ESP32-S3; `db/schema.sql` describía la foto del evento como de la ESP32-CAM.
+- `docs/README.md` no listaba los documentos nuevos. Issue #20 hablaba de `VIA_VIVA_fotos`.
+- Requirements: pandas 3.1, TensorFlow 2.21 y scikit-learn 1.9.1 los bloqueaba **Smart App Control** (ya desactivado);
+  quedan fijados pandas 3.0.0, TensorFlow 2.20.0 y scikit-learn 1.7.2, que están probados.
 
-### Juan Diego Anzola (apoyo A y D) — issues #14, #19, #23
-1. Revisar el `.docx` de `para_anzola` (Introduction, Related Work, Methodology): las notas en ámbar dicen qué falta
-   (trabajos de predicción de deterioro vial y de reporte ciudadano; procedimiento de recolección en campo; ESP32-CAM).
-2. **Póster, video de respaldo (< 5 min) y pitch** con `docs/poster.md` y `docs/demo.md` (#14). *(12-nov)*
-3. Apoyar a Dany en el montaje y las mediciones.
-4. **Imprimir y verificar las 4 tarjetas ArUco** (#19) *(4-nov)* y **etiquetar fotos** con Pipe (#23) *(10-nov)*.
+## Carpeta `05_SOFTWARE\para_anzola` (fuera del repo): qué está desactualizado
+
+| Archivo | Problema | Qué hacer |
+|---|---|---|
+| `VIA_VIVA_Intro_RelatedWork_Methodology.docx` | Habla de la **ESP32-CAM** y la S3 (3 menciones de cámara); no menciona el dataset de fotos, DHT22/BH1750, celular, láser/OBD2 a futuro | Usar `docs/cambios_informe.md` |
+| `VIA_VIVA_informe_final_borrador.pdf` | Del 3-nov a las 7:39 (4 páginas), **antes** del cambio de plan | Reemplazarlo por lo de Overleaf |
+| `demo.md` | Guion viejo (foto de la ESP32-CAM) | Usar `docs/demo.md` del repo |
+| `poster.md` | Igual al del repo (sin el dataset de fotos ni el clasificador en el celular) | Actualizar el póster con la sección de imágenes |
+| `informe_overleaf.zip` | **Nuevo (5-nov)**: `report/` actual para subir a Overleaf | — |
+
+## Qué falta, por persona (fechas vigentes)
+
+### Andrés (`andresscardens`)
+1. **Ya:** aplicar los roles recomendados (#17). Crear `C:\Users\AC\.kaggle\kaggle.json` para bajar el dataset de Kaggle
+   (`dataset.externos --descargar-kaggle`). *(5-nov)*
+2. Bajar de Drive cada día fotos, planilla y phyphox; correr `herramientas.validar_campo` y `dataset.ingesta`; publicar el
+   resumen en #22. *(6–10 nov)*
+3. Con fotos etiquetadas: `dataset.escala --validar` y `dataset.modelo --comparar` (más épocas de QAT) (#24). *(11-nov)*
+4. Recorridos → `etl.recorridos` → riesgo `--fuente auto` (#9); **9-nov decide plan B** (#12); validación en campo (#10).
+5. Bot con celulares (#8) y `demo\iniciar.ps1` de punta a punta. *(10-nov)*
+
+### Juan Diego (`Juandi-1`)
+1. **Fotos con el iPhone 15** según el protocolo, planilla al día (#21). *(6–9 nov)*
+2. Tarjetas ArUco impresas y verificadas (#19). *(6-nov)*
+3. Probar el **clasificador en el iPhone** (`python web\clasificador\preparar.py --servir` en el PC de Andrés). *(8-nov)*
+4. Pasar `docs/cambios_informe.md` a **Overleaf** (`informe_overleaf.zip`) (#13); póster, video y pitch (#14). *(12-nov)*
+5. Etiquetar con Pipe (#23). *(10-nov)*
+
+### Juan Felipe — Pipe (`juanfelipegarciacarvajal444-rgb`)
+1. **≥ 3 recorridos con phyphox** (iPhone 17) + vueltas del cronómetro; subir a `VIA_VIVA/02_DATOS/phyphox/` (#5). *(8-nov)*
+2. Espectro, fs y calibración del detector (#6); entrenar el detector del nodo (#7). *(9-nov)*
+3. Coordinar las salidas de fotos (#21) y etiquetar (#23). *(9–10 nov)*
+
+### Dany (`dany286-ri`)
+1. Cuando llegue el hardware: montaje con `docs/montaje.md` y las 10 pruebas (#1, #18); firmware completo con la página
+   nueva, descarga por WiFi y LED (#2). *(7–8 nov)*
+2. E1–E4 y corriente (#4). *(9-nov)*
+
+## Bloqueos
+
+| Bloqueo | Quién lo destraba |
+|---|---|
+| Falta `kaggle.json` para descargar el dataset externo | Andrés |
+| Hardware por llegar (ESP32 DevKit V1, DHT22, BH1750, cable, termohigrómetro) | Compras |
+| Sin datos reales todavía | Salidas de campo (todos) |
+| Convenio USTA–Alcaldía para el piloto (apoyo de palabra) y respuestas a los radicados | Andrés / USTA |
 
 ## Estado local del PC de Andrés (no está en Git)
 
-- `data/via_viva.db`: reconstruida el 2-nov; tablas de contexto llenas, **sin eventos, reportes, etiquetas ni corridas de riesgo**
-  (el tablero y el mapa muestran todos los tramos en gris).
-- `data/raw/phyphox_sintetico/` y `data/campo/sintetico/`: datos **sintéticos** de prueba; `data/campo/visita_2026-10-26_DEMO.csv`
-  es de la demo vieja (se puede borrar).
-- `.env`: con `TELEGRAM_BOT_TOKEN` (pegado por Andrés) y `BOT_SAL_HASH` (no cambiarla: los hashes dejarían de coincidir).
-- `05_SOFTWARE\para_anzola\`: paquete para Juan Diego (`.docx`, PDF, `poster.md`, `demo.md`).
-- MiKTeX instalado por usuario; PlatformIO en `%USERPROFILE%\.platformio`; venvs `etl\.venv`, `analysis\.venv`, `bot\.venv`,
-  `dataset\.venv` y `%USERPROFILE%\.venvs\vv-modelo` (TensorFlow 2.21, fuera del repo por las rutas largas).
-- `data/raw/fotos_sintetico/` y `data/procesado_sintetico/` (con `modelo/`): datos **SINTÉTICOS** del 3-nov (se pueden borrar).
-  `data/raw/clima_api/`: caché de Open-Meteo por día.
-- `02_COMPRAS\VIA_VIVA_Cotizacion.xlsx`: hoja nueva "3-nov celular"; respaldo `VIA_VIVA_Cotizacion_antes_3nov.xlsx`.
+- `data/via_viva.db` (real, sin eventos ni reportes) y **`data/via_viva_demo.db`** (copia con datos DEMO para la demo).
+- `data/raw/fotos_sintetico`, `data/procesado_sintetico`, `data/raw/phyphox_sintetico`, `data/externo/SINTETICO_voc`:
+  datos **SINTÉTICOS** de prueba. `dataset/salidas/20261105-0752-SINTETICO/`: modelo de prueba.
+- Venvs: `etl`, `analysis`, `bot` (con LiteRT), `dataset` (con pytest) y `%USERPROFILE%\.venvs\vv-modelo` (TensorFlow
+  2.20, tf_keras, tfmot). Smart App Control **desactivado** el 5-nov por Andrés.
+- `web/clasificador/vendor` y `modelo/`: librerías y modelo copiados por `preparar.py` (se regeneran).
 
 ## Fuentes externas y licencias
 
@@ -157,9 +173,11 @@ horas, climas y tipos de vía; regla en ≥ 15 daños; subir a Drive `AAAA-MM-DD
 | OpenTopoData (SRTM 30 m) | Elevación de los nodos | SRTM: dominio público (NASA/USGS); API con límites de uso |
 | Gobernación de Boyacá (RSS) | Títulos y enlaces de noticias | Contenido © Gobernación; solo título, resumen y enlace |
 | Datos pedidos a Alcaldía / Tránsito (si llegan) | Inventario de huecos, siniestros | **No se publican** sin permiso (`data/alcaldia/`, ignorada) |
+| Open-Meteo | Temperatura y humedad por hora para las fotos | CC BY 4.0 ("Weather data by Open-Meteo.com") |
+| Kaggle `andrewmvd/pothole-detection` (MakeML) | Pre-entrenamiento hueco / no-hueco (si se descarga) | Database Contents License v1.0; citar MakeML |
+| Hugging Face `Duranishhh/baches-carreteras` | **No se usa** | Licencia de imágenes no documentada |
 | Leaflet 1.9.4 · sqlite-jdbc 3.47.1.0 · python-telegram-bot 22 | Mapa, tablero, bot | BSD-2 · Apache 2.0 · LGPL-3.0 |
-| PyTorch · scikit-learn · emlearn | Entrenamiento y exportación del detector | BSD-3 · BSD-3 · MIT |
+| PyTorch · scikit-learn · emlearn | Detector del nodo | BSD-3 · BSD-3 · MIT |
+| TensorFlow · tf_keras · tensorflow-model-optimization · LiteRT · TensorFlow.js / tfjs-tflite | Modelo de fotos, QAT, bot y navegador | Apache 2.0 |
+| OpenCV · Pillow · pillow-heif · ReportLab | Dataset, ArUco, HEIC, PDF | Apache 2.0 · MIT-CMU · BSD-3 (libheif LGPL) · BSD |
 | TinyGPSPlus · VL53L0X (Pololu) | Firmware | LGPL-2.1 · licencia de Pololu |
-| Open-Meteo (API histórica y de pronóstico) | Temperatura y humedad por hora para las fotos | CC BY 4.0 (atribuir "Weather data by Open-Meteo.com"); uso no comercial gratuito |
-| OpenCV (con ArUco y cascadas de Haar) · TensorFlow/Keras (+ pesos MobileNetV3 de ImageNet) | Dataset, escala y modelo de fotos | Apache 2.0 · Apache 2.0 |
-| Pillow · pillow-heif · ReportLab | Lectura de JPG/HEIC, PDF de la tarjeta | MIT-CMU · BSD-3 (libheif LGPL) · BSD |
