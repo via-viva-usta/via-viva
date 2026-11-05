@@ -43,3 +43,17 @@ Probado en el navegador con un servidor local (`python -m http.server`) y una **
 3 reportes de prueba y 40 eventos de recorridos sintéticos): cargan Leaflet (con verificación SRI), los tramos, los
 reportes, los eventos, la leyenda, las capas y el aviso DEMO. Con la base real de hoy el mapa muestra los 5 775 tramos
 en gris ("sin calcular"): aún no hay modelo entrenado, ni reportes, ni eventos. **No se ha publicado.**
+
+## Clasificador de fotos en el celular (`web/clasificador/`, 5-nov)
+
+Página estática que corre la CNN int8 de `dataset.modelo` **en el navegador del celular** (TensorFlow Lite en
+WebAssembly con `@tensorflow/tfjs-tflite`): tomar o elegir una foto → clase, confianza, latencia en ms y aviso
+SINTÉTICO si aplica. La foto no sale del celular. Probado en Chromium del PC (int8 MobileNetV2 SINTÉTICO: 19 ms,
+misma clase que Python); **falta probarlo en el iPhone**.
+
+```powershell
+python web\clasificador\preparar.py --servir     # descarga las librerías una vez, copia el último modelo y sirve en :8000
+```
+
+Abrir en el iPhone la URL `http://<IP del PC>:8000/` que imprime (mismo WiFi). Si no abre, permitir Python en el
+Firewall de Windows (red privada). `vendor/` y `modelo/` se regeneran con el script (ignorados por Git).

@@ -4,5 +4,7 @@ tensorflow==2.20.0   # 2.21 la bloquea Smart App Control de Windows (5-nov)
 numpy
 pandas==3.0.0   # 3.1.0 la bloquea Smart App Control de Windows (5-nov)
 pillow
-scikit-learn
+scikit-learn==1.7.2   # 1.9.1 la bloquea Smart App Control de Windows (5-nov)
 matplotlib
+tf_keras==2.20.*   # Keras 2: lo necesita la QAT
+tensorflow-model-optimization==0.8.*   # QAT (entrenamiento consciente de la cuantización)

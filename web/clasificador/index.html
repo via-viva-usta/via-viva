@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VÍA VIVA · clasificador</title>
+<style>
+:root{--asfalto:#2f2f2f;--senal:#f2c230;--ok:#2a9d8f;--mal:#b3261e;--fondo:#f4f3ef}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--fondo);color:var(--asfalto)}
+header{background:var(--asfalto);color:#fff;padding:12px 16px;font-weight:700}
+header b{color:var(--senal)}
+main{padding:12px 16px;max-width:560px;margin:auto}
+.tarjeta{background:#fff;border-radius:12px;padding:12px 14px;margin:10px 0;box-shadow:0 1px 3px #0002}
+.botones{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.boton{display:block;text-align:center;padding:18px 6px;border-radius:12px;color:#fff;font-weight:700;font-size:1.05rem;background:var(--asfalto)}
+label.boton.sec{background:#666}
+input[type=file]{display:none}
+#vista{width:100%;border-radius:10px;display:none;margin-top:8px}
+.grande{font-size:2rem;font-weight:800}
+.barra{height:10px;background:#eee;border-radius:6px;overflow:hidden;margin:2px 0 8px}
+.barra i{display:block;height:100%;background:var(--ok)}
+.fila{display:flex;justify-content:space-between;font-size:.9rem}
+#aviso{display:none;background:var(--mal);color:#fff;padding:8px 12px;border-radius:8px;font-weight:700;margin:10px 0}
+#estado{font-size:.9rem;color:#555}
+small{color:#666}
+</style>
+</head>
+<body>
+<header><b>VÍA VIVA</b> · ¿qué hay en la vía?</header>
+<main>
+<div id="aviso">MODELO SINTÉTICO: solo prueba del flujo, la clase NO es confiable.</div>
+<div class="tarjeta">
+  <div class="botones">
+    <label class="boton">📷 Tomar foto<input id="camara" type="file" accept="image/*" capture="environment"></label>
+    <label class="boton sec">🖼️ Elegir foto<input id="galeria" type="file" accept="image/*"></label>
+  </div>
+  <img id="vista" alt="foto elegida">
+  <div id="estado">Cargando el modelo…</div>
+</div>
+<div class="tarjeta" id="resultado" style="display:none">
+  <div><small>Clase más probable</small></div>
+  <div class="grande" id="clase">–</div>
+  <div id="conf"></div>
+  <div class="fila"><span>Latencia de la red en este celular</span><b id="ms">–</b></div>
+  <div style="margin-top:10px"><small>Todas las clases</small></div>
+  <div id="todas"></div>
+</div>
+<div class="tarjeta"><small id="info">La foto NO sale del celular: la red corre aquí mismo (WebAssembly), sin internet.</small></div>
+</main>
+<script src="vendor/tf-core.min.js"></script>
+<script src="vendor/tf-backend-cpu.min.js"></script>
+<script src="vendor/tf-tflite.min.js"></script>
+<script>
+const NOMBRES = {hueco:'Hueco', resalto:'Resalto', grieta:'Grieta', parche:'Parche', tapa:'Tapa', obstaculo:'Obstáculo',
+  linea_carril:'Línea de carril', paso_peatonal:'Paso peatonal', via_buena:'Vía buena'};
+const $ = id => document.getElementById(id);
+let modelo = null, info = null;
+
+async function iniciar() {
+  try {
+    info = await (await fetch('modelo/info.json', {cache: 'no-store'})).json();
+    if (info.sintetico) $('aviso').style.display = 'block';
+    tflite.setWasmPath('vendor/');
+    modelo = await tflite.loadTFLiteModel('modelo/modelo.tflite');
+    $('estado').textContent = `Modelo listo: ${info.arquitectura} · ${info.variante} · versión ${info.version}`;
+    $('info').textContent += ` Modelo ${info.version}.`;
+  } catch (e) {
+    $('estado').textContent = 'No se pudo cargar el modelo: ' + e + '. Correr web/clasificador/preparar.py en el PC.';
+  }
+}
+
+// Igual que tf.image.resize_with_pad del entrenamiento: escala sin deformar y rellena con negro, centrado.
+function aEntrada(img, lado) {
+  const c = document.createElement('canvas'); c.width = c.height = lado;
+  const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, lado, lado);
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const k = lado / Math.max(w, h), nw = Math.round(w * k), nh = Math.round(h * k);
+  g.drawImage(img, Math.floor((lado - nw) / 2), Math.floor((lado - nh) / 2), nw, nh);
+  return g.getImageData(0, 0, lado, lado);
+}
+
+async function clasificar(archivo) {
+  if (!archivo || !modelo) return;
+  const url = URL.createObjectURL(archivo);
+  const img = $('vista'); img.src = url; img.style.display = 'block';
+  await img.decode();                      // el navegador ya endereza según el EXIF
+  const datos = aEntrada(img, info.tam);
+  // uint8 0-255 (tfjs-core solo, sin los métodos encadenados: se usan las funciones)
+  const x = tf.tidy(() => tf.cast(tf.expandDims(tf.browser.fromPixels(datos), 0), 'int32'));
+  const t0 = performance.now();
+  let y = modelo.predict(x);
+  let p = await y.data();
+  const ms = performance.now() - t0;
+  tf.dispose([x, y]);
+  // salida uint8 → probabilidades (si viene cuantizada, suma ~255)
+  let suma = p.reduce((a, b) => a + b, 0); p = Array.from(p, v => v / (suma || 1));
+  const orden = p.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+  const [best, k] = orden[0];
+  $('resultado').style.display = 'block';
+  $('clase').textContent = NOMBRES[info.clases[k]] || info.clases[k];
+  $('conf').textContent = `Confianza ${(best * 100).toFixed(0)} %` + (info.sintetico ? ' (modelo SINTÉTICO)' : '');
+  $('ms').textContent = ms.toFixed(0) + ' ms';
+  $('todas').innerHTML = orden.map(([v, i]) =>
+    `<div class="fila"><span>${NOMBRES[info.clases[i]] || info.clases[i]}</span><span>${(v * 100).toFixed(0)} %</span></div>` +
+    `<div class="barra"><i style="width:${(v * 100).toFixed(1)}%"></i></div>`).join('');
+  URL.revokeObjectURL(url);
+}
+
+$('camara').onchange = e => clasificar(e.target.files[0]);
+$('galeria').onchange = e => clasificar(e.target.files[0]);
+iniciar();
+</script>
+</body>
+</html>
