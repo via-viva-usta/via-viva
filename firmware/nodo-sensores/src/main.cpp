@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 
+#include "ajustes.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
@@ -112,6 +113,7 @@ void setup() {
     Serial.printf("Causa del reinicio: %d (1 = encendido, 4 = error, 5-7 = watchdog, 9 = bajo voltaje)\n",
                   estadoNodo.causaReinicio);
     registrarExp("ARR", "arranque", "causa_reinicio", estadoNodo.causaReinicio);
+    cargarAjustes();   // umbrales del detector guardados desde la página (flash/NVS); si no hay, los de config.h
 
     // Watchdog de tareas: las tareas críticas se suscriben; si una se cuelga WDT_TAREAS_S, el nodo se reinicia
     // (y empieza una sesión nueva en la microSD). El Arduino ya lo deja con 5 s; aquí se pasa a 10 s con reinicio.

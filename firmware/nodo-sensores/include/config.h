@@ -60,6 +60,17 @@ constexpr float MANIOBRA_FRENADA_GPS_MS2 = 2.5f;
 constexpr uint8_t AP_CANAL = 6;
 constexpr uint8_t AP_MAX_CLIENTES = 2;
 
+// Gráfica en vivo de |a| - 1 g: de cada grupo de FS_HZ / SENAL_VIVO_HZ = 10 muestras se guarda la de mayor
+// magnitud (así un golpe corto no desaparece al diezmar). 200 puntos = 10 s en la pantalla (400 B en RAM).
+constexpr uint16_t SENAL_VIVO_HZ = 20;
+constexpr uint16_t SENAL_VIVO_PUNTOS = 200;
+
+// Rangos válidos al ajustar el detector desde la página (se guardan en la flash con NVS). Por defecto: UMBRAL_*.
+constexpr float AJ_K_MIN = 2.0f, AJ_K_MAX = 20.0f;              // veces la vibración de fondo
+constexpr float AJ_P2P_MIN = 0.05f, AJ_P2P_MAX = 3.0f;          // g
+constexpr float AJ_VMIN_MIN = 0.0f, AJ_VMIN_MAX = 60.0f;        // km/h
+constexpr float AJ_REFR_MIN = 0.2f, AJ_REFR_MAX = 10.0f;        // s
+
 // ---- microSD (src/registro.cpp) ----
 // Archivos abiertos a la vez: los 6 de la sesión + 1 para descargar por Wi-Fi + 1 para listar.
 // (La librería SD trae 5 por defecto: el 6.º archivo de la sesión, exp_NNN.csv, no se podía abrir.)
