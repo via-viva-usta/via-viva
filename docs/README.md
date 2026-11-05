@@ -5,5 +5,10 @@ Documentación del proyecto.
 - `03_VIA_VIVA_desarrollo.md` — diseño completo (adquisición, arquitectura, procesamiento, estructuras, capa predictiva).
 - `propuesta/` — propuesta en formato IEEE (`main.tex` + `referencias.bib`). Es el documento entregado (con ESP32-S3); no se modifica. El informe final está en `report/`.
 - `diagramas/` — diagramas en Mermaid (arquitectura, flujo de datos, entidad-relación, clases UML del tablero).
-
-**Estado:** diseño, propuesta y diagramas (arquitectura, flujo de datos, entidad-relación, clases del tablero) listos.
+- `ESTADO.md` — qué está hecho, probado y pendiente por persona (leer después de `CLAUDE.md`).
+- `montaje.md`, `experimentos.md` — armado del nodo y experimentos E1–E4.
+- `protocolo_fotos.md`, `tarjeta_aruco.pdf` — cómo tomar las fotos del dataset y la tarjeta de escala.
+- `datasets_externos.md` — revisión de los datasets de baches de Kaggle y Hugging Face.
+- `presupuesto.md` — presupuesto vigente.
+- `demo.md`, `poster.md` — guion de la demo y del video, contenido del póster.
+- `cambios_informe.md` — texto en inglés para actualizar el informe en Overleaf.

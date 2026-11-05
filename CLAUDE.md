@@ -11,7 +11,7 @@ VÍA VIVA es el Proyecto Integrador 2026-2 (2.º semestre, Ingeniería de Datos 
 Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las vías de Tunja (Colombia).
 
 - **Nodo en el carro (IA en el borde):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
-  láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador + **BME280 o DHT22 y BH1750** (ambiente). Detector por
+  láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador + **DHT22 y BH1750** (ambiente; el código también acepta un BME280). Detector por
   umbrales + clasificador int8 en el nodo; maniobras con el giroscopio; página web propia (punto de acceso Wi-Fi) para etiquetar.
 - **Celular = dispositivo de borde para imágenes (desde el 3-nov):** dataset propio de ≥ 500 fotos de 9 clases con fecha,
   hora, GPS, temperatura y humedad; tarjeta ArUco para la escala; clasificador MobileNetV3 → TFLite int8 (`dataset/`).
@@ -106,14 +106,14 @@ via-viva/
 | ADXL345 SCK / MISO / MOSI / CS | 18 / 19 / 23 / 4 | VSPI (SPI3_HOST) con `spi_master` + DMA; CS en 4 porque el nativo (5) es de arranque |
 | ADXL345 INT1 (watermark) | 34 | Solo entrada; el INT1 del ADXL345 es push-pull |
 | microSD SCK / MISO / MOSI / CS | 14 / 27 / 13 / 32 | HSPI (SPI2) **por la matriz GPIO** (los nativos 12 y 15 son de arranque); 10 MHz |
-| I2C SDA / SCL | 21 / 22 | MPU-6050 (0x68), VL53L0X (0x29), **BME280 (0x76; 0x77 si SDO alto)**, **BH1750 (0x23, ADDR a GND)**; 400 kHz |
+| I2C SDA / SCL | 21 / 22 | MPU-6050 (0x68), VL53L0X (0x29), **BH1750 (0x23, ADDR a GND)**; BME280 opcional (0x76/0x77, no se compró); 400 kHz |
 | GPS NEO-6M (TX del GPS → RX / RX ← TX) | 16 / 17 | UART2, 9600 baud |
-| **DHT22** DATA (solo si no hay BME280) | 25 | Un hilo, pull-up 10 kΩ a 3V3. El 25 y el 35 quedaron libres al retirar la ESP32-CAM |
+| **DHT22** DATA (sensor elegido el 3-nov) | 25 | Un hilo, pull-up 10 kΩ a 3V3. El 25 y el 35 quedaron libres al retirar la ESP32-CAM |
 | Pulsador | 26 | INPUT_PULLUP, a GND, antirrebote 250 ms |
 | LED | 33 | salida |
 
 **Ambiente (3-nov):** controladores propios en `include/ambiente.h` (compensación entera de Bosch, verificada con el ejemplo
-de la hoja de datos en `pruebas/prueba_bme280.cpp`). Un BME280 con ID **0x58 es un BMP280** (sin humedad) → usar DHT22.
+de la hoja de datos en `pruebas/prueba_bme280.cpp`). Sensor comprado: **DHT22**; si algún día se pone un BME280, el código lo prefiere (y si su ID es 0x58 es un BMP280 sin humedad).
 Lectura cada `PERIODO_AMBIENTE_MS` = 10 s en la tarea I2C → `ambiente_NNN.csv` + tarjeta "Ambiente" de la página web.
 El sensor va **fuera de la caja** (la ESP32 lo calienta) y, para clima, fuera de la cabina del carro.
 **ESP32-CAM y CP2102: fuera del diseño** (código en `futuro/nodo-camara/`).

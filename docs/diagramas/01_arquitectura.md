@@ -20,7 +20,7 @@ flowchart LR
         GPS["GPS NEO-6M<br/>posición, velocidad, hora UTC"]
         SD[("microSD<br/>registro crudo")]
         BTN["Pulsador<br/>etiqueta de campo"]
-        AMB["BME280 o DHT22 + BH1750<br/>temperatura, humedad, luz"]
+        AMB["DHT22 + BH1750<br/>temperatura, humedad, luz"]
 
         ADXL -- "VSPI + INT1 (GPIO 34)" --> S3
         MPU -- "I2C 0x68" --> S3
@@ -28,7 +28,7 @@ flowchart LR
         GPS -- "UART2 9600 baud" --> S3
         S3 -- "HSPI (matriz GPIO)" --> SD
         BTN -- "GPIO 26" --> S3
-        AMB -- "I2C 0x76 / 0x23 (DHT22: GPIO 25)" --> S3
+        AMB -- "DHT22: GPIO 25 · BH1750: I2C 0x23" --> S3
     end
     CEL["Celular (borde para imágenes)<br/>fotos JPG/HEIC + EXIF (hora, GPS)<br/>+ tarjeta ArUco"]
 

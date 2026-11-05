@@ -9,7 +9,7 @@ Es el Proyecto Integrador 2026-2 de Ingeniería de Datos e Inteligencia Artifici
 
 1. **Nodo a bordo (IA en el borde).** Un ESP32 con acelerómetro, unidad inercial, láser de distancia y GPS va en un carro,
    clasifica eventos (hueco, resalto, impacto fuerte) y mide la rugosidad de la vía; también registra temperatura, humedad
-   y luz (BME280 o DHT22, BH1750).
+   y luz (DHT22 y BH1750).
 2. **Fotos con el celular (dataset propio).** El celular es el dispositivo de borde para imágenes: ≥ 500 fotos de 9 clases
    con fecha, hora, GPS y clima, tarjeta ArUco para la escala y un clasificador MobileNetV3 exportado a TFLite int8
    (`dataset/`, protocolo en `docs/protocolo_fotos.md`). Caras y placas se difuminan antes del análisis.

@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS eventos (
     origen          TEXT NOT NULL DEFAULT 'nodo'  -- nodo (umbral/modelo), phyphox o simulado
                     CHECK (origen IN ('nodo', 'phyphox', 'simulado')),
     razon_umbral    REAL,                      -- p2p / vibración de fondo en el disparo del detector
-    foto_ruta       TEXT,                      -- ruta de la miniatura YA difuminada (nunca la original)
+    foto_ruta       TEXT,                      -- foto asociada al evento, YA difuminada (sin uso desde que salió la ESP32-CAM)
     modelo_version  TEXT,                      -- versión del clasificador del nodo
     id_tramo        INTEGER REFERENCES tramos (id_tramo),  -- tramo asignado por el ETL (ajuste a la calle)
     geohash7        TEXT,
