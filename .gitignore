@@ -13,6 +13,8 @@ data/terceros/
 data/campo/
 data/procesado/
 data/procesado_sintetico/
+data/externo/
+dataset/salidas/
 *.db
 *.sqlite
 *.sqlite3
