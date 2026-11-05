@@ -24,9 +24,9 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 
 from dataset.comun import (ANGULOS, CLASES, CLASES_DANO, COLUMNAS, LUCES, PROCESADO, PROCESADO_SINTETICO, SEVERIDADES,
-                           TIPOS_VIA, guardar_csv, leer_metadatos)
+                           SUPERFICIES, guardar_csv, leer_metadatos)
 
-EDITABLES = {"clase": CLASES, "severidad": SEVERIDADES, "angulo": ANGULOS, "tipo_via": TIPOS_VIA, "luz": LUCES,
+EDITABLES = {"clase": CLASES, "severidad": SEVERIDADES, "angulo": ANGULOS, "superficie": SUPERFICIES, "luz": LUCES,
              "superficie_mojada": ["si", "no"]}
 LIBRES = ["distancia_m", "notas", "largo_regla_cm", "ancho_regla_cm", "temperatura", "humedad"]
 NUMERICOS = {"distancia_m", "largo_regla_cm", "ancho_regla_cm", "temperatura", "humedad"}
@@ -68,7 +68,7 @@ input[type=text],input[type=number]{width:100%;padding:6px;border:1px solid #bbb
 <div class="grupo"><h3>Ángulo <small>A S D F</small></h3><div class="bts" data-campo="angulo"></div></div>
 <div class="grupo"><h3>Luz <small>Z X C V</small></h3><div class="bts" data-campo="luz"></div></div>
 <div class="grupo"><h3>Superficie mojada <small>M</small></h3><div class="bts" data-campo="superficie_mojada"></div></div>
-<div class="grupo"><h3>Tipo de vía <small>sugerido por OSM: corregir si está mal</small></h3><div class="bts" data-campo="tipo_via"></div></div>
+<div class="grupo"><h3>Superficie <small>asfalto, concreto, adoquín o destapada (la planilla la llena si existe)</small></h3><div class="bts" data-campo="superficie"></div></div>
 <div class="grupo"><h3>Opcional</h3>
 <div class="fila"><label>Distancia al daño (m)<input type="number" step="0.1" min="0" id="distancia_m"></label>
 <label>Notas<input type="text" id="notas"></label></div>
@@ -103,7 +103,7 @@ for(const c of ['distancia_m','notas','largo_regla_cm','ancho_regla_cm'])$(c).va
 const termo=fila.fuente_clima==='termohigrometro';$('temperatura').value=termo?fila.temperatura:'';$('humedad').value=termo?fila.humedad:'';
 termoOriginal={t:$('temperatura').value,h:$('humedad').value};
 $('info').innerHTML=`<b>${id}</b> · ${fila.autor||'?'} · ${fila.fecha||'sin fecha'} ${fila.hora||''} (${fila.momento_dia||'?'}) · `+
-`${fila.lat?fila.lat+', '+fila.lon:'<b style="color:#b3261e">sin GPS</b>'} · tramo ${fila.id_tramo||'–'} · ${fila.barrio||'–'}<br>`+
+`${fila.lat?fila.lat+', '+fila.lon:'<b style="color:#b3261e">sin GPS</b>'} · tramo ${fila.id_tramo||'–'} (${fila.tipo_via||'–'}, OSM) · ${fila.barrio||'–'}<br>`+
 `Clima: ${fila.temperatura||'–'} °C, ${fila.humedad||'–'} % (${fila.fuente_clima||'sin fuente'}) · lluvia IDEAM del día: ${fila.lluvia_ideam||'–'} mm`+
 (fila.notas?' · notas: '+fila.notas:'');pintar();$('estado').textContent=''}
 async function guardar(excluir){const campos={...sel};

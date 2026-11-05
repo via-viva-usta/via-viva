@@ -11,7 +11,10 @@ Todo en data/ (ignorada por Git): las fotos no se suben.
 Qué llena solo (las columnas que llena una persona —clase, severidad, ángulo, luz, mojado...— NUNCA se pisan):
   * fecha, hora (hora local de Colombia) y momento_dia desde el EXIF; lat, lon desde el GPS del EXIF.
   * id_tramo (tramo de OSM más cercano a ≤ 30 m) y barrio (el del tramo, o el punto de barrio más cercano).
-  * tipo_via sugerido desde OSM si está vacío (la persona lo corrige en el etiquetador).
+  * tipo_via SIEMPRE desde el tramo de OSM (arterial / colectora / local / destapada); superficie desde OSM solo si
+    nadie la anotó (la planilla y el etiquetador mandan).
+  * planilla de campo (data/raw/planilla/*.csv, ver dataset/planilla.py): clase, severidad, superficie, mojado, luz y
+    notas, unida por hora (± 5 min) y por sitio (GPS); solo llena celdas vacías.
   * temperatura y humedad, en este orden: (0) si ya tiene fuente_clima = termohigrometro (anotado a mano) se deja;
     (1) registro del NODO (ambiente_NNN.csv) a ± 30 min → fuente_clima = nodo; (2) API meteorológica histórica
     gratuita por hora para Tunja (Open-Meteo, CC BY 4.0) → fuente_clima = api; lux solo si hay nodo con BH1750.
@@ -43,9 +46,10 @@ import pandas as pd
 import requests
 from PIL import Image, ImageOps
 
+from dataset import planilla as plan_campo
 from dataset.comun import (CLASES, COLUMNAS, COLUMNAS_CALIDAD, COLUMNAS_HUMANAS, CRUDAS, CRUDAS_SINTETICO, DATA,
-                           DHASH_CASI_IGUAL, LUCES, MOMENTOS, META_POR_CLASE, META_TOTAL, NODO, PROCESADO,
-                           PROCESADO_SINTETICO, RAIZ, TIPOS_VIA, TUNJA, UMBRAL_NITIDEZ, ZONA_LOCAL, ANGULOS,
+                           DHASH_CASI_IGUAL, LUCES, MOMENTOS, META_POR_CLASE, META_TOTAL, NODO, PLANILLA, PROCESADO,
+                           PROCESADO_SINTETICO, RAIZ, SUPERFICIES, TIPOS_VIA, TUNJA, UMBRAL_NITIDEZ, ZONA_LOCAL, ANGULOS,
                            autor_de_carpeta, distancia_m, guardar_csv, leer_metadatos, momento_dia, sitios)
 
 try:
@@ -68,6 +72,9 @@ OSM_A_TIPO = {"trunk": "arterial", "trunk_link": "arterial", "primary": "arteria
               "secondary": "colectora", "secondary_link": "colectora", "tertiary": "colectora",
               "tertiary_link": "colectora", "residential": "local", "living_street": "local", "service": "local",
               "unclassified": "local", "track": "destapada"}
+OSM_DESTAPADA = {"unpaved", "dirt", "gravel", "ground", "compacted", "fine_gravel", "earth", "mud", "sand"}
+OSM_A_SUPERFICIE = {"asphalt": "asfalto", "concrete": "concreto", "concrete:plates": "concreto", "paving_stones": "adoquin",
+                    "sett": "adoquin", "cobblestone": "adoquin", **{k: "destapada" for k in OSM_DESTAPADA}}
 
 
 # ---------------------------------------------------------------- EXIF
@@ -187,12 +194,12 @@ class Base:
             print(f"AVISO: no existe {ruta}: id_tramo, barrio, tipo_via y lluvia_ideam quedan vacíos")
             return
         con = sqlite3.connect(f"file:{ruta}?mode=ro", uri=True)
-        t = pd.read_sql("SELECT id_tramo, tipo_via, barrio, geometria_wkt FROM tramos", con)
+        t = pd.read_sql("SELECT id_tramo, tipo_via, superficie, barrio, geometria_wkt FROM tramos", con)
         self.barrios = pd.read_sql("SELECT nombre, lat, lon FROM barrios", con)
         self.lluvia = pd.read_sql("SELECT ts_dato, valor, lat, lon FROM fuentes_externas "
                                   "WHERE variable = 'precipitacion_diaria_mm'", con)
         con.close()
-        self.info = t.set_index("id_tramo")[["tipo_via", "barrio"]]
+        self.info = t.set_index("id_tramo")[["tipo_via", "superficie", "barrio"]]
         # Todos los segmentos de todas las líneas, en metros locales (equirrectangular alrededor de Tunja)
         filas = []
         for idt, wkt in zip(t["id_tramo"], t["geometria_wkt"]):
@@ -208,10 +215,10 @@ class Base:
         kx = 111320 * math.cos(math.radians(TUNJA[0]))
         return (np.asarray(lon) - TUNJA[1]) * kx, (np.asarray(lat) - TUNJA[0]) * 110540
 
-    def tramo(self, lat, lon) -> tuple[str, str, str]:
-        """(id_tramo, barrio, tipo_via sugerido) del tramo más cercano a ≤ MAX_DIST_TRAMO_M."""
+    def tramo(self, lat, lon) -> tuple[str, str, str, str]:
+        """(id_tramo, barrio, tipo_via, superficie según OSM) del tramo más cercano a ≤ MAX_DIST_TRAMO_M."""
         if not self.ok or lat is None:
-            return "", "", ""
+            return "", "", "", ""
         px, py = self._metros(lon, lat)
         x1, y1, x2, y2 = self.seg.T
         dx, dy = x2 - x1, y2 - y1
@@ -220,11 +227,15 @@ class Base:
         d = np.hypot(x1 + u * dx - px, y1 + u * dy - py)
         k = int(np.argmin(d))
         if d[k] > MAX_DIST_TRAMO_M:
-            return "", self.barrio_cercano(lat, lon), ""
+            return "", self.barrio_cercano(lat, lon), "", ""
         idt = int(self.seg_id[k])
         tipo_osm, barrio = self.info.loc[idt, "tipo_via"], self.info.loc[idt, "barrio"]
         tipo = OSM_A_TIPO.get(str(tipo_osm).split(";")[0], "otra") if pd.notna(tipo_osm) else ""
-        return str(idt), (barrio if pd.notna(barrio) else self.barrio_cercano(lat, lon)), tipo
+        sup_osm = str(self.info.loc[idt, "superficie"] or "").split(";")[0]
+        if sup_osm in OSM_DESTAPADA:
+            tipo = "destapada"                       # una vía sin pavimento es "destapada" sea cual sea su jerarquía
+        sup = OSM_A_SUPERFICIE.get(sup_osm, "")
+        return str(idt), (barrio if pd.notna(barrio) else self.barrio_cercano(lat, lon)), tipo, sup
 
     def barrio_cercano(self, lat, lon) -> str:
         if not self.ok or self.barrios.empty:
@@ -408,7 +419,8 @@ def reporte(meta: pd.DataFrame, cal: pd.DataFrame, salida: Path, sintetico: bool
     falta = sum(max(0, META_POR_CLASE - int((etiq['clase'] == c).sum())) for c in CLASES)
     l += ["", f"Total que falta para llegar a {META_POR_CLASE} por clase: **{falta}** fotos etiquetadas.", ""]
     for col, vals, titulo in [("momento_dia", MOMENTOS, "momento del día"), ("luz", LUCES, "luz"),
-                              ("tipo_via", TIPOS_VIA, "tipo de vía"), ("angulo", ANGULOS, "ángulo"),
+                              ("tipo_via", TIPOS_VIA, "tipo de vía"), ("superficie", SUPERFICIES, "superficie"),
+                              ("angulo", ANGULOS, "ángulo"),
                               ("superficie_mojada", ["si", "no"], "superficie mojada")]:
         l += [f"## Por {titulo}", "", "| Valor | Fotos |", "|---|---|"]
         l += [f"| {v} | {k} |" for v, k in conteo(meta, col, vals)] + [""]
@@ -430,6 +442,7 @@ def main():
     ap.add_argument("--salida", type=Path, default=None, help="por defecto data/procesado")
     ap.add_argument("--nodo", type=Path, default=NODO, help="carpeta con ambiente_NNN.csv del nodo")
     ap.add_argument("--base", type=Path, default=DATA / "via_viva.db")
+    ap.add_argument("--planilla", type=Path, default=PLANILLA, help="carpeta con los CSV de la planilla de campo")
     ap.add_argument("--sin-api", action="store_true", help="no consultar la API meteorológica")
     ap.add_argument("--forzar", action="store_true", help="rehacer las fotos procesadas aunque ya existan")
     ap.add_argument("--sintetico", action="store_true", help="usar data/raw/fotos_sintetico → data/procesado_sintetico")
@@ -484,6 +497,14 @@ def main():
             meta.at[k, "temperatura"], meta.at[k, "humedad"] = lectura[sitio[k]]
             meta.at[k, "fuente_clima"], meta.at[k, "lux"] = "termohigrometro", ""
 
+    # Planilla de campo del equipo: clase, severidad, superficie, mojado y luz por hora (± 5 min) y sitio
+    tabla_plan, avisos_plan = plan_campo.leer(a.planilla)
+    avisos += avisos_plan
+    if not tabla_plan.empty:
+        meta, est = plan_campo.unir(meta, tabla_plan, sitio)
+        avisos.append(f"Planilla: {est['filas_unidas']} de {est['filas']} filas unidas a fotos; "
+                      f"{est['fotos_llenadas']} fotos recibieron datos")
+
     base = Base(a.base)
     nodo = leer_nodo(a.nodo) if a.nodo.exists() else leer_nodo(Path("__no_existe__"))
     if nodo.empty:
@@ -492,10 +513,10 @@ def main():
     for k, r in meta.iterrows():
         lat = float(r["lat"]) if r["lat"] else None
         lon = float(r["lon"]) if r["lon"] else None
-        idt, barrio, tipo = base.tramo(lat, lon)
-        meta.at[k, "id_tramo"], meta.at[k, "barrio"] = idt, barrio
-        if not r["tipo_via"] and tipo:
-            meta.at[k, "tipo_via"] = tipo
+        idt, barrio, tipo, sup = base.tramo(lat, lon)
+        meta.at[k, "id_tramo"], meta.at[k, "barrio"], meta.at[k, "tipo_via"] = idt, barrio, tipo
+        if not meta.at[k, "superficie"] and sup:
+            meta.at[k, "superficie"] = sup
         meta.at[k, "lluvia_ideam"] = base.lluvia_dia(r["fecha"], lat, lon)
         if r["fuente_clima"] == "termohigrometro" or not r["fecha"]:
             continue                               # anotado a mano, o sin fecha no hay cómo cruzar

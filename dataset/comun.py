@@ -18,6 +18,7 @@ DATA = RAIZ / "data"
 CRUDAS = DATA / "raw" / "fotos"                          # data/raw/fotos/AAAA-MM-DD_nombre/*.jpg|heic
 PROCESADO = DATA / "procesado"                           # fotos/ difuminadas + metadatos.csv + calidad.csv
 NODO = DATA / "raw" / "nodo"                             # copias de la microSD (ambiente_NNN.csv)
+PLANILLA = DATA / "raw" / "planilla"                     # CSV exportados de la planilla de campo (Google Sheets)
 # Lo sintético va SIEMPRE aparte para que nunca se mezcle con lo real
 CRUDAS_SINTETICO = DATA / "raw" / "fotos_sintetico"
 PROCESADO_SINTETICO = DATA / "procesado_sintetico"
@@ -34,17 +35,18 @@ META_TOTAL = 500
 SEVERIDADES = ["leve", "media", "alta"]
 ANGULOS = ["contexto", "frente", "lado", "cenital"]
 LUCES = ["sol", "sombra", "nublado", "noche"]
-TIPOS_VIA = ["arterial", "colectora", "local", "destapada", "otra"]
+TIPOS_VIA = ["arterial", "colectora", "local", "destapada", "otra"]      # sale SOLO del tramo de OSM
+SUPERFICIES = ["asfalto", "concreto", "adoquin", "destapada"]             # planilla / etiquetador (o OSM si está)
 FUENTES_CLIMA = ["nodo", "termohigrometro", "api"]
 MOMENTOS = ["madrugada", "manana", "mediodia", "tarde", "noche"]
 
 # Esquema del CSV de metadatos (orden de columnas). Las dos últimas son opcionales: medidas con regla en campo,
 # para validar el área que calcula dataset/escala.py.
 COLUMNAS = ["id", "archivo", "autor", "fecha", "hora", "momento_dia", "lat", "lon", "id_tramo", "barrio", "tipo_via",
-            "clase", "severidad", "angulo", "distancia_m", "luz", "superficie_mojada", "temperatura", "humedad", "lux",
+            "superficie", "clase", "severidad", "angulo", "distancia_m", "luz", "superficie_mojada", "temperatura", "humedad", "lux",
             "fuente_clima", "lluvia_ideam", "notas", "largo_regla_cm", "ancho_regla_cm"]
 # Lo que llena una persona (la ingesta no lo pisa si ya tiene valor)
-COLUMNAS_HUMANAS = ["clase", "severidad", "angulo", "distancia_m", "luz", "superficie_mojada", "tipo_via", "notas",
+COLUMNAS_HUMANAS = ["clase", "severidad", "angulo", "distancia_m", "luz", "superficie_mojada", "superficie", "notas",
                     "largo_regla_cm", "ancho_regla_cm"]
 
 # Columnas técnicas (calidad.csv): no son del esquema, sirven para el reporte y para trazar el origen
