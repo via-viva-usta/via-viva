@@ -1,0 +1,7 @@
+# Ejemplo (INVENTADO, solo para mostrar el formato): vueltas del cronómetro del iPhone, la vuelta 1 primero
+1:02.40 hueco
+0:33.10 resalto
+0:20.00 parada_inicio
+0:45.00 parada_fin
+Vuelta 5  00:12,50  Bache
+95 otro

@@ -2,7 +2,10 @@
 
 Entrada: data/raw/phyphox/ (una entrada por recorrido; formato en analysis/README.md)
   <recorrido>.zip | <recorrido>/ | <recorrido>.csv   export de phyphox con acelerómetro (con g), giroscopio y GPS
-  <recorrido>_etiquetas.csv                          lo que anotó el copiloto: t_s,clase
+  <recorrido>_etiquetas.csv                          lo que anotó el copiloto: t_s,clase (sale del cronómetro del
+                                                     iPhone con analysis/vueltas_a_etiquetas.py). Las filas
+                                                     parada_inicio / parada_fin marcan el carro detenido: ahí
+                                                     no se buscan huecos y no son eventos.
 
 Qué hace por recorrido:
   1. Remuestrea el acelerómetro, saca la aceleración vertical y aplica el DETECTOR POR UMBRALES
@@ -44,6 +47,7 @@ from etl.geohash import codificar
 
 sys.path.insert(0, str(RAIZ))
 from analysis import senales  # noqa: E402
+from analysis.vueltas_a_etiquetas import PARADAS, intervalos_parada  # noqa: E402
 from analysis.detector_umbral import (ParametrosManiobra, ParametrosUmbral, detectar_maniobras,  # noqa: E402
                                       detectar_umbral, giro_vertical, parametros_como_texto)
 from risk_model.variables import CRS_METROS, leer_tramos  # noqa: E402
@@ -114,6 +118,10 @@ def procesar(p: Path, tramos: gpd.GeoDataFrame, pu: ParametrosUmbral, pm: Parame
     if gps is None or len(gps) < 5:
         raise ValueError("sin GPS: no se puede asignar a tramos")
     etiquetas = leer_etiquetas(p)
+    paradas = []
+    if etiquetas is not None:
+        paradas = intervalos_parada(etiquetas["t_s"], etiquetas["clase"])
+        etiquetas = etiquetas[~etiquetas["clase"].isin(PARADAS)].reset_index(drop=True)
     fs = min(200.0, float(round(senales.tasa_nativa(acc["t"].to_numpy()))))
     acc_u = senales.remuestrear(acc, fs)
     t = acc_u["t"].to_numpy()
@@ -121,6 +129,8 @@ def procesar(p: Path, tramos: gpd.GeoDataFrame, pu: ParametrosUmbral, pm: Parame
                              min(80.0, 0.4 * fs)) / senales.G
     gps = gps.assign(vel_kmh=velocidad_kmh(gps)).sort_values("t")
     vel = np.interp(t, gps["t"], gps["vel_kmh"])
+    for ini, fin in paradas:                # carro detenido según el copiloto: velocidad 0 → el detector no dispara
+        vel[(t >= ini) & (t <= fin)] = 0.0
 
     # 1) detector por umbrales
     cand = detectar_umbral(a_g, vel, fs, pu)
