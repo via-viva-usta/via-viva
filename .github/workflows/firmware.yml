@@ -1,0 +1,33 @@
+# Compila el firmware del nodo (3 entornos) y los programas de prueba con PlatformIO.
+# Solo corre si cambia firmware/; guarda en caché PlatformIO (toolchains y librerías) para no gastar minutos.
+name: firmware
+on:
+  push:
+    branches: [main]
+    paths: ["firmware/**", ".github/workflows/firmware.yml"]
+  pull_request:
+    paths: ["firmware/**", ".github/workflows/firmware.yml"]
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            firmware/nodo-sensores/.pio/libdeps
+            firmware/nodo-sensores/pruebas/.pio/libdeps
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/**/platformio.ini') }}
+      - run: pip install platformio
+      - name: Nodo (esp32dev, e1_polling, e1_int_muestra)
+        run: pio run -d firmware/nodo-sensores -e esp32dev -e e1_polling -e e1_int_muestra
+      - name: Programas de prueba por sensor
+        run: pio run -d firmware/nodo-sensores/pruebas

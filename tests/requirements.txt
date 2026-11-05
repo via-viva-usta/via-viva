@@ -1,0 +1,11 @@
+# Pruebas automáticas (pytest) y GitHub Actions. Local: dataset\.venv tiene todo esto.
+numpy
+pandas==3.0.0
+pillow
+pillow-heif
+opencv-contrib-python-headless<5
+scipy
+scikit-learn==1.7.2
+requests
+python-dotenv
+pytest
