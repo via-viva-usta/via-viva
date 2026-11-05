@@ -33,6 +33,8 @@ public class PruebaEstructuras {
         probarTablaHash();
         probarMonticulo();
         probarBFS();
+        System.out.println();
+        fallas += PruebaPrioridad.correr();
 
         String ruta = args.length > 0 ? args[0] : (new File("../data/via_viva.db").isFile() ? "../data/via_viva.db" : null);
         if (ruta != null) {
@@ -156,6 +158,12 @@ public class PruebaEstructuras {
                 + "fuerza bruta %.0f comparaciones y %.1f µs%n", n, (double) compIdx / n, nsIdx / 1e3 / n,
                 (double) compBruta / n, nsBruta / 1e3 / n);
         verificar(distintos == 0, "Geohash y fuerza bruta encuentran el mismo tramo (" + distintos + " distintos)");
+
+        long demos = ctl.peligros().stream().filter(x -> x.demo).count();
+        System.out.printf("  Reportes y eventos de la vía: %d (%d DEMO, %d eventos de maniobra/normal sin listar), "
+                + "lectura y prioridad en %.1f ms%n", ctl.peligros().size(), demos, ctl.eventosNoVia(), ctl.msPeligros());
+        verificar(ctl.errorPeligros() == null, "Reportes y eventos se leen sin error"
+                + (ctl.errorPeligros() == null ? "" : " (" + ctl.errorPeligros() + ")"));
 
         if (ctl.corridaActual() != null) {
             System.out.println("  Corrida: " + ctl.corridaActual());
