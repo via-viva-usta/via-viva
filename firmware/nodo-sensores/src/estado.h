@@ -5,6 +5,8 @@
 #include <Arduino.h>
 
 #include "adxl345.h"
+#include "esp_task_wdt.h"
+#include "esp_timer.h"
 #include "caracteristicas.h"
 #include "config.h"
 #include "maniobras.h"
@@ -74,6 +76,10 @@ struct EstadoNodo {
     float muestrasPorSegundo = 0;
     Evento ultimo{};
     bool hayUltimo = false;
+    uint32_t sdRemontajes = 0;       // veces que se volvió a montar la microSD tras una falla
+    uint32_t sdFallosEscritura = 0;  // escrituras que no se completaron
+    uint32_t crudoPerdido = 0;       // bloques que no cupieron en la cola del registro crudo
+    int causaReinicio = 0;           // esp_reset_reason() del último arranque
 };
 
 // ---- Estado global (definido en main.cpp) ----
@@ -82,6 +88,16 @@ extern EstadoGPS estadoGPS;
 extern EstadoI2C estadoI2C;
 extern EstadoNodo estadoNodo;
 extern SemaphoreHandle_t mutexGPS, mutexI2C, mutexNodo;
+
+// microSD (registro.cpp). TODO acceso a la tarjeta (registro, listado y descarga por la página) toma mutexSD.
+// sdGeneracion sube en cada montaje: si cambia, los archivos abiertos antes ya no sirven.
+extern SemaphoreHandle_t mutexSD;
+extern volatile uint32_t sdGeneracion;
+extern volatile bool sdMontada;
+bool iniciarSD();                 // primer montaje y elección de la sesión (en setup, antes de crear las tareas)
+
+// Salud del GPS (perifericos.cpp): las escribe solo tareaGPS; enteros de 32 bits = lectura atómica
+extern volatile uint32_t gpsBytes, gpsReinicios, gpsUltimoByteMs;
 
 extern Bloque pingPong[2];
 extern SemaphoreHandle_t mitadLibre[2];
@@ -99,6 +115,16 @@ void tareaWeb(void*);
 void IRAM_ATTR isrAdxl();
 void registrarEtiqueta(int64_t tUs, const char* tipo, const char* origen);
 void iniciarMedicionOcio();
+
+// Watchdog de tareas (esp_task_wdt): cada tarea crítica se suscribe y avisa en cada vuelta de su ciclo.
+// Se avisa como máximo una vez cada 500 ms: es barato, pero no gratis (y en e1_polling el ciclo es de 5 ms).
+inline void avisarWdt(int64_t& ultimoUs) {
+    const int64_t t = esp_timer_get_time();
+    if (t - ultimoUs >= 500000) {
+        esp_task_wdt_reset();
+        ultimoUs = t;
+    }
+}
 
 // Copias seguras del estado compartido
 EstadoGPS copiarGPS();

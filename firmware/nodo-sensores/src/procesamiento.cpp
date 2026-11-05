@@ -34,14 +34,15 @@ void tareaProcesamiento(void*) {
     int restantes = -1;                 // muestras que faltan tras el disparo (-1 = sin disparo)
     int64_t tDisparo = 0;
     float razonDisparo = 0;
-    uint32_t muestrasSeg = 0;
+    uint32_t muestrasSeg = 0, crudoPerdido = 0;
     int64_t tSeg = esp_timer_get_time();
 
     for (;;) {
         int i;
         xQueueReceive(colaBloques, &i, portMAX_DELAY);
         const Bloque& b = pingPong[i];
-        xQueueSend(colaCrudo, &b, 0);   // copia para el registro crudo (si la cola está llena se pierde)
+        // Copia para el registro crudo (si la cola está llena se pierde y se cuenta)
+        if (xQueueSend(colaCrudo, &b, 0) != pdTRUE) crudoPerdido++;
         digitalWrite(PIN_LED, !digitalRead(PIN_LED));   // parpadeo = adquiriendo
         const float velocidad = modoMesa ? 99.0f : copiarGPS().velKmh;
 
@@ -96,6 +97,7 @@ void tareaProcesamiento(void*) {
         if (ahora - tSeg >= 1000000) {
             if (xSemaphoreTake(mutexNodo, pdMS_TO_TICKS(5)) == pdTRUE) {
                 estadoNodo.muestrasPorSegundo = muestrasSeg * 1e6f / (ahora - tSeg);
+                estadoNodo.crudoPerdido = crudoPerdido;
                 xSemaphoreGive(mutexNodo);
             }
             muestrasSeg = 0;

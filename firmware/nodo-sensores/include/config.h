@@ -60,6 +60,18 @@ constexpr float MANIOBRA_FRENADA_GPS_MS2 = 2.5f;
 constexpr uint8_t AP_CANAL = 6;
 constexpr uint8_t AP_MAX_CLIENTES = 2;
 
+// ---- microSD (src/registro.cpp) ----
+// Archivos abiertos a la vez: los 6 de la sesión + 1 para descargar por Wi-Fi + 1 para listar.
+// (La librería SD trae 5 por defecto: el 6.º archivo de la sesión, exp_NNN.csv, no se podía abrir.)
+constexpr uint8_t SD_MAX_ARCHIVOS = 8;
+constexpr uint32_t SD_FLUSH_MS = 1000;       // cada cuánto se fuerzan los datos a la tarjeta
+constexpr uint32_t SD_REINTENTO_MS = 10000;  // si la tarjeta no monta, se reintenta cada 10 s
+
+// ---- Robustez ----
+constexpr uint32_t WDT_TAREAS_S = 10;        // watchdog de tareas: si una tarea crítica no avisa en 10 s, se reinicia
+constexpr uint32_t GPS_SIN_DATOS_MS = 5000;  // sin bytes NMEA en 5 s (el NEO-6M manda cada 1 s) → reiniciar UART2
+constexpr uint32_t GPS_FIX_VIEJO_MS = 5000;  // fijación sin actualizar en 5 s → GPS no válido y velocidad 0
+
 // ---- Otros ----
 constexpr uint32_t GPS_BAUD = 9600;
 constexpr uint32_t PERIODO_I2C_MS = 20;      // MPU-6050 + VL53L0X a 50 Hz
