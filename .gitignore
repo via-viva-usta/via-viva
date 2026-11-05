@@ -111,3 +111,5 @@ analysis/salidas/
 
 # ===== Informe: el PDF se regenera con pdflatex (ver report/README.md) =====
 report/main.pdf
+web/clasificador/vendor/
+web/clasificador/modelo/
