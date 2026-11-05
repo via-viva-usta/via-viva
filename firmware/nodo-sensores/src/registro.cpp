@@ -62,7 +62,9 @@ static int elegirSesion() {
         snprintf(crudo, sizeof(crudo), "/crudo_%03lu.csv", (unsigned long)s);
         snprintf(eventos, sizeof(eventos), "/eventos_%03lu.csv", (unsigned long)s);
     } while ((SD.exists(crudo) || SD.exists(eventos)) && s < 99999);
-    nvs.putUInt("sesion", s);   // escribe en la flash: por eso se hace en setup, antes de arrancar la adquisición
+    // Escribe en la flash (la caché se detiene unos ms): por eso normalmente se hace en setup, antes de arrancar la
+    // adquisición. Si la tarjeta monta más tarde, se escribe en operación y puede salir un overrun puntual en E1.
+    nvs.putUInt("sesion", s);
     nvs.end();
     return (int)s;
 }
