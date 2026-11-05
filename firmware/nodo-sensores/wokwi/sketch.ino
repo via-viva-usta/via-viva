@@ -4,7 +4,9 @@
 //     (en Wokwi: clic en el MPU-6050 y mover el deslizador de giro Z por encima de 15 °/s);
 //   * escribe en la microSD simulada;
 //   * el botón guarda una etiqueta y el LED parpadea.
-// No simula: ADXL345, VL53L0X, GPS NEO-6M (Wokwi no tiene esas piezas).
+// No simula: ADXL345, VL53L0X, BH1750, GPS NEO-6M (Wokwi no tiene esas piezas).
+// El DHT22 (GPIO 25, con su pull-up de 10 kΩ) está en diagram.json para el firmware completo (opción B del
+// README); este sketch no lo lee.
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>

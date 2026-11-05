@@ -1,5 +1,6 @@
 # Wokwi para VS Code: simula el firmware COMPLETO compilado con PlatformIO (pio run -e esp32dev).
-# Las piezas que Wokwi no tiene (ADXL345, VL53L0X, GPS) y los de ambiente aparecen como "NO RESPONDE" en el monitor.
+# Placa: ESP32 DevKit V1 de 30 pines (diagram.json). Las piezas que Wokwi no tiene (ADXL345, VL53L0X, BH1750, GPS)
+# aparecen como "NO RESPONDE" en el monitor; el DHT22 sí está en el diagrama (ver wokwi/README.md).
 [wokwi]
 version = 1
 firmware = '.pio/build/esp32dev/firmware.bin'
