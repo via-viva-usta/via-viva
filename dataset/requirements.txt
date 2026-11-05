@@ -6,3 +6,4 @@ pillow-heif
 opencv-contrib-python-headless<5   # la 5.x ya no trae los clasificadores Haar (caras y placas)
 requests
 reportlab
+scipy   # lo usa herramientas.validar_campo (lector de phyphox de analysis/senales.py)
