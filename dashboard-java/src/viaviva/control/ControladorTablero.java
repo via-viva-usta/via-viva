@@ -1,5 +1,6 @@
 package viaviva.control;
 
+import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +12,7 @@ import viaviva.estructuras.IndiceGeohash;
 import viaviva.estructuras.MonticuloMax;
 import viaviva.estructuras.TablaHash;
 import viaviva.modelo.Corrida;
+import viaviva.modelo.Peligro;
 import viaviva.modelo.Proyeccion;
 import viaviva.modelo.Tramo;
 
@@ -32,6 +34,10 @@ public class ControladorTablero {
     private Corrida corridaActual;
     private double[] cortesQuintiles = new double[0];
     private long msCarga;
+    private List<Peligro> peligros = List.of();
+    private int eventosNoVia;
+    private String errorPeligros;
+    private double msPeligros;
 
     public ControladorTablero(String rutaDb) {
         this.rutaDb = rutaDb;
@@ -55,6 +61,74 @@ public class ControladorTablero {
         }
         msCarga = (System.nanoTime() - t0) / 1_000_000;
         if (!corridas.isEmpty()) elegirCorrida(corridaPorDefecto());
+        cargarPeligros();
+    }
+
+    /** Distancia máxima para asignar un reporte o evento sin id_tramo a una calle (la misma del ETL de recorridos). */
+    public static final double MAX_DIST_TRAMO_M = 25.0;
+
+    /**
+     * Lee reportes y eventos, les asigna tramo y calcula la prioridad. Si algo falla, el tablero sigue
+     * funcionando: el panel muestra el error en vez de la lista.
+     */
+    public void cargarPeligros() {
+        long t0 = System.nanoTime();
+        List<Peligro> lista = new ArrayList<>();
+        try (RepositorioSQLite repo = new RepositorioSQLite(rutaDb)) {
+            lista.addAll(repo.leerReportes());
+            lista.addAll(repo.leerEventos());
+            eventosNoVia = repo.contarEventosNoVia();
+            errorPeligros = null;
+        } catch (SQLException ex) {
+            lista.clear();
+            eventosNoVia = 0;
+            errorPeligros = ex.getMessage();
+        }
+        asignarTramos(lista);
+        PrioridadPeligros.calcular(lista);
+        peligros = lista;
+        msPeligros = (System.nanoTime() - t0) / 1e6;
+    }
+
+    /** id_tramo de la base si existe; si no (el bot no lo llena), el más cercano con el índice geohash: O(m) cada uno. */
+    private void asignarTramos(List<Peligro> lista) {
+        for (Peligro p : lista) {
+            Tramo t = p.idTramoBase == null ? null : porId.obtener(p.idTramoBase);
+            p.tramoPorIndice = false;
+            if (t == null && proyeccion != null) {
+                t = indice.masCercano(p.lat, p.lon, proyeccion, MAX_DIST_TRAMO_M);
+                p.tramoPorIndice = t != null;
+            }
+            p.tramo = t;
+        }
+    }
+
+    /**
+     * Archivo de la foto de un reporte o evento, o null si no hay o no se encuentra. El bot guarda la ruta relativa a
+     * via-viva/ (p. ej. data\fotos_bot\abc.jpg); se prueba la ruta tal cual, relativa a la carpeta padre de la base
+     * (via-viva/ si la base está en data/), relativa a la carpeta de la base y, por último, data/fotos_bot/nombre.
+     */
+    public File archivoFoto(Peligro p) {
+        if (!p.tieneFoto()) return null;
+        String ruta = p.fotoRuta.trim().replace('\\', File.separatorChar).replace('/', File.separatorChar);
+        File f = new File(ruta);
+        if (f.isAbsolute()) return f.isFile() ? f : null;
+        File carpetaDb = new File(rutaDb).getAbsoluteFile().getParentFile();
+        File raiz = carpetaDb == null ? null : carpetaDb.getParentFile();
+        File[] candidatos = {
+            raiz == null ? null : new File(raiz, ruta),
+            carpetaDb == null ? null : new File(carpetaDb, ruta),
+            raiz == null ? null : new File(new File(new File(raiz, "data"), "fotos_bot"), f.getName()),
+        };
+        for (File c : candidatos) {
+            if (c != null && c.isFile()) return c;
+        }
+        return null;
+    }
+
+    /** Los k reportes/eventos de mayor prioridad, en orden de atención (montículo: O(n) + O(k log n)). */
+    public List<Peligro> peligrosPriorizados(int k) {
+        return PrioridadPeligros.topK(peligros, k);
     }
 
     /** La más reciente que no sea demo; si solo hay demos, la más reciente (con preferencia por el bosque). */
@@ -127,4 +201,8 @@ public class ControladorTablero {
     public double[] cortesQuintiles() { return cortesQuintiles; }
     public long msCarga() { return msCarga; }
     public String rutaDb() { return rutaDb; }
+    public List<Peligro> peligros() { return peligros; }
+    public int eventosNoVia() { return eventosNoVia; }
+    public String errorPeligros() { return errorPeligros; }
+    public double msPeligros() { return msPeligros; }
 }
