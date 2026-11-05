@@ -31,6 +31,8 @@ Si en una foto hay dos cosas (un hueco sobre una línea), la clase es **la del d
 
 ## 3. Configurar el celular (una sola vez)
 
+Celular del dataset: **iPhone 15 de Juan Diego** (si otro integrante toma fotos, misma configuración).
+
 | Qué | Android (Cámara) | iPhone |
 |---|---|---|
 | **Ubicación en las fotos** | Ajustes de la cámara → *Etiquetas de ubicación* / *Guardar ubicación*: **activado**; GPS del celular encendido | Ajustes → Privacidad → Localización → Cámara: *Mientras se usa* y **Ubicación exacta** |
@@ -52,7 +54,7 @@ Siempre en este orden, sin moverse del punto entre fotos (así se agrupan solas 
 | 2 | `frente` | A 1,5–2 m, a la altura del pecho, mirando el daño en el sentido en que lo ve un conductor |
 | 3 | `lado` | A 1,5–2 m, girando 90° alrededor del daño |
 | 4 | `cenital` **con tarjeta** | Celular **paralelo al piso**, encima del daño, a 1–1,5 m. La **tarjeta ArUco** en el piso **junto** al daño (no encima), plana, completa en la foto; el daño también completo |
-| 5 | termohigrómetro (si hay) | Foto de la pantalla del termohigrómetro dejado 1 min en el sitio, a la sombra |
+| 5 | termohigrómetro | Foto de la pantalla del termohigrómetro digital del equipo, dejado 1 min en el sitio, a la sombra |
 
 - La tarjeta (`docs/tarjeta_aruco.pdf`) se imprime al **100 %** y se verifica con la regla impresa (debe dar 20 cm).
   Recortar, pegar en cartón y no doblar. Lado negro del marcador = **80 mm**.
@@ -61,6 +63,23 @@ Siempre en este orden, sin moverse del punto entre fotos (así se agrupan solas 
 - La foto del termohigrómetro se marca **Excluir** en el etiquetador, y su lectura se escribe en la foto cenital del
   mismo punto (campos *Termohigrómetro*); la ingesta la copia a las demás fotos del sitio.
 
+## 4b. Planilla de campo (Google Sheets del equipo)
+
+Una fila **por punto**, anotada en el momento (la hora importa: así se une a las fotos):
+
+| Columna | Qué poner |
+|---|---|
+| N.º, Fecha, Hora | Consecutivo; fecha y hora **del momento de las fotos** (± 5 min) |
+| Clase, Severidad | Como en la sección 2 (severidad solo en daños) |
+| Tipo de vía | **Superficie**: asfalto, concreto, adoquín o destapada |
+| ¿Mojado?, Luz, Clima | Sí/No · sol, sombra, nublado, noche · texto libre (seco, llovizna, después de lluvia…) |
+| Barrio/calle, Fotógrafo, N.º fotos, Notas | Referencia del lugar, quién (como en la carpeta: `juandiego`), cuántas fotos, lo que sirva |
+
+Al terminar el día: *Archivo → Descargar → CSV* y subirlo a `VIA_VIVA/02_DATOS/fotos/` (Andrés lo pasa a
+`data/raw/planilla/`). La ingesta llena con ella clase, severidad, superficie, mojado y luz de las fotos del mismo punto
+(solo lo que esté vacío; lo del etiquetador manda). El **tipo de vía** (arterial, colectora, local, destapada) ya **no se
+anota**: sale solo del mapa de OpenStreetMap.
+
 ## 5. Variedad que buscamos
 
 | Qué | Valores | Meta aproximada |
@@ -68,7 +87,8 @@ Siempre en este orden, sin moverse del punto entre fotos (así se agrupan solas 
 | Momento del día (sale solo de la hora) | madrugada (< 6 h), mañana (6–11), mediodía (11–14), tarde (14–18), noche (≥ 18) | Las 3 de día bien cubiertas; noche ≥ 10 % |
 | Luz (`luz`) | sol, sombra, nublado, noche | Las 4 presentes en cada clase si se puede |
 | Clima / piso | seco y **mojado** (`superficie_mojada`) | ≥ 15 % mojado (después de llover; no bajo aguacero) |
-| Tipo de vía (`tipo_via`) | arterial (avenidas), colectora, local (barrio), destapada | Las 4; no solo el centro |
+| Tipo de vía (`tipo_via`, automático) | arterial (avenidas), colectora, local (barrio), destapada | Las 4; no solo el centro |
+| Superficie (`superficie`) | asfalto, concreto, adoquín, destapada | Las 4 si existen en Tunja |
 | Ángulo | contexto, frente, lado, cenital | ~ igual por clase (lo da el protocolo) |
 
 ## 6. Privacidad
@@ -93,14 +113,15 @@ Siempre en este orden, sin moverse del punto entre fotos (así se agrupan solas 
 **WhatsApp borra la ubicación y la fecha (EXIF) y comprime la foto: NO usarlo.** Tampoco "compartir enlace" de Google
 Fotos (puede quitar la ubicación).
 
-1. En la carpeta compartida de Drive del proyecto (`VIA_VIVA_fotos`), crear una subcarpeta por persona y día:
-   **`AAAA-MM-DD_nombre`**, p. ej. `2026-11-05_pipe`, `2026-11-05_anzola`.
+1. En el Drive del equipo, carpeta **`VIA_VIVA/02_DATOS/fotos/`**, crear una subcarpeta por persona y día:
+   **`AAAA-MM-DD_nombre`**, p. ej. `2026-11-06_juandiego`. (Los recorridos de phyphox van en `VIA_VIVA/02_DATOS/phyphox/`.)
 2. Subir las fotos **originales** con la app de Google Drive (botón *+* → *Subir*) o por cable USB al PC.
-3. Andrés descarga las carpetas a `data/raw/fotos/` y corre la ingesta (`dataset/README.md`).
+3. Andrés descarga las carpetas a `data/raw/fotos/` (y la planilla a `data/raw/planilla/`), corre
+   `python -m herramientas.validar_campo` (revisa EXIF, GPS, nitidez y tarjeta) y después la ingesta (`dataset/README.md`).
 
 ## 9. Lista para cada salida
 
 - [ ] Celular con batería, ubicación activada, foto de prueba con ubicación.
-- [ ] Tarjeta ArUco (verificada), regla o metro, termohigrómetro (si hay), chaleco.
+- [ ] Tarjeta ArUco (verificada), regla o metro, termohigrómetro, chaleco, planilla abierta en el celular.
 - [ ] 4–5 fotos por punto en el orden de la sección 4.
 - [ ] Al volver: subir a `AAAA-MM-DD_nombre` en Drive el mismo día.

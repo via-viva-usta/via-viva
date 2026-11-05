@@ -23,6 +23,8 @@ No se usa JupyterLab: en Windows sin rutas largas activadas su instalación fall
 
 1. phyphox → **+** → *Add simple experiment* → marcar **Accelerometer** (con g, NO "linear acceleration"),
    **Gyroscope** y **Location (GPS)**. Tasa: la máxima que permita el teléfono. Nombre: `VIA VIVA`.
+   Teléfono del equipo: **iPhone 17 de Pipe (iOS)**: la tasa máxima real es **~100 Hz** (no 200); el análisis lo
+   detecta solo y `herramientas.validar_campo` la mide en cada export.
 2. Ajustes del teléfono: GPS en alta precisión, ahorro de batería apagado, pantalla siempre encendida.
 3. Probar en la casa: 1 minuto quieto → exportar → revisar que salgan `Accelerometer.csv`, `Gyroscope.csv`
    y `Location.csv` (la ubicación bajo techo puede salir vacía: es normal).
@@ -36,19 +38,37 @@ No se usa JupyterLab: en Windows sin rutas largas activadas su instalación fall
 | **Máximo 30 km/h**, conducción normal | Seguridad y comparabilidad (decisión del 2-nov) |
 | Esperar fijación GPS (≥ 6 satélites) antes de *play* | Sin GPS no hay map-matching |
 | El **copiloto** etiqueta; el conductor solo conduce | Seguridad |
-| 1 minuto detenidos al inicio, con *play* ya oprimido | Línea base y estimación de la gravedad |
+| **1 minuto detenidos al inicio y 1 al final**, con *play* ya oprimido | Línea base, gravedad y cierre limpio |
 
-**Cómo etiquetar:** phyphox muestra el tiempo del experimento en pantalla. El copiloto lleva un cronómetro o anota el
-tiempo de phyphox **en el instante** en que la llanta pasa por el hueco o el resalto, y la clase. Al final se transcribe
-a `<recorrido>_etiquetas.csv`. Error aceptable: ±1 s (el procesamiento busca el candidato más cercano en ±1 s).
+**Cómo etiquetar (cronómetro del iPhone por vueltas):**
+1. El copiloto inicia el **cronómetro del iPhone en el mismo instante** en que se oprime *play* en phyphox.
+2. Cada vez que la llanta pasa por un hueco, resalto, etc., oprime **"Vuelta"** y dice en voz alta la clase; el otro
+   la anota en papel o en notas (vuelta 1 = hueco, vuelta 2 = resalto…).
+3. Si el carro se detiene (semáforo, trancón), oprime "Vuelta" al parar (`parada_inicio`) y al arrancar (`parada_fin`):
+   así no se buscan huecos con el carro quieto.
+4. Al final, pasar a un `.txt` una línea por vuelta, **en orden (vuelta 1 primero)**, con la **duración que muestra el
+   iPhone** (en iOS cada vuelta muestra su duración, no el acumulado) y la clase:
+
+```text
+1:02.40 hueco
+0:33.10 resalto
+0:20.00 parada_inicio
+0:45.00 parada_fin
+```
+
+5. Convertir: `analysis\.venv\Scripts\python analysis\vueltas_a_etiquetas.py data\raw\phyphox\<recorrido>_vueltas.txt`
+   → `<recorrido>_etiquetas.csv` (suma las duraciones; si se copió la lista con la vuelta más reciente arriba, `--invertir`).
+   Ejemplo completo: `analysis/ejemplos/vueltas_ejemplo.txt`. Error aceptable: ±1 s.
 
 ### 3. Entregar los archivos
 
-Todo va en `data/raw/phyphox/` (ignorada por Git; se comparte por la carpeta del equipo). Por cada recorrido:
+Se suben a Drive `VIA_VIVA/02_DATOS/phyphox/`; Andrés los baja a `data/raw/phyphox/` (ignorada por Git) y corre
+`python -m herramientas.validar_campo` antes de analizarlos. Por cada recorrido:
 
 | Archivo | Obligatorio | Contenido |
 |---|---|---|
 | `<recorrido>.zip` **o** `<recorrido>/` **o** `<recorrido>.csv` | Sí | Export de phyphox tal cual (zip, carpeta descomprimida o un solo CSV) |
+| `<recorrido>_vueltas.txt` | Sí, si hubo etiquetado | Lo anotado del cronómetro (se convierte con `vueltas_a_etiquetas.py`) |
 | `<recorrido>_etiquetas.csv` | Para entrenar y para el modelo de riesgo | Columnas `t_s,clase` (ver ejemplo) |
 
 Nombre sugerido: `2026-11-03_ruta1_pipe` (fecha, ruta, quién). Ejemplo de `2026-11-03_ruta1_pipe_etiquetas.csv`:
@@ -62,7 +82,7 @@ t_s,clase
 240.2,otro
 ```
 
-`t_s` = segundos desde que se oprimió *play* en phyphox. `clase` ∈ `hueco`, `resalto`, `impacto_fuerte`, `otro`.
+`t_s` = segundos desde que se oprimió *play* en phyphox. `clase` ∈ `hueco`, `resalto`, `impacto_fuerte`, `obstaculo`, `otro` (+ `parada_inicio` y `parada_fin`, que no son eventos).
 
 ### 4. Procesar
 

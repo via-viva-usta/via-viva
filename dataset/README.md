@@ -4,7 +4,7 @@ Cambio de plan del 3-nov-2026: la evidencia visual la toma el **celular**. Cómo
 Las fotos y sus metadatos viven en `data/` (**ignorada por Git**: nada de esto se sube).
 
 ```
-Drive (AAAA-MM-DD_nombre/)  →  data/raw/fotos/  →  ingesta  →  data/procesado/{fotos/, metadatos.csv, calidad.csv, reporte_calidad.md}
+Drive VIA_VIVA/02_DATOS/fotos/AAAA-MM-DD_nombre/  →  data/raw/fotos/  →  ingesta  →  data/procesado/{fotos/, metadatos.csv, calidad.csv, reporte_calidad.md}
                                                                    ↓ etiquetador (personas)
                                                     escala (tarjeta ArUco)  ·  modelo (MobileNetV3 → TFLite int8)
 ```
@@ -13,7 +13,8 @@ Drive (AAAA-MM-DD_nombre/)  →  data/raw/fotos/  →  ingesta  →  data/proces
 |---|---|
 | `comun.py` | Esquema del CSV, las 9 clases, valores válidos, rutas, `momento_dia` y agrupación por **sitio** |
 | `tarjeta_aruco.py` | Genera `docs/tarjeta_aruco.pdf` (4 tarjetas de 10 × 10 cm por hoja carta, marcador de 80 mm, regla de 20 cm) |
-| `ingesta.py` | EXIF (fecha, hora, GPS), tramo y barrio, clima, difuminado de caras y placas, reporte de calidad |
+| `ingesta.py` | EXIF (fecha, hora, GPS), tramo, barrio y tipo de vía (OSM), planilla, clima, difuminado, reporte de calidad |
+| `planilla.py` | Lee los CSV de la planilla de campo y los une a las fotos por hora (± 5 min) y sitio |
 | `etiquetador.py` | Página local con botones para etiquetar (sección 3) |
 | `escala.py` | Tarjeta ArUco → homografía → vista cenital → área aproximada del daño; validación contra regla |
 | `modelo.py` | Transfer learning, división por sitio, métricas, matriz de confusión, errores, TFLite int8 |
@@ -29,11 +30,13 @@ py -3.11 -m venv $env:USERPROFILE\.venvs\vv-modelo
 & $env:USERPROFILE\.venvs\vv-modelo\Scripts\python -m pip install -r dataset\requirements-modelo.txt
 ```
 
-`opencv-contrib-python-headless` va fijo en `< 5`: la versión 5 ya no trae los clasificadores de caras y placas.
+`opencv-contrib-python-headless` va fijo en `< 5` (la 5 ya no trae los clasificadores de caras y placas); `pandas==3.0.0`
+y `tensorflow==2.20.0` porque **Smart App Control** de Windows bloquea pandas 3.1 y TensorFlow 2.21 (5-nov).
 
 ## 2. Ingesta
 
-1. Descargar de Drive las carpetas `AAAA-MM-DD_nombre` a `data\raw\fotos\` (sin cambiar los nombres).
+1. Descargar de Drive `VIA_VIVA/02_DATOS/fotos/AAAA-MM-DD_nombre` a `data\raw\fotos\` (sin cambiar los nombres) y
+   los CSV de la planilla a `data\raw\planilla\`. Antes: `python -m herramientas.validar_campo` (revisión rápida).
 2. Si hubo nodo encendido, copiar la microSD (`ambiente_NNN.csv`, etc.) a `data\raw\nodo\<fecha>\`.
 3. Correr (desde `via-viva\`):
 
@@ -70,7 +73,7 @@ Se abre el navegador en http://127.0.0.1:8765 (solo funciona en ese PC; cerrar c
 | Ángulo | `A` `S` `D` `F` | contexto, frente, lado, cenital |
 | Luz | `Z` `X` `C` `V` | sol, sombra, nublado, noche |
 | Superficie mojada | `M` | alterna sí / no |
-| Tipo de vía | clic | viene sugerido por OpenStreetMap: corregirlo si está mal |
+| Superficie | clic | asfalto, concreto, adoquín, destapada (si la planilla la trae ya viene marcada) |
 | Guardar y seguir | `Enter` | guarda solo esa fila del CSV |
 | Anterior / siguiente | `←` `→` | |
 | **Excluir** | botón | persona o placa visible, foto inservible, o la foto del termohigrómetro |
