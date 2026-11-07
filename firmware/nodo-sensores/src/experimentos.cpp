@@ -29,23 +29,30 @@ const char* nombreModoAdq() {
 
 // ---- utilidades de medición ----
 struct Medida {
-    float primera = 0, media = 0, minimo = 1e9f, maximo = 0;
+    float primera = 0, media = 0, desv = 0, minimo = 1e9f, maximo = 0;
+    int n = 0;
 };
 
+// Media y desviación estándar con el método de Welford (1962): una sola pasada, sin guardar las N muestras
+// (memoria constante) y numéricamente estable. N ≥ 100 para reportar media ± desviación (R7).
 template <typename F>
 static Medida medir(F funcion, int repeticiones) {
     Medida m;
-    double suma = 0;
+    double media = 0, m2 = 0;
     for (int i = 0; i < repeticiones; i++) {
         const int64_t t0 = esp_timer_get_time();
         funcion();
-        const float us = (float)(esp_timer_get_time() - t0);
-        if (i == 0) m.primera = us;          // primera llamada: caché de flash todavía fría
-        suma += us;
-        m.minimo = fminf(m.minimo, us);
-        m.maximo = fmaxf(m.maximo, us);
+        const double us = (double)(esp_timer_get_time() - t0);
+        if (i == 0) m.primera = (float)us;   // primera llamada: caché de flash todavía fría
+        const double delta = us - media;
+        media += delta / (i + 1);
+        m2 += delta * (us - media);
+        m.minimo = fminf(m.minimo, (float)us);
+        m.maximo = fmaxf(m.maximo, (float)us);
     }
-    m.media = (float)(suma / repeticiones);
+    m.n = repeticiones;
+    m.media = (float)media;
+    m.desv = repeticiones > 1 ? (float)sqrt(m2 / (repeticiones - 1)) : 0.0f;   // desviación muestral
     return m;
 }
 
@@ -53,6 +60,8 @@ static void registrarMedida(const char* exp, const char* condicion, const char* 
     char v[24];
     snprintf(v, sizeof(v), "%s_primera_us", prefijo); registrarExp(exp, condicion, v, m.primera);
     snprintf(v, sizeof(v), "%s_media_us", prefijo);   registrarExp(exp, condicion, v, m.media);
+    snprintf(v, sizeof(v), "%s_desv_us", prefijo);    registrarExp(exp, condicion, v, m.desv);
+    snprintf(v, sizeof(v), "%s_n", prefijo);          registrarExp(exp, condicion, v, (float)m.n);
     snprintf(v, sizeof(v), "%s_min_us", prefijo);     registrarExp(exp, condicion, v, m.minimo);
     snprintf(v, sizeof(v), "%s_max_us", prefijo);     registrarExp(exp, condicion, v, m.maximo);
 }
@@ -127,10 +136,10 @@ static void experimentoBuses() {
         registrarExp("E4", "i2c_400k_14B", "mpu_no_responde", 1);
     }
     volatile int16_t z = 0;
-    const Medida spi = medir([&] { z = adxl.leerMuestra().z; }, N);   // transacción por sondeo de 7 bytes a 1,5 MHz
-    registrarMedida("E4", "spi_1M5_7B", "lectura", spi);
-    registrarExp("E4", "spi_1M5_7B", "us_por_byte", spi.media / 7);
-    registrarExp("E4", "spi_1M5_7B", "cpu_pct_a_200Hz", spi.media * 200 / 1e4f);
+    const Medida spi = medir([&] { z = adxl.leerMuestra().z; }, N);   // transacción por sondeo de 8 bytes (1 + 6 + relleno) a 1,5 MHz
+    registrarMedida("E4", "spi_1M5_8B", "lectura", spi);
+    registrarExp("E4", "spi_1M5_8B", "us_por_byte", spi.media / 8);   // 8 bytes por transacción desde el 7-nov (DMA alineado)
+    registrarExp("E4", "spi_1M5_8B", "cpu_pct_a_200Hz", spi.media * 200 / 1e4f);
     (void)z;
 }
 

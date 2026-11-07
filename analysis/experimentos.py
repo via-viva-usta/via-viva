@@ -61,7 +61,10 @@ def tabla_lat(df: pd.DataFrame, exp: str) -> pd.DataFrame:
     if e.empty:
         return e
     e = e.assign(medida=e["variable"].str.rsplit("_", n=2).str[-2])
-    return e.pivot_table(index="condicion", columns="medida", values="valor", aggfunc="mean").reset_index()
+    t = e.pivot_table(index="condicion", columns="medida", values="valor", aggfunc="mean").reset_index()
+    if {"media", "desv"} <= set(t.columns):            # R7: media ± desviación estándar (Welford en el nodo)
+        t["media_desv_us"] = [f"{m:.1f} ± {d:.1f}" for m, d in zip(t["media"], t["desv"])]
+    return t
 
 
 def tabla_e4(df: pd.DataFrame) -> pd.DataFrame:
@@ -128,9 +131,9 @@ def generar_ejemplo(carpeta: Path):
                  "cpu1_pct": rng.uniform(1, 10), "heap_libre_B": 200000}
             filas += [(k * 5000, "E1", modo, var, val) for var, val in v.items()]
     for exp, cond in [("E2", "flash_f32"), ("E2", "sram_f32"), ("E3", "f32_sram"), ("E3", "i8_sram"), ("E3", "i8_flash")]:
-        for med in ("primera", "media", "min", "max"):
+        for med in ("primera", "media", "desv", "min", "max"):
             filas.append((0, exp, cond, f"cnn_{med}_us", rng.uniform(100, 900)))
-    for cond in ("i2c_400k_14B", "spi_1M5_7B"):
+    for cond in ("i2c_400k_14B", "spi_1M5_8B"):
         filas += [(0, "E4", cond, "lectura_media_us", rng.uniform(20, 400)), (0, "E4", cond, "us_por_byte", rng.uniform(3, 30))]
     filas.append((0, "MEM", "arranque", "heap_libre_B", 210000))
     (carpeta / "sesion_ejemplo").mkdir(parents=True, exist_ok=True)
