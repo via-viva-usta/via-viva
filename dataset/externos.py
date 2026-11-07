@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import argparse
 import random
+import re
+import shutil
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
+from pathlib import PurePosixPath
 
 import cv2
 import numpy as np
@@ -150,6 +153,38 @@ def sintetico_voc(n: int = 120, semilla: int = 3) -> Path:
     return raiz
 
 
+def extraer_zip_seguro(archivo: Path, destino: Path) -> None:
+    """Extrae un ZIP solo dentro de destino y rechaza rutas o enlaces peligrosos."""
+    raiz = destino.resolve()
+    with zipfile.ZipFile(archivo) as z:
+        miembros = []
+        for info in z.infolist():
+            # ZIP define rutas con '/', pero algunos archivos maliciosos usan '\\'.
+            nombre = info.filename.replace("\\", "/")
+            ruta = PurePosixPath(nombre)
+            if (not nombre or not ruta.parts or ruta.is_absolute() or ".." in ruta.parts
+                    or re.match(r"^[A-Za-z]:", nombre)):
+                raise ValueError(f"Ruta insegura dentro del ZIP: {info.filename!r}")
+            modo = (info.external_attr >> 16) & 0o170000
+            if modo == 0o120000:
+                raise ValueError(f"No se permiten enlaces simbólicos en el ZIP: {info.filename!r}")
+            salida = (raiz / Path(*ruta.parts)).resolve()
+            try:
+                salida.relative_to(raiz)
+            except ValueError as exc:
+                raise ValueError(f"La ruta escapa de la carpeta de destino: {info.filename!r}") from exc
+            miembros.append((info, salida))
+
+        # Validar todos los nombres antes de escribir el primer archivo.
+        for info, salida in miembros:
+            if info.is_dir():
+                salida.mkdir(parents=True, exist_ok=True)
+                continue
+            salida.parent.mkdir(parents=True, exist_ok=True)
+            with z.open(info) as origen, salida.open("wb") as archivo_salida:
+                shutil.copyfileobj(origen, archivo_salida)
+
+
 def descargar_kaggle() -> Path:
     try:
         from kaggle.api.kaggle_api_extended import KaggleApi
@@ -161,8 +196,7 @@ def descargar_kaggle() -> Path:
     destino.mkdir(parents=True, exist_ok=True)
     api.dataset_download_files("andrewmvd/pothole-detection", path=str(destino), quiet=False)
     for z in destino.glob("*.zip"):
-        with zipfile.ZipFile(z) as f:
-            f.extractall(destino)
+        extraer_zip_seguro(z, destino)
         z.unlink()
     return destino
 
