@@ -32,6 +32,13 @@ def test_phyphox_bien(tmp_path):
     assert "sin etiquetas del copiloto" in texto
 
 
+def test_phyphox_columnas_de_ios(tmp_path):
+    """El export de phyphox en iOS (7-nov) trae 'X (m/s^2)' sin la palabra 'Acceleration'."""
+    inf = Informe()
+    revisar_phyphox(_phyphox(tmp_path / "ios", columnas=["Time (s)", "X (m/s^2)", "Y (m/s^2)", "Z (m/s^2)"]), inf)
+    assert any("BIEN: tasa del acelerómetro 100 Hz" in l for l in inf.lineas)
+
+
 def test_phyphox_columnas_desconocidas(tmp_path):
     inf = Informe()
     revisar_phyphox(_phyphox(tmp_path / "r2", columnas=["t", "x", "y", "z"]), inf)

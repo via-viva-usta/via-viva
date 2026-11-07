@@ -56,12 +56,14 @@ def _separar(df: pd.DataFrame):
     """De un DataFrame de phyphox saca acelerómetro, giroscopio y GPS (los que haya)."""
     cols = list(df.columns)
     t = _buscar(cols, r"^time", r"tiempo")
-    ax = _buscar(cols, r"acceleration x", r"aceleraci[oó]n x", r"\bax\b")
-    ay = _buscar(cols, r"acceleration y", r"aceleraci[oó]n y", r"\bay\b")
-    az = _buscar(cols, r"acceleration z", r"aceleraci[oó]n z", r"\baz\b")
-    gx = _buscar(cols, r"gyroscope x", r"giroscopio x", r"\bgx\b")
-    gy = _buscar(cols, r"gyroscope y", r"giroscopio y", r"\bgy\b")
-    gz = _buscar(cols, r"gyroscope z", r"giroscopio z", r"\bgz\b")
+    # Android: "Acceleration x (m/s^2)"; iOS (phyphox 1.2, 7-nov): solo "X (m/s^2)" en Accelerometer.csv y
+    # "X (rad/s)" en Gyroscope.csv. Por eso también se reconoce por las unidades.
+    ax = _buscar(cols, r"acceleration x", r"aceleraci[oó]n x", r"\bax\b", r"^x \(m/s")
+    ay = _buscar(cols, r"acceleration y", r"aceleraci[oó]n y", r"\bay\b", r"^y \(m/s")
+    az = _buscar(cols, r"acceleration z", r"aceleraci[oó]n z", r"\baz\b", r"^z \(m/s")
+    gx = _buscar(cols, r"gyroscope x", r"giroscopio x", r"\bgx\b", r"^x \(rad/s")
+    gy = _buscar(cols, r"gyroscope y", r"giroscopio y", r"\bgy\b", r"^y \(rad/s")
+    gz = _buscar(cols, r"gyroscope z", r"giroscopio z", r"\bgz\b", r"^z \(rad/s")
     lat = _buscar(cols, r"latitud")
     lon = _buscar(cols, r"longitud")
     vel = _buscar(cols, r"velocity", r"velocidad", r"speed")
