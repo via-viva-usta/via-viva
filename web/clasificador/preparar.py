@@ -26,6 +26,7 @@ from pathlib import Path
 AQUI = Path(__file__).resolve().parent
 RAIZ = AQUI.parent.parent
 SALIDAS = RAIZ / "dataset" / "salidas"
+LOG_LATENCIA = RAIZ / "data" / "logs" / "latencia_celular.jsonl"
 CDN = "https://cdn.jsdelivr.net/npm"
 LIBRERIAS = {   # versiones fijas
     "tf-core.min.js": f"{CDN}/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js",
@@ -82,6 +83,19 @@ def ips_locales() -> list[str]:
 def servir(puerto: int) -> None:
     class Manejador(http.server.SimpleHTTPRequestHandler):
         extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".wasm": "application/wasm"}
+
+        def do_POST(self):                       # R7: la página manda la latencia medida en el celular
+            if self.path != "/latencia":
+                self.send_error(404)
+                return
+            datos = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 2) or b"{}")
+            datos["cliente"] = self.client_address[0]
+            LOG_LATENCIA.parent.mkdir(parents=True, exist_ok=True)
+            with LOG_LATENCIA.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(datos, ensure_ascii=False) + "\n")
+            print(f"Latencia en {datos['cliente']}: {datos.get('media_ms')} ± {datos.get('desv_ms')} ms (n = {datos.get('n')})")
+            self.send_response(204)
+            self.end_headers()
 
     manejador = functools.partial(Manejador, directory=str(AQUI))
     with socketserver.ThreadingTCPServer(("0.0.0.0", puerto), manejador) as srv:

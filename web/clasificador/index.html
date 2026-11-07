@@ -46,6 +46,11 @@ small{color:#666}
   <div style="margin-top:10px"><small>Todas las clases</small></div>
   <div id="todas"></div>
 </div>
+<div class="tarjeta" id="medicion" style="display:none">
+  <div><b>Medir latencia (R7)</b> <small>100 inferencias con la última foto; 5 de calentamiento no cuentan</small></div>
+  <label class="boton sec" style="margin-top:8px" onclick="medirLatencia()">⏱️ Medir 100 inferencias</label>
+  <div id="latencia" style="margin-top:8px"></div>
+</div>
 <div class="tarjeta"><small id="info">La foto NO sale del celular: la red corre aquí mismo (WebAssembly), sin internet.</small></div>
 </main>
 <script src="vendor/tf-core.min.js"></script>
@@ -86,6 +91,7 @@ async function clasificar(archivo) {
   const img = $('vista'); img.src = url; img.style.display = 'block';
   await img.decode();                      // el navegador ya endereza según el EXIF
   const datos = aEntrada(img, info.tam);
+  ultimaEntrada = datos; $('medicion').style.display = 'block';
   // uint8 0-255 (tfjs-core solo, sin los métodos encadenados: se usan las funciones)
   const x = tf.tidy(() => tf.cast(tf.expandDims(tf.browser.fromPixels(datos), 0), 'int32'));
   const t0 = performance.now();
@@ -105,6 +111,30 @@ async function clasificar(archivo) {
     `<div class="fila"><span>${NOMBRES[info.clases[i]] || info.clases[i]}</span><span>${(v * 100).toFixed(0)} %</span></div>` +
     `<div class="barra"><i style="width:${(v * 100).toFixed(1)}%"></i></div>`).join('');
   URL.revokeObjectURL(url);
+}
+
+// R7: latencia de la red en este celular, media ± desviación (Welford), sin el calentamiento (la primera es más lenta)
+let ultimaEntrada = null;
+async function medirLatencia() {
+  if (!ultimaEntrada || !modelo) { $('latencia').textContent = 'Primero toma o elige una foto.'; return; }
+  $('latencia').textContent = 'Midiendo…';
+  const x = tf.tidy(() => tf.cast(tf.expandDims(tf.browser.fromPixels(ultimaEntrada), 0), 'int32'));
+  let media = 0, m2 = 0, n = 0, min = 1e9, max = 0;
+  for (let i = 0; i < 105; i++) {
+    const t0 = performance.now();
+    const y = modelo.predict(x); await y.data(); const ms = performance.now() - t0; tf.dispose(y);
+    if (i < 5) continue;
+    n++; const d = ms - media; media += d / n; m2 += d * (ms - media); min = Math.min(min, ms); max = Math.max(max, ms);
+    if (i % 20 === 0) await new Promise(r => setTimeout(r, 0));   // deja respirar a la página
+  }
+  tf.dispose(x);
+  const desv = Math.sqrt(m2 / (n - 1));
+  const r = {n, media_ms: +media.toFixed(2), desv_ms: +desv.toFixed(2), min_ms: +min.toFixed(2), max_ms: +max.toFixed(2),
+             modelo: info.version, variante: info.variante, sintetico: info.sintetico, navegador: navigator.userAgent,
+             fecha: new Date().toISOString()};
+  $('latencia').innerHTML = `<b>${r.media_ms} ± ${r.desv_ms} ms</b> (n = ${n}; mín ${r.min_ms}, máx ${r.max_ms})`;
+  try { await fetch('/latencia', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(r)});
+        $('latencia').innerHTML += '<br><small>Guardado en el PC (data/logs/latencia_celular.jsonl).</small>'; } catch (e) {}
 }
 
 $('camara').onchange = e => clasificar(e.target.files[0]);
