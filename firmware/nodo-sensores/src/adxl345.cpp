@@ -18,7 +18,7 @@ bool ADXL345::iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi
     bus.sclk_io_num = pinSck;
     bus.quadwp_io_num = -1;
     bus.quadhd_io_num = -1;
-    bus.max_transfer_sz = 64;
+    bus.max_transfer_sz = BYTES_DMA;
     if (spi_bus_initialize(HOST_SPI, &bus, SPI_DMA_CH_AUTO) != ESP_OK) return false;
 
     spi_device_interface_config_t cfg;
@@ -29,11 +29,11 @@ bool ADXL345::iniciar(int pinSck, int pinMosi, int pinMiso, int pinCs, int hzSpi
     cfg.queue_size = MAX_LOTE;       // permite encolar un lote completo de lecturas
     if (spi_bus_add_device(HOST_SPI, &cfg, &dev_) != ESP_OK) return false;
 
-    tx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_LECTURA, MALLOC_CAP_DMA);
-    rx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_LECTURA, MALLOC_CAP_DMA);
+    tx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_DMA, MALLOC_CAP_DMA);
+    rx_ = (uint8_t*)heap_caps_calloc(MAX_LOTE, BYTES_DMA, MALLOC_CAP_DMA);
     if (!tx_ || !rx_) return false;
     for (int i = 0; i < MAX_LOTE; i++) {
-        tx_[i * BYTES_LECTURA] = REG_DATAX0 | SPI_LEER | SPI_MULTIBYTE;
+        tx_[i * BYTES_DMA] = REG_DATAX0 | SPI_LEER | SPI_MULTIBYTE;
     }
 
     devid_ = leerRegistro(REG_DEVID);
@@ -102,7 +102,7 @@ static inline MuestraAcc decodificar(const uint8_t* b) {
 MuestraAcc ADXL345::leerMuestra() {
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
-    t.length = BYTES_LECTURA * 8;
+    t.length = BYTES_DMA * 8;
     t.tx_buffer = tx_;
     t.rx_buffer = rx_;
     spi_device_polling_transmit(dev_, &t);
@@ -116,19 +116,31 @@ uint8_t ADXL345::fuenteInterrupcion() { return leerRegistro(REG_INT_SOURCE); }
 bool ADXL345::leerLoteDMA(MuestraAcc* destino, uint8_t n) {
     if (n == 0) return true;
     if (n > MAX_LOTE) n = MAX_LOTE;
+    uint8_t encoladas = 0;
     // Cada lectura de 6 bytes saca una entrada de la FIFO; el CS sube entre transacciones.
     for (uint8_t i = 0; i < n; i++) {
         spi_transaction_t& t = trans_[i];
         memset(&t, 0, sizeof(t));
-        t.length = BYTES_LECTURA * 8;
-        t.tx_buffer = tx_ + i * BYTES_LECTURA;
-        t.rx_buffer = rx_ + i * BYTES_LECTURA;
-        if (spi_device_queue_trans(dev_, &t, portMAX_DELAY) != ESP_OK) return false;
+        // El stride y la longitud son múltiplos de 4: cada buffer queda alineado para DMA.
+        t.length = BYTES_DMA * 8;
+        t.tx_buffer = tx_ + i * BYTES_DMA;
+        t.rx_buffer = rx_ + i * BYTES_DMA;
+        if (spi_device_queue_trans(dev_, &t, portMAX_DELAY) != ESP_OK) {
+            // No dejar transacciones previas pendientes si el driver rechaza una del lote.
+            for (uint8_t j = 0; j < encoladas; j++) {
+                spi_transaction_t* hecha = nullptr;
+                spi_device_get_trans_result(dev_, &hecha, portMAX_DELAY);
+            }
+            return false;
+        }
+        encoladas++;
     }
+    bool ok = true;
     for (uint8_t i = 0; i < n; i++) {
-        spi_transaction_t* hecha;
-        if (spi_device_get_trans_result(dev_, &hecha, portMAX_DELAY) != ESP_OK) return false;
+        spi_transaction_t* hecha = nullptr;
+        if (spi_device_get_trans_result(dev_, &hecha, portMAX_DELAY) != ESP_OK) ok = false;
     }
-    for (uint8_t i = 0; i < n; i++) destino[i] = decodificar(rx_ + i * BYTES_LECTURA);
+    if (!ok) return false;
+    for (uint8_t i = 0; i < n; i++) destino[i] = decodificar(rx_ + i * BYTES_DMA);
     return true;
 }

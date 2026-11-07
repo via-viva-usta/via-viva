@@ -80,12 +80,13 @@ void tareaAdquisicion(void*) {
         const uint8_t fuente = adxl.fuenteInterrupcion();
         uint8_t n = adxl.muestrasEnFifo();
         if (n > TAM_BLOQUE + 1) n = TAM_BLOQUE + 1;
-        adxl.leerLoteDMA(b->m, n);
-        b->n = n;
+        const bool lecturaOk = adxl.leerLoteDMA(b->m, n);
+        b->n = lecturaOk ? n : 0;  // no procesar datos viejos si el driver DMA falla
         b->tUltimaUs = tEvento;
         const int64_t t1 = esp_timer_get_time();
         portENTER_CRITICAL(&muxE1);
-        e1.muestras += n;
+        if (lecturaOk) e1.muestras += n;
+        else e1.bloquesPerdidos++;
         e1.usOcupado += t1 - t0;
         if (hubo) e1.interrupciones++; else e1.timeouts++;
         if (fuente & ADXL345::INT_OVERRUN) e1.overruns++;

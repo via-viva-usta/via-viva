@@ -51,7 +51,9 @@ public:
 
 private:
     static constexpr int MAX_LOTE = 33;   // 32 de la FIFO + 1 en los registros de salida
-    static constexpr int BYTES_LECTURA = 7;  // dirección + 6 datos
+    // DMA en ESP32 exige buffers alineados a 32 bits y transferencias múltiplo de 4 bytes.
+    // ADXL345 necesita 1 byte de comando + 6 de datos; se rellena a 8 bytes por transacción.
+    static constexpr int BYTES_DMA = 8;
 
     static uint8_t codigoTasa(uint16_t fsHz);
 
