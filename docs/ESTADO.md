@@ -1,13 +1,18 @@
 # Estado de VÍA VIVA
 
-Última actualización: **5-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **7-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
 ## Resumen
 
-1. **Todo el software existe, compila y tiene pruebas** (34 pytest; GitHub Actions para Python y firmware), pero
+0. **7-nov — primeros datos REALES:** 3 recorridos de phyphox del iPhone de Pipe (01: 5,2 min · 02: 7,2 min · 03: 13,6 min),
+   copiados a `data/raw/phyphox/2026-11-07_0N_pipe.zip` (ignorada por Git). Pasan el validador: **100 Hz, 0 cortes de
+   muestreo, GPS ~99 %**. Faltan sus etiquetas. Para leerlos hubo que arreglar el lector (iOS escribe `X (m/s^2)`).
+   Nueva **captura en vivo** por el acceso remoto de phyphox (plan A de etiquetado; el cronómetro queda como plan B).
+
+1. **Todo el software existe, compila y tiene pruebas** (49 pytest al 7-nov; GitHub Actions para Python y firmware), pero
    **nada se ha probado en hardware** (el ESP32 DevKit V1, DHT22 y BH1750 están por llegar) y **no hay datos reales**:
-   las salidas de campo empiezan esta semana.
+   salvo los 3 recorridos de phyphox del 7-nov (sin etiquetas).
 2. Todo lo que tiene números (detector, modelo de riesgo, modelo de fotos, escala) se probó **solo con datos SINTÉTICOS**
    marcados; no son resultados. En el informe siguen como `[PENDIENTE]`.
 3. Campo listo: protocolo de fotos (iPhone 15 de Juan Diego), planilla de campo, cronómetro por vueltas para phyphox
@@ -28,6 +33,15 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | 4b | Etiquetado, escala validada, modelo de fotos (int8), clasificador en el iPhone | 8–11 nov | 🟡 Cadena completa con sintéticos; faltan fotos |
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
+
+## Hecho el 7-nov
+
+| Qué | Dónde |
+|---|---|
+| Lector de phyphox para **iOS** (columnas `X (m/s^2)`, `X (rad/s)`); validación de los 3 recorridos reales | `analysis/senales.py`, `data/raw/validacion_campo.md` (local) |
+| **Captura en vivo** desde phyphox: CSV en formato iOS, reconexión sin pérdida, etiquetas por teclado (H R G T O I P Q), vista en vivo (velocidad, aceleración, mapa, eventos del detector), modo reproducir/simular | `herramientas/captura_phyphox_remoto.py`, `herramientas/vista_en_vivo.html` |
+| README con 3 pasos y captura del tablero; **un solo `iniciar.ps1`** (con `-Phyphox` y `-Reproducir`); obsoleto movido a `docs/archivo/` (lista en `LEEME.md`); `.gitignore` cubre `data/` | raíz, `docs/archivo/`, `docs/img/` |
+| Cambios de la revisión técnica validados: DMA del ADXL345 de 8 bytes (compilan los 3 entornos) y extracción segura del ZIP (9 pruebas) | `firmware/nodo-sensores/src/adxl345.*`, `dataset/externos.py` |
 
 ## Hecho el 5-nov (y dónde está)
 
@@ -55,10 +69,12 @@ riesgo con plan B, bot, mapa, tablero, dataset de fotos (ingesta, etiquetador, e
 
 | Pieza | Probado | NO probado |
 |---|---|---|
-| Firmware (3 entornos + 10 pruebas) | **Compila** (RAM 66 348 B, 20,2 %; flash 944 269 B, 48,0 %); JS de la página revisado con Node | **Nada en placa** (remontaje de SD, reinicio de UART2, watchdog, LED, descarga por WiFi, overruns de E1) |
+| Firmware (3 entornos + 10 pruebas) | **Compila** (7-nov, con el DMA de 8 bytes: RAM 66 348 B, 20,2 %; flash 944 357 B, 48,0 %); JS de la página revisado con Node | **Nada en placa** (remontaje de SD, reinicio de UART2, watchdog, LED, descarga por WiFi, overruns de E1) |
 | Wokwi | `diagram.json` con DevKit V1 + DHT22 | La simulación |
+| **Captura en vivo** | Con los 3 recorridos reales reproducidos (×20): capturas **idénticas** al export (31 415 / 43 222 / 81 560 muestras) y aceptadas por el validador; corte de conexión sin pérdida; detector en flujo = por lotes; botones y vista en vivo en el navegador | **Con el iPhone en el carro** (punto de acceso + acceso remoto) |
+| Recorridos reales del 7-nov | Validador: 100 Hz, 0 cortes, GPS ~99 %. Corregir: 1 min quieto (inicio del 01, final del 01 y 03), 36 km/h en el 01 | Sin etiquetas: no hay detector calibrado ni métricas. Detector en vivo SIN calibrar: 4 / 11 / 81 disparos (no son resultados) |
 | Conversor de vueltas | 15 pruebas (formatos, sinónimos, paradas, errores) | Con un cronómetro real del iPhone |
-| Validador de campo | Con exports y fotos fabricados y con los sintéticos | Con un export **real de phyphox iOS** (los nombres de columnas pueden variar: el validador dice cuáles vio) y fotos HEIC reales |
+| Validador de campo | Con exports y fotos fabricados, con los sintéticos y con los **3 exports reales de phyphox iOS** | Fotos HEIC reales y la planilla real |
 | Planilla | Con una planilla de ejemplo sobre las fotos sintéticas | Con el CSV real de Google Sheets |
 | Ingesta, etiquetador, escala | Con 432 fotos SINTÉTICAS (3-nov) | Con fotos reales del iPhone |
 | Modelo de fotos | **SINTÉTICO**: V3 int8 cae (0,90 → 0,57–0,70) y corre en núcleos de referencia; V2 int8 PTQ 0,93; QAT de 3 épocas 0,88 | Con fotos reales; QAT con más épocas; pre-entrenamiento con Kaggle (no descargado) |
@@ -136,7 +152,7 @@ gratuito (no permite proteger `main` en un repo privado). **Recomendado** (lo ap
 5. Etiquetar con Pipe (#23). *(10-nov)*
 
 ### Juan Felipe — Pipe (`juanfelipegarciacarvajal444-rgb`)
-1. **≥ 3 recorridos con phyphox** (iPhone 17) + vueltas del cronómetro; subir a `VIA_VIVA/02_DATOS/phyphox/` (#5). *(8-nov)*
+1. 3 recorridos hechos el 7-nov ✅. Próximos: con la **captura en vivo** (`analysis/README.md`, plan A) para que salgan **etiquetados**; 1 min quieto al inicio y al final; ≤ 30 km/h (#5). *(8-nov)*
 2. Espectro, fs y calibración del detector (#6); entrenar el detector del nodo (#7). *(9-nov)*
 3. Coordinar las salidas de fotos (#21) y etiquetar (#23). *(9–10 nov)*
 

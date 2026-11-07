@@ -4,7 +4,7 @@ Lee este archivo completo antes de trabajar. Es la fuente de verdad técnica del
 **Para continuar el trabajo, lee después `docs/ESTADO.md`** (qué está hecho, qué está probado y qué falta por persona)
 y los issues abiertos de GitHub. Con esos dos archivos un chat nuevo puede seguir sin más contexto.
 
-Última actualización: **5-nov-2026**. Entrega final: **13-nov-2026**.
+Última actualización: **7-nov-2026**. Entrega final: **13-nov-2026**.
 
 ## 1. Qué es el proyecto
 VÍA VIVA es el Proyecto Integrador 2026-2 (2.º semestre, Ingeniería de Datos e IA, Universidad Santo Tomás, Seccional Tunja).
@@ -51,6 +51,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 5-nov | Modelo de fotos con **tf_keras** (Keras 2) por la QAT; se comparan MobileNetV3-Small y **MobileNetV2**; el celular y el bot usan el **mejor int8** (`dataset/salidas/<versión>/info.json`) |
 | 5-nov | **INFORME: Claude NO compila ni genera PDF/.docx**; Juan Diego lo edita en **Overleaf**; Claude propone texto en `docs/cambios_informe.md` |
 | 5-nov | La Alcaldía apoya de palabra un **piloto** (falta convenio USTA–Alcaldía) |
+| **7-nov** | **Etiquetado plan A = captura en vivo** por el acceso remoto de phyphox (`herramientas/captura_phyphox_remoto.py`, teclas H R G T O I P Q); el cronómetro por vueltas queda como plan B. Primeros 3 recorridos reales en `data/raw/phyphox/` |
+| 7-nov | Un solo `iniciar.ps1` en la raíz; lo obsoleto se **mueve** a `docs/archivo/` (nunca se borra; lista en `LEEME.md`) |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
 (propuesta entregada, con ESP32-S3: **no se modifica**; archivada el 7-nov), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
@@ -81,10 +83,10 @@ via-viva/
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
 ├── bot/             bot.py, reportes.py, cambiar_estado.py
 ├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
-├── herramientas/    validar_campo.py (revisión de phyphox, fotos y planilla antes de procesar)
+├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html) y validar_campo.py
 ├── iniciar.ps1      todo en un comando (tablero, mapa, bot, clasificador, captura en vivo)
 ├── demo/            datos_demo.py (base DEMO aparte)
-├── tests/           pytest (34 pruebas) · .github/workflows/ (pytest y PlatformIO)
+├── tests/           pytest (49 pruebas) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
 ├── futuro/          trabajo futuro: nodo-camara (ESP32-CAM), láser de cuadrícula, OBD2
 ├── dashboard-java/  NetBeans Ant, Java 21: estructuras/ (TablaHash, MonticuloMax, GrafoCalles, IndiceGeohash)
@@ -218,6 +220,9 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   (`dataset/clasificar.py` con LiteRT).
 - **Sintético** (`dataset.sintetico`, `--sintetico` en todo): `data/raw/fotos_sintetico` → `data/procesado_sintetico`, nunca
   se mezcla ni se reporta. Prueba del 5-nov: V3 int8 cae (0,90 → 0,57–0,70, núcleos de referencia ~100 ms); V2 int8 PTQ 0,93.
+- **phyphox iOS:** `Accelerometer.csv` = `"Time (s)","X (m/s^2)",…`, `Gyroscope.csv` = `"X (rad/s)"`, `Location.csv` con
+  `"Vertical Accuracy (°)"`. Buffers del experimento "VÍA VIVA 2.0": accX/Y/Z + acc_time, gyroX/Y/Z + gyro_time,
+  gpsLat/Lon/Z/V/Dir/Accuracy/ZAccuracy + gps_time. Acceso remoto con el iPhone de punto de acceso: `http://172.20.10.1:8080`.
 - **Validar campo:** `dataset\.venv\Scripts\python -m herramientas.validar_campo` antes de la ingesta y de `etl.recorridos`.
 
 ## 11. Entorno de desarrollo (PC de Andrés, Windows 11)
