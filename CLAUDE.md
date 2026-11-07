@@ -52,6 +52,7 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 5-nov | **INFORME: Claude NO compila ni genera PDF/.docx**; Juan Diego lo edita en **Overleaf**; Claude propone texto en `docs/cambios_informe.md` |
 | 5-nov | La Alcaldía apoya de palabra un **piloto** (falta convenio USTA–Alcaldía) |
 | **7-nov** | **Etiquetado plan A = captura en vivo** por el acceso remoto de phyphox (`herramientas/captura_phyphox_remoto.py`, teclas H R G T O I P Q); el cronómetro por vueltas queda como plan B. Primeros 3 recorridos reales en `data/raw/phyphox/` |
+| 7-nov | **Scraping diario** con el Programador de tareas (`VIA VIVA scraping diario`, 06:30, `etl.scraping.diario`, log en `data/logs/`). Latencias siempre **media ± desviación** (Welford, N ≥ 100). Raspberry Pi 4 solo en `futuro/pi/` (el ESP32 no cambia; la CNN de fotos no cabe en él) |
 | 7-nov | Un solo `iniciar.ps1` en la raíz; lo obsoleto se **mueve** a `docs/archivo/` (nunca se borra; lista en `LEEME.md`) |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
@@ -83,10 +84,11 @@ via-viva/
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
 ├── bot/             bot.py, reportes.py, cambiar_estado.py
 ├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
-├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html) y validar_campo.py
+├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html), validar_campo.py, programar_scraping.ps1, buscar_secretos.py
 ├── iniciar.ps1      todo en un comando (tablero, mapa, bot, clasificador, captura en vivo)
 ├── demo/            datos_demo.py (base DEMO aparte)
-├── tests/           pytest (49 pruebas) · .github/workflows/ (pytest y PlatformIO)
+├── tests/           pytest (51 pruebas)
+├── entornos/        pip freeze exacto de cada venv (reproducibilidad) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
 ├── futuro/          trabajo futuro: nodo-camara (ESP32-CAM), láser de cuadrícula, OBD2
 ├── dashboard-java/  NetBeans Ant, Java 21: estructuras/ (TablaHash, MonticuloMax, GrafoCalles, IndiceGeohash)

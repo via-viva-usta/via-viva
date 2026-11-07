@@ -10,7 +10,7 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
    muestreo, GPS ~99 %**. Faltan sus etiquetas. Para leerlos hubo que arreglar el lector (iOS escribe `X (m/s^2)`).
    Nueva **captura en vivo** por el acceso remoto de phyphox (plan A de etiquetado; el cronómetro queda como plan B).
 
-1. **Todo el software existe, compila y tiene pruebas** (49 pytest al 7-nov; GitHub Actions para Python y firmware), pero
+1. **Todo el software existe, compila y tiene pruebas** (51 pytest al 7-nov; GitHub Actions para Python y firmware), pero
    **nada se ha probado en hardware** (el ESP32 DevKit V1, DHT22 y BH1750 están por llegar) y **no hay datos reales**:
    salvo los 3 recorridos de phyphox del 7-nov (sin etiquetas).
 2. Todo lo que tiene números (detector, modelo de riesgo, modelo de fotos, escala) se probó **solo con datos SINTÉTICOS**
@@ -34,7 +34,18 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
-## Hecho el 7-nov
+## Hecho el 7-nov (bloques 3 y 4: R5, R7, R3, Pi)
+
+| Requisito | Qué | Evidencia |
+|---|---|---|
+| **R5 scraping** | `etl.scraping.diario`: IDEAM incremental (`--dias 3`, se amplía solo si hubo días sin correr) + noticias; log JSON por corrida; frescura (avisa si el último dato tiene > 3 días). **Tarea diaria registrada** en el PC de Andrés ("VIA VIVA scraping diario", 06:30, `herramientas/programar_scraping.ps1`) | `data/logs/scraping_diario.jsonl`; `python -m etl.scraping.diario --resumen`. 1.ª corrida: 15 filas nuevas de 5 estaciones; huecos 2–3 nov rellenados; lluvia al día hasta el 6-nov |
+| **R7 rigor** | Welford en `medir()` del firmware (media ± desv., N = 200/500, sin RAM extra); latencia del modelo en el celular (100 inferencias) con registro en el PC; tabla de memoria en `docs/experimentos.md` | Compila (flash 944 585 B, 48,0 %). Control en el PC: 10,73 ± 0,26 ms (navegador), 5,16 ± 0,34 ms (LiteRT). **iPhone y placa: pendientes** |
+| **R3 int8** | `dataset.modelo` agrega la tabla de **F1 por clase** de float32 vs. PTQ vs. QAT y la peor caída por clase (división por sitio sin cambios) | Espera fotos reales |
+| Reproducibilidad | `entornos/*.txt` (pip freeze de los 5 venvs) | `entornos/LEEME.md` |
+| Seguridad | `herramientas/buscar_secretos.py`: 74 commits revisados, **sin secretos**; `.env`, `secretos.h` y `kaggle.json` nunca se subieron | 2 pruebas pytest |
+| Pi 4 (futuro) | Servidor 24/7 (bot + scraping con systemd) y benchmark de la CNN int8; **MobileNetV2 int8 no cabe en el ESP32** (activaciones ≥ 1 470 KB vs. ~300 KB libres) | `futuro/pi/`; especificaciones y medición en la placa pendientes |
+
+## Hecho el 7-nov (mañana)
 
 | Qué | Dónde |
 |---|---|
