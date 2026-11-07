@@ -386,7 +386,9 @@ def correr(arq, m, a, carpeta, aviso) -> dict:
         res["variantes"][nombre] = {"tamano_kb": round(tam / 1024), "latencia_ms_pc": round(ms, 2),
                                     "exactitud": accuracy_score(y, p8.argmax(1)),
                                     "f1_macro": f1_score(y, p8.argmax(1), average="macro"),
-                                    "acuerdo_con_keras": float((p8.argmax(1) == pred).mean())}
+                                    "acuerdo_con_keras": float((p8.argmax(1) == pred).mean()),
+                                    "f1_por_clase": dict(zip(CLASES, f1_score(y, p8.argmax(1), labels=range(len(CLASES)),
+                                                                         average=None, zero_division=0).tolist()))}
     if ARQ[arq]["qat"] and a.epocas_qat > 0:
         q = qat(modelo, d_tr, d_va, a.epocas_qat)
         tam = a_tflite(q, sub / "modelo_int8_qat.tflite", representativo(tr, arq, 200, False))
@@ -394,7 +396,9 @@ def correr(arq, m, a, carpeta, aviso) -> dict:
         res["variantes"]["int8_qat"] = {"tamano_kb": round(tam / 1024), "latencia_ms_pc": round(ms, 2),
                                         "exactitud": accuracy_score(y, p8.argmax(1)),
                                         "f1_macro": f1_score(y, p8.argmax(1), average="macro"),
-                                        "acuerdo_con_keras": float((p8.argmax(1) == pred).mean())}
+                                        "acuerdo_con_keras": float((p8.argmax(1) == pred).mean()),
+                                    "f1_por_clase": dict(zip(CLASES, f1_score(y, p8.argmax(1), labels=range(len(CLASES)),
+                                                                         average=None, zero_division=0).tolist()))}
     res["keras"] = {"exactitud": accuracy_score(y, pred), "f1_macro": f1_score(y, pred, average="macro")}
     return res
 
@@ -475,6 +479,19 @@ def main():
               f"{int(rep[c]['support'])} |" for c in CLASES]
         l += ["", f"Figuras: `{arq}/matriz_confusion.png`, `{arq}/errores.png` ({r['errores_mostrados']} errores), "
                   f"`{arq}/gradcam.png`.", ""]
+    # R3: pérdida por cuantización CLASE POR CLASE (las clases raras, como tapa u obstáculo, son las que más caen)
+    for arq, r in resultados.items():
+        vs = list(r["variantes"])
+        l += [f"## {arq}: F1 por clase, float32 vs. int8 (test por sitio)", "",
+              "| Clase | Fotos test | Keras float32 | " + " | ".join(vs) + " | Peor caída int8 vs. float32 |",
+              "|---|---|---|" + "---|" * len(vs) + "---|"]
+        for c in CLASES:
+            f_float = r["por_clase"][c]["f1-score"]
+            f_var = [r["variantes"][v]["f1_por_clase"][c] for v in vs]
+            caida = min((x - f_float for v, x in zip(vs, f_var) if v.startswith("int8")), default=0.0)
+            l.append(f"| {c} | {int(r['por_clase'][c]['support'])} | {f_float:.2f} | "
+                     + " | ".join(f"{x:.2f}" for x in f_var) + f" | {caida:+.2f} |")
+        l.append("")
     l.append(f"Modelo para el celular y el bot: `{info['tflite']}` (info.json).")
     (carpeta / "reporte.md").write_text("\n".join(l) + "\n", encoding="utf-8")
     print("\n".join(l))
