@@ -87,3 +87,22 @@ nodo completo fifo_dma,10,0,0,5.05
 
 El firmware que mide E1–E4 **compila** en los tres entornos. `analysis/experimentos.py` se probó con un archivo de
 **EJEMPLO** inventado (`--ejemplo`, salida a una carpeta temporal). **No hay ninguna medición real todavía.**
+
+## Memoria y latencia con rigor estadístico (R7, 7-nov)
+
+Las latencias de E2–E4 se registran como **media ± desviación estándar** (método de Welford en `medir()`, sin guardar
+las muestras), con N = 200 (E2/E3) y N = 500 (E4), más la primera llamada, el mínimo y el máximo
+(`*_media_us`, `*_desv_us`, `*_n` en `exp_NNN.csv`; tabla con `analysis\experimentos.py`).
+
+| Memoria del nodo (esp32dev) | Valor | Fuente |
+|---|---|---|
+| RAM estática (`.data` + `.bss`) | 66 348 B de 327 680 (20,2 %) | `pio run`, 7-nov |
+| Flash del programa | 944 585 B de 1 966 080 (48,0 %; partición `min_spiffs.csv`) | `pio run`, 7-nov |
+| Heap libre al arrancar | [PENDIENTE: fila `MEM heap_libre_B` del arranque en la placa] | `exp_NNN.csv` |
+| Programa / flash libre para la app | [PENDIENTE: `MEM programa_B`, `flash_app_libre_B`] | `exp_NNN.csv` |
+
+| Latencia del modelo de fotos (int8, 100 inferencias, sin calentamiento) | Media ± desv. | Fuente |
+|---|---|---|
+| Chromium del PC (control, modelo SINTÉTICO) | 10,73 ± 0,26 ms | `web/clasificador`, 7-nov |
+| **iPhone 15 (Safari)** | [PENDIENTE] | botón "Medir 100 inferencias" → `data/logs/latencia_celular.jsonl` |
+| Raspberry Pi 4 | [PENDIENTE: `futuro/pi/benchmark_cnn.py`] | `futuro/pi/` |
