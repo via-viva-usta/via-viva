@@ -123,13 +123,16 @@ def revisar(cliente):
             print(f"    falla: {type(e).__name__}: {str(e)[:120]}")
 
 
-def ejecutar(cliente):
+def ejecutar(cliente) -> dict:
+    """Lee las fuentes habilitadas; devuelve {'nuevas', 'leidas', 'omitidas'} (lo registra etl.scraping.diario)."""
     con = conectar()
+    total = {"nuevas": 0, "leidas": 0, "omitidas": 0}
     for f in [f for f in FUENTES if f["habilitada"]]:
         try:
             entradas = LECTORES[f["tipo"]](cliente, f)
         except NoPermitidoPorRobots:
             print(f"  {f['nombre']}: robots.txt ya no lo permite, se omite")
+            total["omitidas"] += 1
             continue
         registros = []
         for e in entradas:
@@ -149,6 +152,9 @@ def ejecutar(cliente):
             })
         nuevos, _ = guardar(con, registros)
         print(f"  {f['nombre']}: {len(entradas)} entradas leídas, {len(registros)} relevantes, {nuevos} nuevas")
+        total["nuevas"] += nuevos
+        total["leidas"] += len(entradas)
+    return total
 
 
 def main():

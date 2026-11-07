@@ -11,6 +11,8 @@ La fecha de observación se interpreta como hora local de Colombia (UTC-5).
 Uso (desde via-viva/):
   etl\\.venv\\Scripts\\python -m etl.scraping.clima_ideam               # últimos 30 días, estaciones a <=15 km
   etl\\.venv\\Scripts\\python -m etl.scraping.clima_ideam --dias 90 --radio-km 25
+  etl\\.venv\\Scripts\\python -m etl.scraping.clima_ideam --dias 3     # incremental (lo usa etl.scraping.diario)
+Sin duplicados: cada dato lleva hash_contenido (fuente, estación, día, variable); si ya existe, se actualiza su valor.
 """
 import argparse
 import math
@@ -108,19 +110,15 @@ def lluvia_diaria(obs: list[dict]) -> dict:
     return dict(dias)
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--dias", type=int, default=30, help="días hacia atrás desde hoy")
-    p.add_argument("--radio-km", type=float, default=15.0)
-    args = p.parse_args()
-
-    desde = (date.today() - timedelta(days=args.dias)).isoformat() + "T00:00:00"
+def ejecutar(dias: int = 30, radio_km: float = 15.0) -> dict:
+    """Descarga y guarda; devuelve {'estaciones', 'nuevos', 'actualizados'} (lo registra etl.scraping.diario)."""
+    desde = (date.today() - timedelta(days=dias)).isoformat() + "T00:00:00"
     cliente = ClienteRespetuoso()
     if not cliente.permitido(URL_API):
         raise SystemExit("robots.txt de datos.gov.co no permite la API: no se descarga nada.")
 
-    estaciones = estaciones_cercanas(cliente, desde, args.radio_km)
-    print(f"Estaciones con datos desde {desde[:10]} a <= {args.radio_km} km de Tunja: {len(estaciones)}")
+    estaciones = estaciones_cercanas(cliente, desde, radio_km)
+    print(f"Estaciones con datos desde {desde[:10]} a <= {radio_km} km de Tunja: {len(estaciones)}")
     con = conectar()
     total_nuevos = total_act = 0
     for e in estaciones:
@@ -159,6 +157,15 @@ def main():
               f"(nuevos {nuevos}, actualizados {act})")
     filas = con.execute("SELECT COUNT(*) FROM fuentes_externas WHERE tipo = 'clima'").fetchone()[0]
     print(f"Listo. Nuevos: {total_nuevos}, actualizados: {total_act}. Filas de clima en la base: {filas}")
+    return {"estaciones": len(estaciones), "nuevos": total_nuevos, "actualizados": total_act}
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--dias", type=int, default=30, help="días hacia atrás desde hoy")
+    p.add_argument("--radio-km", type=float, default=15.0)
+    args = p.parse_args()
+    ejecutar(args.dias, args.radio_km)
 
 
 if __name__ == "__main__":
