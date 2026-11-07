@@ -1,0 +1,11 @@
+[Unit]
+Description=VÍA VIVA - scraping diario (IDEAM + noticias, con log y frescura)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__USUARIO__
+WorkingDirectory=__RAIZ__
+Environment=PYTHONIOENCODING=utf-8
+ExecStart=__RAIZ__/etl/.venv/bin/python -m etl.scraping.diario

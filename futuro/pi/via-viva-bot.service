@@ -1,0 +1,14 @@
+[Unit]
+Description=VÍA VIVA - bot de Telegram
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=__USUARIO__
+WorkingDirectory=__RAIZ__
+ExecStart=__RAIZ__/bot/.venv/bin/python bot/bot.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

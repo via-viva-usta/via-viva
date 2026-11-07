@@ -1,0 +1,9 @@
+[Unit]
+Description=VÍA VIVA - scraping diario a las 06:30
+
+[Timer]
+OnCalendar=*-*-* 06:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
