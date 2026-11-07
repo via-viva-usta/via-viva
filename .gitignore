@@ -6,6 +6,8 @@
 *.key
 
 # ===== Datos (regla 1 de CLAUDE.md) =====
+data/*
+!data/README.md
 data/raw/
 data/alcaldia/
 data/osm/
@@ -113,3 +115,6 @@ analysis/salidas/
 report/main.pdf
 web/clasificador/vendor/
 web/clasificador/modelo/
+
+# ===== Archivo: copias locales que no van a Git =====
+docs/archivo/local_sin_git/

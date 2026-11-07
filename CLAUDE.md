@@ -52,8 +52,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 5-nov | **INFORME: Claude NO compila ni genera PDF/.docx**; Juan Diego lo edita en **Overleaf**; Claude propone texto en `docs/cambios_informe.md` |
 | 5-nov | La Alcaldía apoya de palabra un **piloto** (falta convenio USTA–Alcaldía) |
 
-Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/propuesta/`
-(propuesta entregada, con ESP32-S3: **no se modifica**), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
+Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
+(propuesta entregada, con ESP32-S3: **no se modifica**; archivada el 7-nov), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
 `docs/experimentos.md`, `docs/demo.md`, `docs/poster.md`, `docs/ESTADO.md`, `docs/protocolo_fotos.md`,
 `docs/presupuesto.md`, `docs/tarjeta_aruco.pdf`, `dataset/README.md`, `futuro/README.md`.
 
@@ -82,7 +82,8 @@ via-viva/
 ├── bot/             bot.py, reportes.py, cambiar_estado.py
 ├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
 ├── herramientas/    validar_campo.py (revisión de phyphox, fotos y planilla antes de procesar)
-├── demo/            iniciar.ps1 (demo en un comando) y datos_demo.py (base DEMO aparte)
+├── iniciar.ps1      todo en un comando (tablero, mapa, bot, clasificador, captura en vivo)
+├── demo/            datos_demo.py (base DEMO aparte)
 ├── tests/           pytest (34 pruebas) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
 ├── futuro/          trabajo futuro: nodo-camara (ESP32-CAM), láser de cuadrícula, OBD2

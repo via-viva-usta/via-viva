@@ -1,6 +1,6 @@
 # report/ — Informe final (IEEE, inglés, 2 columnas)
 
-`main.tex` parte de la propuesta (`docs/propuesta/main.tex`) y describe el sistema **como quedó implementado**
+`main.tex` parte de la propuesta (`docs/archivo/propuesta_ESP32-S3/main.tex`) y describe el sistema **como quedó implementado**
 (ESP32 normal, detector por umbrales, maniobras, int8, plan B, bot, mapa web, tablero).
 
 ## Reglas

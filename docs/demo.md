@@ -7,7 +7,7 @@ deja visible y se dice en voz alta.
 ## Antes de empezar (checklist, 30 min antes)
 
 - [ ] Portátil cargado, con `.env` (token del bot) y la base actualizada.
-- [ ] **Un comando** (PowerShell, en `via-viva\`): `.\demo\iniciar.ps1`. Levanta en orden el tablero Java, el mapa web
+- [ ] **Un comando** (PowerShell, en `via-viva\`): `.\iniciar.ps1`. Levanta en orden el tablero Java, el mapa web
       (http://localhost:8080), el bot y la página del clasificador para el celular. Si la base real no tiene eventos ni
       reportes, usa sola la **base DEMO** (`data\via_viva_demo.db`, todo marcado DEMO; la real no se toca).
       Opciones: `-Demo` (forzar DEMO), `-SinBot`, `-SinCelular`, `-SinTablero`.

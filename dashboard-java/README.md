@@ -4,7 +4,7 @@ Proyecto **NetBeans · Java with Ant** (Java 21, Swing). Lee la base SQLite del 
 grafo de calles de Tunja con cada tramo coloreado por su riesgo. Usa estructuras escritas a mano para el curso de
 Estructuras de Datos: **tabla hash**, **montículo (heap)** y **grafo con BFS**, además del índice **geohash**.
 
-![Tablero con la corrida DEMO](docs/captura_demo.png)
+![Tablero: pestaña Reportes y eventos con datos DEMO](../docs/img/tablero_reportes.png)
 
 *Captura generada con la corrida `DEMO-SINTETICO` (etiquetas inventadas): los colores no son un resultado.*
 
