@@ -40,7 +40,27 @@ No se usa JupyterLab: en Windows sin rutas largas activadas su instalación fall
 | El **copiloto** etiqueta; el conductor solo conduce | Seguridad |
 | **1 minuto detenidos al inicio y 1 al final**, con *play* ya oprimido | Línea base, gravedad y cierre limpio |
 
-**Cómo etiquetar (cronómetro del iPhone por vueltas):**
+**Cómo etiquetar — PLAN A (desde el 7-nov): captura en vivo por el acceso remoto de phyphox**
+
+1. iPhone de Pipe: activar el **punto de acceso personal**; conectar el portátil a esa red.
+2. phyphox → experimento **"VÍA VIVA 2.0"** → menú ⋮ → **Permitir acceso remoto**: anota la URL que muestra
+   (con punto de acceso suele ser `http://172.20.10.1:8080`; usar la que diga phyphox).
+3. En el portátil (copiloto):
+   `dataset\.venv\Scripts\python -m herramientas.captura_phyphox_remoto --url http://172.20.10.1:8080 --nombre ruta1_pipe`
+   y abrir la **vista en vivo** http://127.0.0.1:8090 (velocidad, aceleración, mapa y contador de eventos).
+4. ▶ en phyphox. Cada vez que la llanta pasa por algo, el copiloto oprime en el PC: **H** hueco · **R** resalto ·
+   **G** grieta · **T** tapa · **O** obstáculo · **I** impacto · **P** parada (inicio/fin) · **Q** terminar
+   (o los botones de la vista en vivo). Se guarda la hora del PC, el tiempo del experimento y la posición GPS.
+5. Si se cae el WiFi del iPhone, la herramienta pita, avisa y reconecta sola; los datos siguen en phyphox y se piden
+   desde donde iban. Al final, **exportar también desde phyphox** (respaldo) y subir a Drive.
+6. Queda `data/raw/phyphox/AAAA-MM-DD_HH-MM-SS_ruta1_pipe/` (mismo formato que el export de iOS) +
+   `..._etiquetas.csv`: `validar_campo` y `etl.recorridos` lo leen sin cambios.
+
+Demo sin carro: `--reproducir data\raw\phyphox\<export>.zip --velocidad 1` sirve una grabación como si fuera en vivo.
+Probado el 7-nov con los 3 exports reales (01, 02, 03): la captura sale **idéntica** al export y pasa el validador;
+falta probarla con el iPhone en el carro.
+
+**PLAN B — cronómetro del iPhone por vueltas:**
 1. El copiloto inicia el **cronómetro del iPhone en el mismo instante** en que se oprime *play* en phyphox.
 2. Cada vez que la llanta pasa por un hueco, resalto, etc., oprime **"Vuelta"** y dice en voz alta la clase; el otro
    la anota en papel o en notas (vuelta 1 = hueco, vuelta 2 = resalto…).

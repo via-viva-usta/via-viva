@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VÍA VIVA · en vivo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--asfalto:#2f2f2f;--senal:#f2c230;--ok:#2a9d8f;--mal:#b3261e;--fondo:#f4f3ef}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--fondo);color:var(--asfalto)}
+header{background:var(--asfalto);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header b{color:var(--senal)}
+.chip{padding:3px 10px;border-radius:10px;font-weight:700;font-size:.85rem}
+.si{background:var(--ok)}.no{background:var(--mal)}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;padding:12px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.tarjeta{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px #0002;margin-bottom:12px}
+.cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cifra small{display:block;color:#666;font-size:.8rem}
+.cifra b{font-size:2rem}
+canvas{width:100%;height:180px;display:block}
+#mapa{height:420px;border-radius:10px}
+.botones{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+button{padding:12px 4px;border:0;border-radius:10px;font-weight:700;color:#fff;background:#555;cursor:pointer}
+button.hueco{background:var(--mal)}button.resalto{background:#e9672b}button.parada{background:#246}
+ul{margin:4px 0;padding-left:18px;font-size:.9rem}
+#msg{font-size:.85rem;color:#555}
+</style>
+</head>
+<body>
+<header><span><b>VÍA VIVA</b> · captura en vivo (phyphox)</span><span id="conex" class="chip no">sin datos</span>
+<span id="carpeta"></span></header>
+<main>
+<section>
+  <div class="tarjeta cifras">
+    <div class="cifra"><small>Velocidad</small><b id="vel">–</b> km/h</div>
+    <div class="cifra"><small>Eventos del detector</small><b id="ev">0</b></div>
+    <div class="cifra"><small>Etiquetas</small><b id="et">0</b></div>
+  </div>
+  <div class="tarjeta"><small>Aceleración vertical |a| − 1 g (últimos 30 s; línea roja = piso del detector 0,30 g)</small>
+    <canvas id="graf" width="800" height="180"></canvas></div>
+  <div class="tarjeta"><small>Etiquetar ahora (o teclas H R G T O I P en el PC)</small>
+    <div class="botones">
+      <button class="hueco" onclick="etq('hueco')">Hueco (H)</button>
+      <button class="resalto" onclick="etq('resalto')">Resalto (R)</button>
+      <button onclick="etq('grieta')">Grieta (G)</button>
+      <button onclick="etq('tapa')">Tapa (T)</button>
+      <button onclick="etq('obstaculo')">Obstáculo (O)</button>
+      <button onclick="etq('impacto_fuerte')">Impacto (I)</button>
+      <button class="parada" onclick="etq('parada')">Parada (P)</button>
+    </div>
+    <ul id="lista"></ul></div>
+  <div class="tarjeta" id="msg"></div>
+</section>
+<section><div class="tarjeta"><small id="pos">Posición</small><div id="mapa"></div></div></section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let mapa = null, linea = null, punto = null, capaEv = null, nEv = 0;
+if (window.L) {          // sin internet no hay mapa base: se dibuja solo el trayecto
+  mapa = L.map('mapa').setView([5.5353, -73.3678], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'}).addTo(mapa);
+  linea = L.polyline([], {color: '#2f2f2f', weight: 4}).addTo(mapa);
+  capaEv = L.layerGroup().addTo(mapa);
+} else { $('mapa').innerHTML = '<canvas id="tray" width="600" height="420"></canvas>'; }
+
+function grafica(serie) {
+  const c = $('graf'), g = c.getContext('2d'), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  const esc = v => H / 2 - v * (H / 2) / 1.5;     // ±1,5 g
+  g.strokeStyle = '#ddd'; g.beginPath(); g.moveTo(0, esc(0)); g.lineTo(W, esc(0)); g.stroke();
+  g.strokeStyle = '#b3261e'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, esc(0.3)); g.lineTo(W, esc(0.3));
+  g.moveTo(0, esc(-0.3)); g.lineTo(W, esc(-0.3)); g.stroke(); g.setLineDash([]);
+  if (serie.length < 2) return;
+  const t1 = serie[serie.length - 1][0], t0 = t1 - 30;
+  g.strokeStyle = '#2a9d8f'; g.lineWidth = 1.5; g.beginPath();
+  serie.forEach(([t, a], i) => { const x = (t - t0) / 30 * W; i ? g.lineTo(x, esc(a)) : g.moveTo(x, esc(a)); });
+  g.stroke();
+}
+
+function trayectoSinMapa(tr) {
+  const c = $('tray'); if (!c || tr.length < 2) return;
+  const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+  const la = tr.map(p => p[0]), lo = tr.map(p => p[1]);
+  const [a0, a1, o0, o1] = [Math.min(...la), Math.max(...la), Math.min(...lo), Math.max(...lo)];
+  const k = Math.min(c.width / (o1 - o0 || 1e-4), c.height / (a1 - a0 || 1e-4)) * 0.9;
+  g.strokeStyle = '#2f2f2f'; g.lineWidth = 3; g.beginPath();
+  tr.forEach(([a, o], i) => { const x = 20 + (o - o0) * k, y = c.height - 20 - (a - a0) * k; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.stroke();
+}
+
+async function actualizar() {
+  try {
+    const e = await (await fetch('/estado')).json();
+    $('conex').textContent = e.conectado ? (e.midiendo ? 'EN LÍNEA · midiendo' : 'EN LÍNEA · en pausa') : 'SIN CONEXIÓN';
+    $('conex').className = 'chip ' + (e.conectado ? 'si' : 'no');
+    $('carpeta').textContent = e.carpeta + ' · t = ' + e.t_s + ' s · ' + e.muestras + ' muestras';
+    $('vel').textContent = e.vel_kmh.toFixed(0); $('ev').textContent = e.eventos; $('et').textContent = e.n_etiquetas;
+    $('pos').textContent = e.lat ? `Posición ${e.lat.toFixed(5)}, ${e.lon.toFixed(5)} (±${e.precision_m} m)` : 'Sin GPS todavía';
+    grafica(e.serie);
+    $('lista').innerHTML = e.etiquetas.slice().reverse().map(x => `<li>${x.clase} · t = ${x.t_s} s · ${x.vel_kmh} km/h</li>`).join('');
+    $('msg').innerHTML = e.mensajes.join('<br>') || 'Sin avisos.';
+    if (mapa && e.trayecto.length) {
+      linea.setLatLngs(e.trayecto);
+      if (!punto) { punto = L.circleMarker([e.lat, e.lon], {radius: 8, color: '#f2c230', fillOpacity: 1}).addTo(mapa); mapa.setView([e.lat, e.lon], 17); }
+      punto.setLatLng([e.lat, e.lon]);
+      if (e.eventos > nEv) {
+        e.ultimos_eventos.slice(-(e.eventos - nEv)).forEach(v => v.lat && L.circleMarker([v.lat, v.lon], {radius: 6, color: '#b3261e'}).bindTooltip(`evento ${v.p2p_g} g`).addTo(capaEv));
+        nEv = e.eventos;
+      }
+    } else trayectoSinMapa(e.trayecto);
+  } catch (x) { $('conex').textContent = 'sin la herramienta'; $('conex').className = 'chip no'; }
+}
+async function etq(c) { await fetch('/etiqueta?clase=' + c, {method: 'POST'}); actualizar(); }
+setInterval(actualizar, 500); actualizar();
+</script>
+</body>
+</html>
