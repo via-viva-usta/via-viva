@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Captura</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div><strong>VÍA VIVA</strong> <span class="sub">captura en el carro</span></div>
+  <div id="insignia" class="insignia">—</div>
+</header>
+
+<main class="captura">
+  <section class="tarjeta" id="t-grabar">
+    <div class="fila">
+      <input id="nombre" placeholder="Nombre del recorrido (opcional)" maxlength="30">
+      <button id="b-grabar" class="primario grande">Iniciar grabación</button>
+    </div>
+    <div class="fila datos">
+      <div><span class="et">Tiempo</span><span id="d-tiempo" class="valor">0:00</span></div>
+      <div><span class="et">Velocidad</span><span id="d-vel" class="valor">—</span></div>
+      <div><span class="et">Eventos</span><span id="d-eventos" class="valor">0</span></div>
+      <div><span class="et">Etiquetas</span><span id="d-etq" class="valor">0</span></div>
+    </div>
+    <p id="aviso-fuente" class="aviso oculto"></p>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Etiquetar (copiloto)</h2>
+    <div class="botones-etq" id="etiquetas"></div>
+    <p class="ayuda">Toque cuando la llanta pase por el daño. Se une al evento detectado a ± 3 s.</p>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Señal en vivo <span class="sub">|a| − 1 g, últimos 30 s</span></h2>
+    <canvas id="grafica" height="150"></canvas>
+  </section>
+
+  <section class="tarjeta">
+    <h2>GPS <span class="sub" id="d-gps">—</span></h2>
+    <div id="mapa" class="mapa"></div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Sensores</h2>
+    <ul id="sensores" class="lista-sensores"></ul>
+    <div id="ambiente" class="sub"></div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Pi</h2>
+    <div id="sistema" class="rejilla-sistema"></div>
+    <div id="sync" class="sub"></div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Últimos eventos</h2>
+    <table class="tabla"><thead><tr><th>t (s)</th><th>Pico</th><th>Clase</th><th>Tramo</th></tr></thead>
+      <tbody id="eventos"></tbody></table>
+    <ul id="mensajes" class="mensajes"></ul>
+  </section>
+
+  <section class="tarjeta">
+    <button id="b-apagar" class="peligro">Apagar la Pi con seguridad</button>
+    <p class="ayuda">Cierra la grabación y apaga sin dañar la microSD. También: sostener el pulsador 3 s.
+      <a href="/tablero">Tablero de la Alcaldía →</a></p>
+  </section>
+</main>
+
+<script src="/static/comun.js"></script>
+<script>
+const CLASES = [['hueco', 'Hueco'], ['resalto', 'Resalto'], ['grieta', 'Grieta'], ['tapa', 'Tapa'],
+                ['obstaculo', 'Obstáculo'], ['impacto_fuerte', 'Impacto'], ['parche', 'Parche'], ['otro', 'Otro'],
+                ['parada', 'Parada ⏯']];
+const $ = (id) => document.getElementById(id);
+let ultimo = null, mapa = null, centrado = false;
+
+for (const [c, t] of CLASES) {
+  const b = document.createElement('button'); b.textContent = t; b.className = 'etq';
+  b.onclick = async () => {
+    b.classList.add('pulsado'); setTimeout(() => b.classList.remove('pulsado'), 300);
+    try { await VV.post('/api/etiqueta', {clase: c}); if (navigator.vibrate) navigator.vibrate(60); }
+    catch (e) { alert('No se guardó la etiqueta: ' + e.message); }
+  };
+  $('etiquetas').appendChild(b);
+}
+
+$('b-grabar').onclick = async () => {
+  const grabando = ultimo && ultimo.grabando;
+  $('b-grabar').disabled = true;
+  try { await VV.post('/api/grabar', grabando ? {accion: 'detener'} : {accion: 'iniciar', nombre: $('nombre').value}); }
+  catch (e) { alert(e.message); }
+  $('b-grabar').disabled = false; actualizar();
+};
+
+$('b-apagar').onclick = async () => {
+  if (!confirm('¿Cerrar la grabación y apagar la Pi?')) return;
+  try { const r = await VV.post('/api/apagar', {confirmar: 'si'}); alert(r.mensaje); }
+  catch (e) { alert(e.message); }
+};
+
+function mmss(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+function grafica(serie) {
+  const cv = $('grafica'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = 150;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const lim = 1.5, y = (v) => h / 2 - Math.max(-lim, Math.min(lim, v)) / lim * (h / 2 - 4);
+  g.strokeStyle = VV.color('--borde'); g.lineWidth = 1;
+  for (const v of [0, 0.3, -0.3]) { g.setLineDash(v ? [4, 4] : []); g.beginPath(); g.moveTo(0, y(v)); g.lineTo(w, y(v)); g.stroke(); }
+  g.setLineDash([]);
+  if (serie.length < 2) return;
+  const t0 = serie[serie.length - 1][0] - 30;
+  g.strokeStyle = VV.color('--acento'); g.lineWidth = 1.5; g.beginPath();
+  serie.forEach(([t, v], i) => { const x = (t - t0) / 30 * w; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); });
+  g.stroke();
+}
+
+function punto(ok) { return '<span class="punto ' + (ok === true ? 'ok' : ok === false ? 'mal' : 'gris') + '"></span>'; }
+
+async function actualizar() {
+  let e;
+  try { e = await VV.json('/api/estado'); } catch (err) {
+    $('insignia').textContent = 'Sin conexión con la Pi'; $('insignia').className = 'insignia mal'; return;
+  }
+  ultimo = e;
+  $('insignia').textContent = e.grabando ? '● Grabando' : (e.origen === 'simulado' ? 'Reproducción (demo)' : 'Listo');
+  $('insignia').className = 'insignia ' + (e.grabando ? 'grabando' : 'ok');
+  $('b-grabar').textContent = e.grabando ? 'Detener y guardar' : 'Iniciar grabación';
+  $('b-grabar').className = (e.grabando ? 'peligro' : 'primario') + ' grande';
+  $('nombre').disabled = e.grabando;
+  $('d-tiempo').textContent = mmss(e.t_grabacion_s);
+  $('d-vel').textContent = VV.texto(e.gps.vel_kmh, ' km/h', 0);
+  $('d-eventos').textContent = e.eventos + (e.eventos_sin_gps ? ' (' + e.eventos_sin_gps + ' sin GPS)' : '');
+  $('d-etq').textContent = e.n_etiquetas;
+  const av = $('aviso-fuente');
+  if (e.origen === 'simulado') { av.textContent = 'Modo reproducir: datos de una grabación, los eventos se guardan como simulados.'; av.classList.remove('oculto'); }
+  else if (e.acelerometro_sin_datos) { av.textContent = 'El acelerómetro no envía datos.'; av.classList.remove('oculto'); }
+  else av.classList.add('oculto');
+  grafica(e.serie);
+
+  const g = e.gps;
+  $('d-gps').textContent = g.fix ? (g.lat.toFixed(5) + ', ' + g.lon.toFixed(5) + ' · ±' + VV.texto(g.precision_m, ' m', 0) +
+    ' · ' + g.satelites + ' sat.' + (g.hora_de_gps ? ' · hora GPS' : '')) : 'sin fijación';
+  if (mapa) {
+    mapa.lineas('recorrido', [{puntos: e.trayecto, color: VV.color('--acento'), grosor: 4}]);
+    mapa.puntos('eventos', e.ultimos_eventos.filter(x => x.lat !== null).map(x => ({lat: x.lat, lon: x.lon,
+      color: VV.color('--mal'), titulo: x.clase + ' · ' + x.p2p_g + ' g'})));
+    if (g.fix) { mapa.puntos('yo', [{lat: g.lat, lon: g.lon, color: VV.color('--acento'), radio: 8}]);
+      if (!centrado || e.grabando) { mapa.centrar(g.lat, g.lon); centrado = true; } }
+  }
+
+  $('sensores').innerHTML = Object.entries(e.sensores).map(([n, s]) => '<li>' + punto(s.presente && !(s.edad_s > 15)) +
+    '<b>' + VV.escapar(n) + '</b> ' + (s.presente ? (s.edad_s !== null && s.edad_s !== undefined ? 'hace ' + s.edad_s + ' s' : '') +
+    (s.desbordes_fifo ? ' · FIFO desbordada ' + s.desbordes_fifo : '') + (s.fallos ? ' · fallos ' + s.fallos : '') +
+    (s.archivo ? VV.escapar(s.archivo) + ' · ' + s.fs_hz + ' Hz · vuelta ' + s.vueltas : '')
+    : '<span class="sub">' + VV.escapar(s.error || 'no detectado') + '</span>') + '</li>').join('');
+  const a = e.ambiente;
+  $('ambiente').textContent = 'Ambiente: ' + VV.texto(a.temperatura_c, ' °C') + ' · ' + VV.texto(a.humedad_pct, ' % HR', 0) +
+    ' · ' + VV.texto(a.lux, ' lx', 0) + ' · distancia ' + VV.texto(e.distancia_mm, ' mm', 0);
+
+  const s = e.sistema, est = s.estrangulamiento;
+  $('sistema').innerHTML = [['CPU', VV.texto(s.cpu_pct, ' %')], ['Temp.', VV.texto(s.temp_c, ' °C')],
+    ['RAM proceso', VV.texto(s.memoria.proceso_mb, ' MB')], ['Libre', VV.texto(s.disco.libre_gb, ' GB')],
+    ['Voltaje', est ? (est.bajo_voltaje ? '<span class="malt">BAJO</span>' : est.hubo_bajo_voltaje ? 'hubo bajo' : 'OK') : '—'],
+    ['Detector', e.latencias.detector_us ? e.latencias.detector_us.media + ' ± ' + e.latencias.detector_us.desv + ' µs' : '—']]
+    .map(([k, v]) => '<div><span class="et">' + k + '</span><span>' + v + '</span></div>').join('');
+  const sy = e.sincronizacion;
+  $('sync').textContent = !sy ? 'Sincronización apagada.' : !sy.configurado ? 'Sin nube configurada: todo queda en la Pi.' :
+    'Nube: pendientes ' + JSON.stringify(sy.pendientes || {}) + (sy.ultimo_error ? ' · último error: ' + sy.ultimo_error : ' · al día');
+
+  $('eventos').innerHTML = e.ultimos_eventos.slice().reverse().map(x => '<tr><td>' + x.t_s.toFixed(1) + '</td><td>' +
+    x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') + '</td><td>' +
+    (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
+  $('mensajes').innerHTML = e.mensajes.slice().reverse().map(m => '<li>' + VV.escapar(m) + '</li>').join('');
+}
+
+(async () => { mapa = await VV.crearMapa($('mapa')); actualizar(); setInterval(actualizar, 500); })();
+</script>
+</body>
+</html>

@@ -3,10 +3,10 @@ name: python
 on:
   push:
     branches: [main]
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "bot/**", "tests/**",
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "pi/**", "futuro/bot/**", "db/**", "tests/**",
             "pytest.ini", ".github/workflows/python.yml"]
   pull_request:
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "bot/**", "tests/**",
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "pi/**", "futuro/bot/**", "db/**", "tests/**",
             "pytest.ini", ".github/workflows/python.yml"]
 concurrency:
   group: python-${{ github.ref }}

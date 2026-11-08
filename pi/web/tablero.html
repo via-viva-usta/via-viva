@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Tablero</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div><strong>VÍA VIVA</strong> <span class="sub">tablero para la Alcaldía de Tunja</span></div>
+  <div class="fila">
+    <select id="corrida" title="Corrida del modelo de riesgo"></select>
+    <a href="/" class="sub">Captura →</a>
+  </div>
+</header>
+<p id="aviso-demo" class="aviso rojo oculto" style="margin:12px 16px 0"></p>
+
+<main class="tablero">
+  <section class="tarjeta">
+    <h2>Riesgo de huecos por tramo <span class="sub" id="info-corrida"></span></h2>
+    <div id="mapa" class="mapa"></div>
+    <div class="leyenda" id="leyenda"></div>
+    <p class="ayuda" id="info-tramo">Toque un tramo para ver su corredor (tramos a ≤ 2 intersecciones, BFS).</p>
+  </section>
+
+  <div>
+    <section class="tarjeta">
+      <div class="cifras">
+        <div><span class="et">Tramos con riesgo</span><span class="valor" id="c-tramos">—</span></div>
+        <div><span class="et">Peligros abiertos</span><span class="valor" id="c-abiertos">—</span></div>
+        <div><span class="et">Zonas de riesgo</span><span class="valor" id="c-zonas">—</span></div>
+        <div><span class="et">Reportes</span><span class="valor" id="c-reportes">—</span></div>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Top-10 de riesgo <span class="sub">(montículo: O(n + k log n))</span></h2>
+      <div class="envoltura-tabla"><table class="tabla"><thead><tr><th>#</th><th>Calle</th><th>Barrio</th><th>Prob.</th><th>Conocido</th></tr></thead>
+        <tbody id="top10"></tbody></table></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Orden de atención <span class="sub">severidad × tránsito × reincidencia</span></h2>
+      <div class="envoltura-tabla"><table class="tabla"><thead><tr><th>Prio.</th><th>Qué</th><th>Dónde</th><th>Fecha</th></tr></thead>
+        <tbody id="peligros"></tbody></table></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Reportes</h2>
+      <div class="fila" style="margin-bottom:8px">
+        <input id="clave" type="password" placeholder="Clave del tablero (para cambiar estados)" autocomplete="off">
+      </div>
+      <div class="envoltura-tabla"><table class="tabla"><thead><tr><th>Id</th><th>Tipo</th><th>Fecha</th><th>Estado</th></tr></thead>
+        <tbody id="reportes"></tbody></table></div>
+    </section>
+  </div>
+</main>
+
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const ESTADOS = ['nuevo', 'confirmado', 'en_reparacion', 'reparado', 'descartado'];
+const CORTES = [0.2, 0.4, 0.6, 0.8];
+const colorRiesgo = (p) => VV.color('--r' + (1 + CORTES.filter(c => p >= c).length));
+let mapa, datos, seleccion = null;
+
+$('leyenda').innerHTML = ['< 0,2', '0,2–0,4', '0,4–0,6', '0,6–0,8', '≥ 0,8'].map((t, i) =>
+  '<span><i style="background:var(--r' + (i + 1) + ')"></i>' + t + '</span>').join('') +
+  '<span><i style="background:var(--acento)"></i>corredor</span><span>● peligro</span>';
+try { $('clave').value = sessionStorage.getItem('vv_clave') || ''; } catch (e) {}
+$('clave').onchange = () => { try { sessionStorage.setItem('vv_clave', $('clave').value); } catch (e) {} };
+
+function fecha(ts) { return ts ? ts.replace('T', ' ').slice(0, 16) : '—'; }
+
+async function cargarRiesgo(param) {
+  datos = await VV.json('/api/tablero/riesgo' + (param || ''));
+  const c = datos.corrida;
+  $('corrida').innerHTML = datos.corridas.map((x, i) => '<option value="' + i + '"' +
+    (c && x.modelo === c.modelo && x.version === c.version && x.fecha === c.fecha ? ' selected' : '') + '>' +
+    VV.escapar(x.modelo + ' · ' + x.version + ' · ' + fecha(x.fecha)) + '</option>').join('') ||
+    '<option>Sin corridas del modelo de riesgo</option>';
+  $('info-corrida').textContent = c ? '· ' + c.modelo + ', etiquetas: ' + (c.fuente || '—') : '· aún no hay corridas';
+  const av = $('aviso-demo');
+  if (c && c.demo) { av.textContent = 'Corrida DEMO/SINTÉTICA: sirve para probar el tablero, no es un resultado.'; av.classList.remove('oculto'); }
+  else av.classList.add('oculto');
+  $('c-tramos').textContent = datos.tramos.length;
+  $('c-zonas').textContent = datos.zonas.length;
+  const conPuntos = datos.tramos.filter(t => t.puntos);
+  mapa.lineas('riesgo', conPuntos.sort((a, b) => a.probabilidad - b.probabilidad).map(t => ({
+    puntos: t.puntos, color: colorRiesgo(t.probabilidad), grosor: t.probabilidad >= 0.6 ? 4 : 2.5,
+    titulo: (t.nombre || 'sin nombre') + ' · ' + (t.probabilidad * 100).toFixed(0) + ' %',
+    al_tocar: () => corredor(t)})));
+  if (conPuntos.length && !param) mapa.ajustar(conPuntos.flatMap(t => [t.puntos[0]]));
+  const noRep = new Set(datos.top10_no_reportados || []);
+  $('top10').innerHTML = datos.top10.map((t, i) => '<tr data-tramo="' + t.id_tramo + '"><td>' + (i + 1) + '</td><td>' +
+    VV.escapar(t.nombre || 'tramo ' + t.id_tramo) + '</td><td>' + VV.escapar(t.barrio || '—') + '</td><td>' +
+    (t.probabilidad * 100).toFixed(0) + ' %</td><td>' + (t.reportado ? 'sí' : 'no') + '</td></tr>').join('') ||
+    '<tr><td colspan="5" class="sub">Sin datos de riesgo en esta base.</td></tr>';
+  for (const tr of $('top10').querySelectorAll('tr[data-tramo]'))
+    tr.onclick = () => corredor(datos.tramos.find(t => t.id_tramo == tr.dataset.tramo));
+}
+
+async function corredor(t) {
+  if (!t) return;
+  seleccion = t.id_tramo;
+  const r = await VV.json('/api/tablero/corredor?tramo=' + t.id_tramo + '&k=2');
+  mapa.lineas('corredor', r.tramos.filter(x => x.puntos).map(x => ({puntos: x.puntos, color: VV.color('--acento'),
+    grosor: x.saltos ? 5 : 8, opacidad: 0.6})));
+  if (t.puntos) mapa.ajustar(r.tramos.filter(x => x.puntos).flatMap(x => x.puntos));
+  $('info-tramo').textContent = (t.nombre || 'Tramo ' + t.id_tramo) + ' · ' + (t.tipo_via || '—') + ' · ' +
+    (t.longitud_m || '—') + ' m · riesgo ' + (t.probabilidad * 100).toFixed(0) + ' % · corredor de ' + r.tramos.length + ' tramos.';
+  for (const tr of $('top10').querySelectorAll('tr')) tr.classList.toggle('sel', tr.dataset.tramo == seleccion);
+}
+
+async function cargarPeligros() {
+  const p = await VV.json('/api/tablero/peligros?k=15');
+  $('c-abiertos').textContent = p.abiertos;
+  $('peligros').innerHTML = p.top.map(x => '<tr><td><b>' + x.prioridad + '</b> <span class="sub">' + x.nivel_severidad +
+    '×' + x.peso_transito + '×' + x.reincidencia + '</span></td><td>' + VV.escapar(x.clase) + ' <span class="sub">' +
+    x.tipo_fila + (x.demo ? ' DEMO' : '') + (x.estado ? ' · ' + x.estado : '') + '</span></td><td>' +
+    VV.escapar(x.nombre_via || (x.id_tramo ? 'tramo ' + x.id_tramo : 'sin tramo')) + '</td><td>' + fecha(x.ts_utc) +
+    '</td></tr>').join('') || '<tr><td colspan="4" class="sub">No hay peligros registrados.</td></tr>';
+  mapa.puntos('peligros', p.top.filter(x => x.lat !== null).map(x => ({lat: x.lat, lon: x.lon,
+    color: x.cerrado ? VV.color('--sub') : VV.color('--mal'), radio: 4 + Math.min(6, x.prioridad / 3),
+    titulo: x.clase + ' · prioridad ' + x.prioridad})));
+}
+
+async function cargarReportes() {
+  const r = await VV.json('/api/tablero/reportes');
+  $('c-reportes').textContent = r.length;
+  $('reportes').innerHTML = r.map(x => '<tr><td>' + x.id_reporte + '</td><td>' + VV.escapar(x.tipo) +
+    (x.clase_sugerida ? ' <span class="sub">(CNN: ' + VV.escapar(x.clase_sugerida) + ')</span>' : '') + '</td><td>' +
+    fecha(x.ts_utc) + '</td><td><select data-id="' + x.id_reporte + '">' + ESTADOS.map(e => '<option' +
+    (e === x.estado ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td></tr>').join('') ||
+    '<tr><td colspan="4" class="sub">Sin reportes (el bot de Telegram quedó para después).</td></tr>';
+  for (const s of $('reportes').querySelectorAll('select')) s.onchange = async () => {
+    try { await VV.post('/api/tablero/reportes/' + s.dataset.id + '/estado', {estado: s.value}, {'X-Clave': $('clave').value}); cargarPeligros(); }
+    catch (e) { alert('No se cambió: ' + e.message); cargarReportes(); }
+  };
+}
+
+$('corrida').onchange = () => {
+  const c = datos.corridas[+$('corrida').value];
+  if (c) cargarRiesgo('?modelo=' + encodeURIComponent(c.modelo) + '&version=' + encodeURIComponent(c.version));
+};
+
+(async () => {
+  mapa = await VV.crearMapa($('mapa'));
+  try { await cargarRiesgo(); } catch (e) { $('info-corrida').textContent = 'Error: ' + e.message; }
+  try { await cargarPeligros(); } catch (e) {}
+  try { await cargarReportes(); } catch (e) {}
+  setInterval(() => { cargarPeligros().catch(() => {}); }, 15000);
+})();
+</script>
+</body>
+</html>

@@ -220,3 +220,25 @@ CREATE TABLE IF NOT EXISTS variables_tramo (
     fuente_etiqueta     TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_variables_barrio ON variables_tramo (barrio);
+
+-- ---------------------------------------------------------------------
+-- Sincronización opcional desde la Raspberry Pi (7-nov, pi/sincronizacion.py).
+-- SQLite sigue siendo la fuente de verdad; esto es solo la cola de envío
+-- de eventos y riesgo (lista blanca de columnas) a un servicio web gratuito.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS cola_envio (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tabla           TEXT NOT NULL CHECK (tabla IN ('eventos', 'riesgo')),
+    carga_json      TEXT NOT NULL,             -- fila ya filtrada (sin velocidad, vehículo, fotos ni datos de la Alcaldía)
+    creado          TEXT NOT NULL,             -- UTC
+    intentos        INTEGER NOT NULL DEFAULT 0,
+    proximo_intento TEXT NOT NULL DEFAULT '',  -- UTC; '' = ya
+    error           TEXT                       -- último error de red (diagnóstico)
+);
+CREATE INDEX IF NOT EXISTS idx_cola_envio ON cola_envio (tabla, proximo_intento);
+
+CREATE TABLE IF NOT EXISTS sync_marcas (
+    tabla           TEXT PRIMARY KEY,          -- eventos | riesgo
+    ultimo_id       INTEGER NOT NULL DEFAULT 0,-- último id ya revisado para la cola
+    enviados        INTEGER NOT NULL DEFAULT 0
+);
