@@ -3,7 +3,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bot"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "futuro" / "bot"))   # bot pospuesto el 7-nov
 
 
 def test_guardar_reporte_con_sugerencia(tmp_path):
