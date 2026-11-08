@@ -111,3 +111,53 @@ como `\pendiente{...}` (sale en rojo): no se reemplaza por números sintéticos.
 ```
 
 (Si se usa el dataset de Kaggle, citar `\cite{makeml_potholes}` en 6.2.)
+
+---
+
+# Cambios del 7-nov-2026 (noche): Raspberry Pi 4 como nodo central
+
+Texto propuesto para Overleaf (Juan Diego decide dónde y cómo). Los números de la Pi siguen `\pendiente{...}`.
+
+## 12. System Overview — reemplazar la descripción del nodo
+
+> After review by the Computer Architecture instructor, the in-vehicle node was moved from an ESP32 to a Raspberry Pi 4
+> Model B. The sensors (ADXL345 over SPI, MPU-6050, VL53L0X and BH1750 over I²C, NEO-6M GPS over UART, DHT22, a push
+> button and a status LED) are wired directly to the Pi, which runs the threshold detector, stores events in a local
+> SQLite database and serves a web application over its own Wi-Fi access point. The ESP32 implementation is kept as the
+> baseline for the architecture comparison (R7). The system is local-first: it works without Internet, and when a link
+> is available it synchronizes only events and per-segment risk to a free cloud service through a retrying queue.
+
+## 13. Computer Architecture — adquisición en la Pi (agregar después de la sección del DMA ping-pong)
+
+> On the Pi, the ADXL345 FIFO (watermark of 16 samples, 80 ms at 200 Hz) raises INT1 on a GPIO line; a high-priority
+> thread drains the FIFO in one burst. Because Linux is not a real-time OS, the 32-sample FIFO (160 ms) is the buffer
+> that absorbs scheduling jitter; overruns are counted and reported. Table~\ref{tab:r7pi} compares the Pi with the ESP32
+> baseline (DMA ping-pong on a dual-core FreeRTOS system) in detector latency, FIFO drain time, interrupt-to-read
+> latency, CPU load, temperature, memory and power (mean $\pm$ standard deviation, Welford, $n \geq 100$):
+> \pendiente{tabla de pi/r7/tabla_r7.py}. A MobileNetV2 int8 photo classifier needs at least 1~470~KB of activation
+> memory and 2~647~KB of weights, so it cannot run on the ESP32 (520~KB SRAM); on the Pi it runs in
+> \pendiente{latencia} ms.
+
+## 14. Data Structures — en Python en el servidor de la Pi
+
+> The data structures are implemented by hand in the Pi's server (Python) with the same complexity as the earlier Java
+> dashboard: a circular buffer for the live signal (O(1) per sample, fixed memory), a hash table with separate chaining
+> (load factor $\leq 0.75$) for per-segment counts, a binary max-heap for the top-10 risk segments among 5~775
+> ($O(n + k \log n)$), an adjacency-list street graph with BFS for corridors and connected risk zones ($O(V+E)$), and a
+> geohash-7 index to snap events to streets offline and to cluster repeated detections within 10~m into a single
+> pothole.
+
+## 15. Application for the city (nueva sección corta)
+
+> The web application has two views. The capture view, designed for a phone or a dashboard-mounted tablet, offers large
+> labeling buttons, live signal and GPS, sensor health and a safe shutdown. The city dashboard shows two map layers
+> (individual potholes and predicted risk per street segment), a pothole life cycle (detected, verified, repaired, or
+> dismissed) with an audit trail, and exports (PDF top-10 with a map, CSV and a three-sheet Excel workbook), and it
+> imports repair records from CSV after validating the whole file. Four team members are editors; city staff and
+> instructors have read-only access.
+
+## 16. Ethical and Legal Considerations (agregar)
+
+> Only events and per-segment risk leave the device, through a column allow-list; photos, video, driver traces and data
+> provided by the city never reach the cloud. Passwords are stored as PBKDF2 hashes and created by each user on the
+> device.
