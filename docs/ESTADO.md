@@ -10,16 +10,17 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
    muestreo, GPS ~99 %**. Faltan sus etiquetas. Para leerlos hubo que arreglar el lector (iOS escribe `X (m/s^2)`).
    Nueva **captura en vivo** por el acceso remoto de phyphox (plan A de etiquetado; el cronómetro queda como plan B).
 
-1. **Todo el software existe, compila y tiene pruebas** (51 pytest al 7-nov; GitHub Actions para Python y firmware), pero
+1. **Todo el software existe, compila y tiene pruebas** (68 pytest al 7-nov; GitHub Actions para Python y firmware), pero
    **nada se ha probado en hardware** (el ESP32 DevKit V1, DHT22 y BH1750 están por llegar) y **no hay datos reales**:
    salvo los 3 recorridos de phyphox del 7-nov (sin etiquetas).
 2. Todo lo que tiene números (detector, modelo de riesgo, modelo de fotos, escala) se probó **solo con datos SINTÉTICOS**
    marcados; no son resultados. En el informe siguen como `[PENDIENTE]`.
 3. Campo listo: protocolo de fotos (iPhone 15 de Juan Diego), planilla de campo, cronómetro por vueltas para phyphox
    (iPhone 17 de Pipe, ~100 Hz) con su conversor, y **validador** que dice "bien / corregir" antes de procesar.
-4. Demo lista en un comando (`demo\iniciar.ps1`) con base DEMO separada; el clasificador corre en el navegador del celular
-   (probado en el PC, falta el iPhone) y el bot sugiere la clase.
-5. Lo que destraba todo: **primeras salidas de campo** (fotos + phyphox) y **montar el nodo** cuando llegue el hardware.
+4. Demo lista en un comando (`.\iniciar.ps1`, con `-Reproducir` la Pi reproduce un recorrido real) con base DEMO
+   separada; el clasificador corre en el navegador del celular (probado en el PC, falta el iPhone). Bot pospuesto.
+5. Lo que destraba todo: **primeras salidas de campo** (fotos + phyphox) y **montar la Raspberry Pi** (nodo central desde
+   el 7-nov) con los sensores, después de la rama de Dany.
 
 ## Fases
 
@@ -33,6 +34,30 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | 4b | Etiquetado, escala validada, modelo de fotos (int8), clasificador en el iPhone | 8–11 nov | 🟡 Cadena completa con sintéticos; faltan fotos |
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
+
+## Hecho el 7-nov (noche): Raspberry Pi 4 = nodo central y aplicativo
+
+Decisión del 7-nov: el docente de Arquitectura consideró insuficiente el ESP32; la Pi pasa a nodo central y el ESP32 a
+línea base de R7. Todo se probó **en el PC** (68 pytest y reproduciendo el recorrido 03 de Pipe); **nada en la Pi todavía**.
+
+| Qué | Dónde | Probado |
+|---|---|---|
+| Sensores directo a la Pi (ADXL345 SPI con FIFO + interrupción, MPU-6050, VL53L0X, BH1750, GPS NMEA, DHT22 tolerante, pulsador, LED) | `pi/sensores.py`, `pi/fuentes.py` | Parser NMEA con pytest; **controladores sin placa** [VALIDAR EN PLACA] |
+| Núcleo: detector igual al de phyphox/ESP32, grabación en formato phyphox, hora del GPS | `pi/nucleo.py` | pytest + recorrido real 03 reproducido a 20×: 38 eventos ajustados a su tramo |
+| Captura para celular o tablet fija (botones grandes, señal, GPS, sensores, apagado seguro) | `pi/web/captura.html` | Navegador del PC (escritorio y 375 px); **falta el celular y la tablet reales** |
+| Tablero en vivo: capas de huecos (por estado) y de riesgo por tramo, top-10, orden de atención, reportes, historial | `pi/web/tablero.html`, `pi/almacen.py` | Navegador del PC con base DEMO; captura en `docs/img/tablero_pi.png` |
+| Huecos: detecciones ≤ 10 m, detectado → verificado → reparado / descartado, reapertura | `pi/almacen.py` | pytest |
+| Roles: editor (4), alcaldia y docente de lectura; sesiones; límite de intentos | `pi/usuarios.py` | pytest. **Faltan crear los usuarios** (cada quien su clave) |
+| Exportar PDF top-10 con mapa, Excel de 3 hojas, CSV; importar reparaciones con validación | `pi/exportar.py` | pytest + descarga desde el tablero |
+| Sincronización: cola con reintentos, solo eventos y riesgo, lista blanca; esquema con RLS | `pi/sincronizacion.py`, `pi/supabase_esquema.sql` | pytest con un servidor falso. **No hay proyecto de Supabase creado** |
+| Instalación, punto de acceso WiFi, apagado seguro, systemd | `pi/instalar.sh`, `pi/sistemas/` | **Sin probar** (no hay Pi) |
+| R7: registro cada 10 s (latencias, CPU, temp., RAM, bajo voltaje), consumo, tabla Pi vs. ESP32 vs. celular | `pi/sistema.py`, `pi/r7/` | Tabla genera [PENDIENTE] en todo: falta medir en la Pi |
+| Bot de Telegram pospuesto; `futuro/pi` → `pi/` | `futuro/bot/`, `docs/archivo/LEEME.md` | Prueba del bot sigue en verde |
+
+**Falta (Pi):** confirmar pines con la rama de Dany · especificaciones (RAM, fuente, microSD) · instalar y crear
+usuarios · probar sensores uno por uno · medir R7 y consumo con el tester USB · probar captura en el celular/tablet
+en el carro · si se quiere la nube: crear el proyecto de Supabase, pegar `pi/supabase_esquema.sql` y poner las claves
+en el `.env` de la Pi.
 
 ## Hecho el 7-nov (bloques 3 y 4: R5, R7, R3, Pi)
 

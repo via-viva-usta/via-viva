@@ -39,3 +39,16 @@ regla. Termohigrómetro de mano solo si alguien tiene uno.
 
 Comparación: el 2-nov se había anotado "≈ 330.000 COP" (sin desglose en el repo); con la cotización del 21-oct y sin la
 ESP32-CAM ni la S3 el total da 268.900.
+
+## Cambio del 7-nov: Raspberry Pi 4 como nodo central
+
+| Ítem | Cant. | Precio (COP) | Nota |
+|---|---|---|---|
+| Raspberry Pi 4 Model B | 1 | [PENDIENTE] | RAM [PENDIENTE: anotar 2/4/8 GB] |
+| microSD para la Pi (clase A1 o mejor) | 1 | [PENDIENTE] | Capacidad [PENDIENTE]; reemplaza al módulo microSD del nodo |
+| Adaptador 12 V (toma del carro) → USB-C 5 V / 3 A | 1 | [PENDIENTE] | La página avisa si hay bajo voltaje |
+| Tester USB (voltaje y corriente) | 1 | [PENDIENTE] | Para el consumo de R7 |
+| Módulo microSD por SPI | — | — | **Ya no se usa con la Pi** (queda con el ESP32 de línea base) |
+
+El ESP32 y los sensores ya comprados se reutilizan: los sensores pasan a la Pi y el ESP32 queda como línea base de R7.
+Total con la Pi: [PENDIENTE: precios reales de la compra].

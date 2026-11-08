@@ -10,14 +10,19 @@ y los issues abiertos de GitHub. Con esos dos archivos un chat nuevo puede segui
 VÍA VIVA es el Proyecto Integrador 2026-2 (2.º semestre, Ingeniería de Datos e IA, Universidad Santo Tomás, Seccional Tunja).
 Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las vías de Tunja (Colombia).
 
-- **Nodo en el carro (IA en el borde):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
+- **Nodo central en el carro (desde el 7-nov): Raspberry Pi 4 Model B** (`pi/`, guía en `pi/README.md`): los sensores van
+  directo a la Pi; detector por umbrales; SQLite local (fuente de verdad); servidor web propio (captura para celular o tablet
+  fija y tablero de la Alcaldía) en su WiFi `VIA-VIVA`; sincronización opcional a Supabase. El ESP32 de abajo queda como
+  **línea base de R7** y argumento de Arquitectura (`pi/justificacion.md`).
+- **Nodo ESP32 (línea base; era el nodo principal hasta el 7-nov):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
   láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador + **DHT22 y BH1750** (ambiente; el código también acepta un BME280). Detector por
   umbrales + clasificador int8 en el nodo; maniobras con el giroscopio; página web propia (punto de acceso Wi-Fi) para etiquetar.
 - **Celular = dispositivo de borde para imágenes (desde el 3-nov):** dataset propio de ≥ 500 fotos de 9 clases con fecha,
   hora, GPS, temperatura y humedad; tarjeta ArUco para la escala; clasificador MobileNetV3 → TFLite int8 (`dataset/`).
   La ESP32-CAM y el CP2102 **salieron del diseño** (`futuro/`).
 - **PC / portátil:** ETL (nodo + phyphox + bot + scraping + OpenStreetMap) → SQLite → modelo de riesgo por tramo de calle →
-  tablero Java Swing (autoridad) + mapa web estático (ciudadanía). Bot de Telegram para reportes con foto y ubicación.
+  tablero Java Swing (versión anterior) + mapa web estático (ciudadanía). Bot de Telegram **pospuesto el 7-nov**
+  (`futuro/bot/`); el tablero para la Alcaldía es la web de la Pi.
 - **No** genera multas ni lee placas.
 
 ## 2. Decisiones vigentes (no reabrir sin hablar con Andrés)
@@ -52,8 +57,11 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 5-nov | **INFORME: Claude NO compila ni genera PDF/.docx**; Juan Diego lo edita en **Overleaf**; Claude propone texto en `docs/cambios_informe.md` |
 | 5-nov | La Alcaldía apoya de palabra un **piloto** (falta convenio USTA–Alcaldía) |
 | **7-nov** | **Etiquetado plan A = captura en vivo** por el acceso remoto de phyphox (`herramientas/captura_phyphox_remoto.py`, teclas H R G T O I P Q); el cronómetro por vueltas queda como plan B. Primeros 3 recorridos reales en `data/raw/phyphox/` |
-| 7-nov | **Scraping diario** con el Programador de tareas (`VIA VIVA scraping diario`, 06:30, `etl.scraping.diario`, log en `data/logs/`). Latencias siempre **media ± desviación** (Welford, N ≥ 100). Raspberry Pi 4 solo en `futuro/pi/` (el ESP32 no cambia; la CNN de fotos no cabe en él) |
+| 7-nov | **Scraping diario** con el Programador de tareas (`VIA VIVA scraping diario`, 06:30, `etl.scraping.diario`, log en `data/logs/`). Latencias siempre **media ± desviación** (Welford, N ≥ 100). ~~Raspberry Pi 4 solo en `futuro/pi/`~~ → nodo central el mismo 7-nov (abajo) |
 | 7-nov | Un solo `iniciar.ps1` en la raíz; lo obsoleto se **mueve** a `docs/archivo/` (nunca se borra; lista en `LEEME.md`) |
+| **7-nov (noche)** | **Raspberry Pi 4 Model B = nodo central** (el docente de Arquitectura vio insuficiente el ESP32). Sensores directo a la Pi: ADXL345 por SPI con **FIFO + interrupción en GPIO** (sustituye al DMA), MPU-6050/VL53L0X/BH1750 por I2C, GPS por UART, DHT22 tolerante a fallos, pulsador y LED; **sin módulo microSD**. ESP32 = línea base de R7. **Pines por confirmar con la rama de Dany** (no tocar firmware ni hardware antes) |
+| 7-nov | **Aplicativo web servido por la Pi**, local primero (la Pi es punto de acceso `VIA-VIVA`, 192.168.4.1): captura para celular o tablet fija (botones grandes) y tablero en vivo para la Alcaldía (capas de huecos por estado y de riesgo por tramo). **Hueco** = detecciones a ≤ 10 m; estado detectado → verificado → reparado (o descartado), con historial. **Roles:** 4 editores (equipo), Alcaldía y docentes de solo lectura. Exportar PDF (top-10 con mapa), CSV y Excel (3 hojas); importar reparaciones por CSV con validación. Prioridad: captura → tablero → exportables → sincronización |
+| 7-nov | **Nube opcional:** solo eventos y riesgo a **Supabase** (cola con reintentos, lista blanca de columnas, nada de fotos, video, trazas ni datos de la Alcaldía); SQLite local = fuente de verdad; claves solo en `.env`. Alimentación: 12 V del carro → USB-C 5 V / 3 A; **apagado seguro** con el pulsador (3 s). La cámara no va en la Pi (fotos con el celular). **Bot de Telegram pospuesto** (`futuro/bot/`). Estructuras de datos en Python (`pi/estructuras.py`), justificadas con Big-O |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
 (propuesta entregada, con ESP32-S3: **no se modifica**; archivada el 7-nov), `docs/diagramas/` (Mermaid), `docs/montaje.md`,
@@ -64,11 +72,11 @@ Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota de
 | Materia | Qué debe quedar demostrable | Dónde está |
 |---|---|---|
 | Sistemas de Adquisición (SADP) | Muestreo justificado (espectro/Nyquist), filtros, sincronía GPS, características, métricas de detección | `analysis/`, `firmware/.../caracteristicas.h` |
-| Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4) | `firmware/nodo-sensores/`, `docs/experimentos.md` |
-| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
+| Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4); Pi 4 vs. ESP32 (R7) | `pi/` (FIFO + interrupción en Linux, `pi/r7/`), `firmware/nodo-sensores/` (línea base), `docs/experimentos.md` |
+| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `pi/estructuras.py` (servidor de la Pi, tabla de Big-O en `pi/README.md`), `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
 | Requisitos extra | ETL, web scraping, IA ligera, demo | `etl/`, `analysis/`, `dataset/`, `docs/demo.md` |
 
-Pendiente del diseño original de Estructuras: bitácora por fechas con `TreeMap` y "peligros" agrupados (cuando haya eventos).
+Pendiente del diseño original de Estructuras: bitácora por fechas con `TreeMap`. Los "peligros" agrupados ya existen: tabla `huecos` (7-nov).
 
 ## 4. Estructura del repositorio
 ```
@@ -78,19 +86,20 @@ via-viva/
 ├── firmware/
 │   ├── nodo-sensores/   PlatformIO esp32dev: src/ (módulos), include/ (pines.h, config.h, secretos.example.h),
 │                        pruebas/ (un programa por sensor), wokwi/ (simulación), diagram.json + wokwi.toml
-├── db/              schema.sql (8 tablas), acceso.py (capa de acceso), reconstruir.ps1
+├── db/              schema.sql (14 tablas; huecos, usuarios y cola de sincronización desde el 7-nov), acceso.py (capa de acceso), reconstruir.ps1
 ├── etl/             osm_tunja, barrios_tunja, elevacion, scraping/ (clima IDEAM, noticias), recorridos, recorrido_sintetico
 ├── analysis/        senales.py, detector_umbral.py, modelo_cnn.py, entrenar_detector.py, experimentos.py, notebook
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
-├── bot/             bot.py, reportes.py, cambiar_estado.py
+├── pi/              NODO CENTRAL Raspberry Pi: sensores, nucleo, almacen (huecos), servidor web (captura + tablero),
+│                    usuarios (roles), exportar, sincronizacion (+ supabase_esquema.sql), instalar.sh, sistemas/, r7/
 ├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
 ├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html), validar_campo.py, programar_scraping.ps1, buscar_secretos.py
-├── iniciar.ps1      todo en un comando (tablero, mapa, bot, clasificador, captura en vivo)
+├── iniciar.ps1      todo en un comando en el PC (servidor de la Pi en :8081, mapa, clasificador, phyphox)
 ├── demo/            datos_demo.py (base DEMO aparte)
-├── tests/           pytest (51 pruebas)
+├── tests/           pytest (68 pruebas)
 ├── entornos/        pip freeze exacto de cada venv (reproducibilidad) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
-├── futuro/          trabajo futuro: nodo-camara (ESP32-CAM), láser de cuadrícula, OBD2
+├── futuro/          trabajo futuro: bot/ (Telegram, pospuesto el 7-nov), nodo-camara (ESP32-CAM), láser, OBD2
 ├── dashboard-java/  NetBeans Ant, Java 21: estructuras/ (TablaHash, MonticuloMax, GrafoCalles, IndiceGeohash)
 ├── report/          main.tex (IEEE), referencias.bib, figuras/generar.py, tablas/ (generadas por experimentos.py)
 └── data/            solo README y muestras; raw/, alcaldia/, osm/, campo/, fotos_bot/, procesado*/ y la base .db ignorados
@@ -166,6 +175,22 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 - Tamaño (esp32dev, 5-nov): RAM estática 66 348 B (20,2 %), flash 944 269 B (48,0 %), partición `min_spiffs.csv`.
   Wokwi: `wokwi-esp32-devkit-v1` + DHT22.
 
+## 7b. Nodo central Raspberry Pi (`pi/`, desde el 7-nov) — guía completa en `pi/README.md`
+- **Fuentes** (`pi/fuentes.py`): `FuenteSensores` (hilos: ADXL con SCHED_FIFO, I2C 100 Hz, GPS, ambiente 10 s, LED) y
+  `FuenteReproduccion` (export de phyphox o grabación de la Pi, `--velocidad`, `--bucle`; eventos `origen='simulado'`).
+- **Núcleo** (`pi/nucleo.py`): detector idéntico al de `analysis/detector_umbral.py` (prueba en `tests/test_pi.py`),
+  clase provisional `impacto_fuerte` hasta que el copiloto etiquete a ± 3 s; grabación en `data/raw/pi/` en **formato
+  phyphox iOS** (+ Ambiente, Distancia_vl53l0x, Accelerometer_mpu6050, eventos, etiquetas); hora corregida con el GPS.
+- **Base:** tablas nuevas `huecos`, `cambios_estado`, `usuarios`, `sesiones`, `cola_envio`, `sync_marcas`; columna
+  `eventos.id_hueco`. Agrupación ≤ 10 m con geohash; lo simulado se agrupa aparte; un hueco reparado que se vuelve a
+  detectar se reabre.
+- **Servidor** (`python -m pi.servidor`): `/` captura (editor), `/tablero` (todos), `/entrar`, `/api/...`. Sin usuarios
+  creados solo responde a 127.0.0.1 (demo en el PC). Usuarios: `python -m pi.usuarios crear <u> --rol editor|alcaldia|docente`
+  (contraseña por getpass; **nunca** crearla ni pedirla por chat).
+- **En el PC:** `.\iniciar.ps1 -Reproducir data\raw\phyphox\2026-11-07_03_pipe.zip` → http://localhost:8081.
+- **R7:** `data/logs/r7_pi.jsonl` cada 10 s; `pi/r7/tabla_r7.py tabla` arma la tabla Pi vs. ESP32 vs. celular.
+- Todo lo de hardware de la Pi está **[VALIDAR EN PLACA]**; pines en `pi/config.py` pendientes de Dany.
+
 ## 8. Señal, detector y entrenamiento
 - Muestreo de trabajo 200 Hz (hipótesis; se valida con el espectro de los primeros recorridos: 95 % de la energía).
 - Clases: normal, hueco, resalto, impacto_fuerte (+ maniobras: giro_izquierda, giro_derecha, frenada_brusca).
@@ -230,7 +255,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 ## 11. Entorno de desarrollo (PC de Andrés, Windows 11)
 | Herramienta | Dónde / cómo |
 |---|---|
-| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (torch CPU, emlearn), `bot\.venv` (+ LiteRT), `dataset\.venv` (OpenCV **< 5**, scipy, pytest) y **`%USERPROFILE%\.venvs\vv-modelo`** (TensorFlow **2.20**, tf_keras, tfmot: no cabe en la ruta del repo sin rutas largas). Versiones fijadas el 5-nov (pandas 3.0.0, scikit-learn 1.7.2, TF 2.20.0) porque Smart App Control bloqueaba las nuevas; Andrés lo desactivó, pero las fijadas son las probadas |
+| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (torch CPU, emlearn), `futuro\bot\.venv` (+ LiteRT; el bot está pospuesto) y en la Pi `pi/.venv` (`pi/instalar.sh`), `dataset\.venv` (OpenCV **< 5**, scipy, pytest) y **`%USERPROFILE%\.venvs\vv-modelo`** (TensorFlow **2.20**, tf_keras, tfmot: no cabe en la ruta del repo sin rutas largas). Versiones fijadas el 5-nov (pandas 3.0.0, scikit-learn 1.7.2, TF 2.20.0) porque Smart App Control bloqueaba las nuevas; Andrés lo desactivó, pero las fijadas son las probadas |
 | Pruebas | `dataset\.venv\Scripts\python -m pytest` (desde `via-viva/`) |
 | PlatformIO | `%USERPROFILE%\.platformio\penv\Scripts\pio.exe` (no está en el PATH) |
 | MiKTeX 25.12 | Instalado por usuario con winget; `pdflatex main`, `bibtex main`, `pdflatex main` ×2 en `report/`. Incluye `pdftoppm` |

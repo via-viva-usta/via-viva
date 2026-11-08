@@ -24,6 +24,14 @@ quedó en `local_sin_git/` (ignorada por Git).
 `report/main.aux`, `.bbl`, `.blg`, `.log`, `.out` (salidas de LaTeX) y `.pytest_cache/`. No había `__pycache__` fuera de
 los venvs.
 
+## Movido el 7-nov (noche): la Raspberry Pi pasa a nodo central
+
+| Antes | Ahora | Por qué |
+|---|---|---|
+| `futuro/pi/README.md` | `docs/archivo/futuro_pi_2026-11-07/README.md` | Describía la Pi como servidor opcional; la vigente es `pi/README.md` |
+| `futuro/pi/benchmark_cnn.py`, `instalar.sh`, `justificacion.md`, servicios del scraping | `pi/r7/`, `pi/`, `pi/sistemas/` | La Pi es el nodo central (se actualizaron) |
+| `bot/` (+ su venv) y `futuro/pi/via-viva-bot.service` | `futuro/bot/` | Bot de Telegram pospuesto; el código no se tocó |
+
 ## Se queda donde está (no es obsoleto)
 
 - `futuro/` (ESP32-CAM, láser de cuadrícula, OBD2): es **trabajo futuro**, no archivo.
