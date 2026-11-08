@@ -9,9 +9,10 @@ Mide, con la versión de dataset/salidas/ultimo.txt (o --modelo):
 Guarda una línea JSON en data/logs/benchmark_cnn.jsonl (ignorada por Git) y la imprime.
 
 Uso:
-  PC (control):   bot\\.venv\\Scripts\\python futuro\\pi\\benchmark_cnn.py
-  Raspberry Pi:   ~/via-viva/bot/.venv/bin/python futuro/pi/benchmark_cnn.py --equipo "Pi 4 4GB" --corriente-ma 650 --voltaje 5.1
-Necesita numpy y ai-edge-litert (o TensorFlow): el venv del bot ya los tiene.
+  PC (control):   futuro\\bot\\.venv\\Scripts\\python pi\\r7\\benchmark_cnn.py
+  Raspberry Pi:   pi/.venv/bin/python -m pip install numpy ai-edge-litert   (una vez)
+                  pi/.venv/bin/python pi/r7/benchmark_cnn.py --equipo "Pi 4 <RAM>" --corriente-ma 650 --voltaje 5.1
+Necesita numpy y ai-edge-litert (o TensorFlow). El modelo (dataset/salidas/<versión>/) no está en Git: copiarlo del PC.
 """
 from __future__ import annotations
 

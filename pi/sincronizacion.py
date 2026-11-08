@@ -5,8 +5,10 @@
   (sin variables ni la marca "reportado", que viene de datos de la Alcaldía). Nada de fotos, video, trayectorias ni
   datos crudos de la Alcaldía. Los datos DEMO, SINTÉTICOS y simulados nunca salen.
 - Cola `cola_envio` en SQLite con reintentos y espera exponencial (30 s, 1 min, 2 min, … hasta 1 h).
-- Claves solo en `.env`: `SUPABASE_URL` y `SUPABASE_CLAVE` (clave pública con RLS que solo permite insertar en
-  estas dos tablas; ver `pi/supabase_esquema.sql`). Sin claves, la sincronización queda apagada.
+- Claves solo en el `.env` de la Pi: `SUPABASE_URL` y `SUPABASE_CLAVE` (clave secreta del proyecto). En Supabase las
+  tablas tienen RLS de solo lectura pública: con la clave pública nadie escribe (`pi/supabase_esquema.sql`).
+  Sin claves, la sincronización queda apagada y solo se llena la cola local.
+- La Pi es el punto de acceso WiFi (sin internet). Para sincronizar: cable de red o USB al celular con datos.
 
 Uso: corre como hilo dentro de `pi.servidor`; para probar a mano: `python -m pi.sincronizacion --una-vez`.
 """

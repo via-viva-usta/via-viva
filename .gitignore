@@ -118,3 +118,6 @@ web/clasificador/modelo/
 
 # ===== Archivo: copias locales que no van a Git =====
 docs/archivo/local_sin_git/
+
+# Leaflet local de la Pi (lo descarga pi/instalar.sh)
+pi/web/vendor/
