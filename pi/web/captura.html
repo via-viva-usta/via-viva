@@ -2,109 +2,128 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6feb">
 <title>VÍA VIVA · Captura</title>
 <link rel="stylesheet" href="/static/estilo.css">
 </head>
 <body>
 <header class="barra">
-  <div><strong>VÍA VIVA</strong> <span class="sub">captura en el carro</span></div>
-  <div id="insignia" class="insignia">—</div>
+  <div class="marca"><span class="logo"></span><div>VÍA VIVA<small>Captura en el carro</small></div></div>
+  <span id="insignia" class="rol">—</span>
+  <span class="espacio"></span>
+  <button id="b-pantalla" class="enlace" title="Pantalla completa (tablet fija)">⛶ Pantalla completa</button>
+  <a href="/tablero">Tablero</a>
+  <div class="cuenta" id="cuenta"></div>
 </header>
 
 <main class="captura">
-  <section class="tarjeta" id="t-grabar">
-    <div class="fila">
-      <input id="nombre" placeholder="Nombre del recorrido (opcional)" maxlength="30">
-      <button id="b-grabar" class="primario grande">Iniciar grabación</button>
+  <section class="tarjeta area-control">
+    <button id="b-grabar" class="boton-grabar primario"><span class="punto-rec"></span><span id="t-grabar">Iniciar grabación</span></button>
+    <input id="nombre" placeholder="Nombre del recorrido (opcional)" maxlength="30" style="width:100%;margin-top:10px">
+    <div class="fichas">
+      <div class="ficha"><span class="et">Tiempo</span><span id="d-tiempo" class="valor">0:00</span></div>
+      <div class="ficha"><span class="et">km/h</span><span id="d-vel" class="valor">—</span></div>
+      <div class="ficha"><span class="et">Eventos</span><span id="d-eventos" class="valor">0</span></div>
+      <div class="ficha"><span class="et">Etiquetas</span><span id="d-etq" class="valor">0</span></div>
     </div>
-    <div class="fila datos">
-      <div><span class="et">Tiempo</span><span id="d-tiempo" class="valor">0:00</span></div>
-      <div><span class="et">Velocidad</span><span id="d-vel" class="valor">—</span></div>
-      <div><span class="et">Eventos</span><span id="d-eventos" class="valor">0</span></div>
-      <div><span class="et">Etiquetas</span><span id="d-etq" class="valor">0</span></div>
-    </div>
-    <p id="aviso-fuente" class="aviso oculto"></p>
+    <p id="aviso-fuente" class="aviso oculto" style="margin-top:10px"></p>
   </section>
 
-  <section class="tarjeta">
-    <h2>Etiquetar (copiloto)</h2>
-    <div class="botones-etq" id="etiquetas"></div>
-    <p class="ayuda">Toque cuando la llanta pase por el daño. Se une al evento detectado a ± 3 s.</p>
+  <section class="tarjeta area-etq">
+    <h2>¿Qué pisó la llanta? <span class="sub">toque al pasar · se une al evento a ± 3 s</span></h2>
+    <div class="etiquetas" id="etiquetas"></div>
   </section>
 
-  <section class="tarjeta">
-    <h2>Señal en vivo <span class="sub">|a| − 1 g, últimos 30 s</span></h2>
-    <canvas id="grafica" height="150"></canvas>
-  </section>
-
-  <section class="tarjeta">
-    <h2>GPS <span class="sub" id="d-gps">—</span></h2>
+  <section class="tarjeta area-vivo">
+    <h2>Señal <span class="sub">|a| − 1 g · 30 s · líneas a ± 0,30 g</span></h2>
+    <canvas id="grafica" class="grafica"></canvas>
+    <div class="estado-gps" style="margin-top:10px"><span id="p-gps" class="punto"></span><span id="d-gps">GPS: —</span></div>
     <div id="mapa" class="mapa"></div>
   </section>
 
-  <section class="tarjeta">
-    <h2>Sensores</h2>
-    <ul id="sensores" class="lista-sensores"></ul>
-    <div id="ambiente" class="sub"></div>
-  </section>
-
-  <section class="tarjeta">
-    <h2>Pi</h2>
-    <div id="sistema" class="rejilla-sistema"></div>
-    <div id="sync" class="sub"></div>
-  </section>
-
-  <section class="tarjeta">
-    <h2>Últimos eventos</h2>
-    <table class="tabla"><thead><tr><th>t (s)</th><th>Pico</th><th>Clase</th><th>Tramo</th></tr></thead>
-      <tbody id="eventos"></tbody></table>
-    <ul id="mensajes" class="mensajes"></ul>
-  </section>
-
-  <section class="tarjeta">
-    <button id="b-apagar" class="peligro">Apagar la Pi con seguridad</button>
-    <p class="ayuda">Cierra la grabación y apaga sin dañar la microSD. También: sostener el pulsador 3 s.
-      <a href="/tablero">Tablero de la Alcaldía →</a></p>
-  </section>
+  <details class="tarjeta area-diag" id="diag">
+    <summary>Diagnóstico: sensores, Pi, eventos y apagado</summary>
+    <div class="diag">
+      <div><h2>Sensores</h2><ul id="sensores" class="lista-sensores"></ul><p id="ambiente" class="ayuda"></p></div>
+      <div><h2>Raspberry Pi</h2><div id="sistema" class="rejilla" style="margin-top:8px"></div><p id="sync" class="ayuda"></p></div>
+      <div><h2>Últimos eventos</h2>
+        <div class="envoltura-tabla"><table class="tabla"><thead><tr><th>t (s)</th><th>Pico</th><th>Clase</th><th>Tramo</th></tr></thead>
+          <tbody id="eventos"></tbody></table></div>
+        <ul id="mensajes" class="mensajes"></ul></div>
+      <div><h2>Apagar</h2>
+        <p class="ayuda" style="margin-bottom:10px">Cierra la grabación y apaga sin dañar la microSD. También: sostener el pulsador 3 s.</p>
+        <button id="b-apagar" class="peligro">Apagar la Pi con seguridad</button></div>
+    </div>
+  </details>
 </main>
 
 <script src="/static/comun.js"></script>
 <script>
-const CLASES = [['hueco', 'Hueco'], ['resalto', 'Resalto'], ['grieta', 'Grieta'], ['tapa', 'Tapa'],
-                ['obstaculo', 'Obstáculo'], ['impacto_fuerte', 'Impacto'], ['parche', 'Parche'], ['otro', 'Otro'],
-                ['parada', 'Parada ⏯']];
+const CLASES = [['hueco', 'Hueco', '--est-detectado'], ['resalto', 'Resalto', '--aviso'], ['grieta', 'Grieta', '--r3'],
+                ['tapa', 'Tapa', '--sub'], ['obstaculo', 'Obstáculo', '--r4'], ['impacto_fuerte', 'Impacto', '--r5'],
+                ['parche', 'Parche', '--est-verificado'], ['otro', 'Otro', '--borde'], ['parada', 'Parada', '--acento']];
 const $ = (id) => document.getElementById(id);
-let ultimo = null, mapa = null, centrado = false;
+let ultimo = null, mapa = null, centrado = false, fallos = 0;
 
-for (const [c, t] of CLASES) {
-  const b = document.createElement('button'); b.textContent = t; b.className = 'etq';
-  b.onclick = async () => {
-    b.classList.add('pulsado'); setTimeout(() => b.classList.remove('pulsado'), 300);
-    try { await VV.post('/api/etiqueta', {clase: c}); if (navigator.vibrate) navigator.vibrate(60); }
-    catch (e) { alert('No se guardó la etiqueta: ' + e.message); }
-  };
+if (matchMedia('(min-width: 900px)').matches) $('diag').open = true;
+
+for (const [c, t, color] of CLASES) {
+  const b = document.createElement('button');
+  b.className = 'etq'; b.id = 'etq-' + c; b.style.borderLeftColor = 'var(' + color + ')';
+  b.innerHTML = t + '<small>' + (c === 'parada' ? 'inicio / fin' : '&nbsp;') + '</small>';
+  b.onclick = () => etiquetar(c, t, b);
   $('etiquetas').appendChild(b);
+}
+
+async function etiquetar(c, t, b) {
+  b.classList.add('pulsado'); setTimeout(() => b.classList.remove('pulsado'), 350);
+  if (navigator.vibrate) navigator.vibrate(50);
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      const r = await VV.post('/api/etiqueta', {clase: c});
+      const e = r.etiqueta;
+      VV.aviso(t + ' ✓  ' + (e.vel_kmh ? Math.round(e.vel_kmh) + ' km/h' : '') + (e.lat === null ? ' · sin GPS' : ''), 'ok');
+      return;
+    } catch (err) { if (intento) VV.aviso('No se guardó: ' + err.message, 'mal'); }
+  }
 }
 
 $('b-grabar').onclick = async () => {
   const grabando = ultimo && ultimo.grabando;
+  if (grabando && !confirm('¿Detener y guardar la grabación?')) return;
   $('b-grabar').disabled = true;
-  try { await VV.post('/api/grabar', grabando ? {accion: 'detener'} : {accion: 'iniciar', nombre: $('nombre').value}); }
-  catch (e) { alert(e.message); }
+  try {
+    const r = await VV.post('/api/grabar', grabando ? {accion: 'detener'} : {accion: 'iniciar', nombre: $('nombre').value});
+    VV.aviso(grabando ? 'Guardada: ' + r.carpeta : 'Grabando', grabando ? 'ok' : '');
+  } catch (e) { VV.aviso(e.message, 'mal'); }
   $('b-grabar').disabled = false; actualizar();
 };
 
 $('b-apagar').onclick = async () => {
   if (!confirm('¿Cerrar la grabación y apagar la Pi?')) return;
-  try { const r = await VV.post('/api/apagar', {confirmar: 'si'}); alert(r.mensaje); }
-  catch (e) { alert(e.message); }
+  try { const r = await VV.post('/api/apagar', {confirmar: 'si'}); alert(r.mensaje); } catch (e) { alert(e.message); }
 };
 
-function mmss(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+$('b-pantalla').onclick = () => {
+  const d = document.documentElement;
+  (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen).call(d))
+    .catch?.(() => {});
+};
+
+// Mantener la pantalla encendida mientras graba (solo si el navegador lo permite: requiere HTTPS o localhost)
+let bloqueo = null;
+async function pantallaEncendida(si) {
+  try {
+    if (si && !bloqueo && navigator.wakeLock) bloqueo = await navigator.wakeLock.request('screen');
+    if (!si && bloqueo) { await bloqueo.release(); bloqueo = null; }
+  } catch (e) { bloqueo = null; }
+}
+
+const mmss = (s) => { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
 function grafica(serie) {
-  const cv = $('grafica'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = 150;
+  const cv = $('grafica'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
   cv.width = w * dpr; cv.height = h * dpr;
   const g = cv.getContext('2d'); g.scale(dpr, dpr);
   const lim = 1.5, y = (v) => h / 2 - Math.max(-lim, Math.min(lim, v)) / lim * (h / 2 - 4);
@@ -113,71 +132,85 @@ function grafica(serie) {
   g.setLineDash([]);
   if (serie.length < 2) return;
   const t0 = serie[serie.length - 1][0] - 30;
-  g.strokeStyle = VV.color('--acento'); g.lineWidth = 1.5; g.beginPath();
+  g.strokeStyle = VV.color('--acento'); g.lineWidth = 1.6; g.beginPath();
   serie.forEach(([t, v], i) => { const x = (t - t0) / 30 * w; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); });
   g.stroke();
 }
 
-function punto(ok) { return '<span class="punto ' + (ok === true ? 'ok' : ok === false ? 'mal' : 'gris') + '"></span>'; }
+const punto = (ok) => '<span class="punto ' + (ok === true ? 'ok' : ok === false ? 'mal' : '') + '"></span>';
 
 async function actualizar() {
   let e;
-  try { e = await VV.json('/api/estado'); } catch (err) {
-    $('insignia').textContent = 'Sin conexión con la Pi'; $('insignia').className = 'insignia mal'; return;
+  try { e = await VV.json('/api/estado'); fallos = 0; } catch (err) {
+    if (++fallos >= 3) { $('insignia').textContent = 'Sin conexión con la Pi'; $('insignia').style.color = 'var(--mal)'; }
+    return;
   }
   ultimo = e;
   $('insignia').textContent = e.grabando ? '● Grabando' : (e.origen === 'simulado' ? 'Reproducción (demo)' : 'Listo');
-  $('insignia').className = 'insignia ' + (e.grabando ? 'grabando' : 'ok');
-  $('b-grabar').textContent = e.grabando ? 'Detener y guardar' : 'Iniciar grabación';
-  $('b-grabar').className = (e.grabando ? 'peligro' : 'primario') + ' grande';
+  $('insignia').style.color = e.grabando ? 'var(--mal)' : 'var(--ok)';
+  $('t-grabar').textContent = e.grabando ? 'Detener y guardar' : 'Iniciar grabación';
+  $('b-grabar').classList.toggle('grabando', e.grabando);
+  $('b-grabar').classList.toggle('primario', !e.grabando);
   $('nombre').disabled = e.grabando;
+  pantallaEncendida(e.grabando);
   $('d-tiempo').textContent = mmss(e.t_grabacion_s);
-  $('d-vel').textContent = VV.texto(e.gps.vel_kmh, ' km/h', 0);
-  $('d-eventos').textContent = e.eventos + (e.eventos_sin_gps ? ' (' + e.eventos_sin_gps + ' sin GPS)' : '');
+  $('d-vel').textContent = VV.texto(e.gps.vel_kmh, '', 0);
+  $('d-eventos').textContent = e.eventos;
   $('d-etq').textContent = e.n_etiquetas;
+  const parada = e.etiquetas.filter(x => x.clase.startsWith('parada_')).pop();
+  $('etq-parada').classList.toggle('parada-abierta', !!parada && parada.clase === 'parada_inicio');
   const av = $('aviso-fuente');
-  if (e.origen === 'simulado') { av.textContent = 'Modo reproducir: datos de una grabación, los eventos se guardan como simulados.'; av.classList.remove('oculto'); }
-  else if (e.acelerometro_sin_datos) { av.textContent = 'El acelerómetro no envía datos.'; av.classList.remove('oculto'); }
-  else av.classList.add('oculto');
+  const textos = [];
+  if (e.origen === 'simulado') textos.push('Modo reproducir: datos de una grabación; los eventos se guardan como simulados.');
+  if (e.acelerometro_sin_datos) textos.push('El acelerómetro no envía datos.');
+  if (e.eventos_sin_gps) textos.push(e.eventos_sin_gps + ' eventos sin GPS (no van a la base).');
+  if (e.sistema.estrangulamiento && e.sistema.estrangulamiento.bajo_voltaje) textos.push('Bajo voltaje: revisar el adaptador de 12 V → 5 V 3 A.');
+  av.textContent = textos.join(' '); av.classList.toggle('oculto', !textos.length);
   grafica(e.serie);
 
   const g = e.gps;
-  $('d-gps').textContent = g.fix ? (g.lat.toFixed(5) + ', ' + g.lon.toFixed(5) + ' · ±' + VV.texto(g.precision_m, ' m', 0) +
-    ' · ' + g.satelites + ' sat.' + (g.hora_de_gps ? ' · hora GPS' : '')) : 'sin fijación';
+  $('p-gps').className = 'punto ' + (g.fix ? 'ok' : 'mal');
+  $('d-gps').textContent = g.fix ? 'GPS ' + g.lat.toFixed(5) + ', ' + g.lon.toFixed(5) + ' · ±' + VV.texto(g.precision_m, ' m', 0) +
+    (g.satelites ? ' · ' + g.satelites + ' sat.' : '') + (g.hora_de_gps ? ' · hora GPS' : '') : 'GPS sin fijación';
   if (mapa) {
     mapa.lineas('recorrido', [{puntos: e.trayecto, color: VV.color('--acento'), grosor: 4}]);
     mapa.puntos('eventos', e.ultimos_eventos.filter(x => x.lat !== null).map(x => ({lat: x.lat, lon: x.lon,
-      color: VV.color('--mal'), titulo: x.clase + ' · ' + x.p2p_g + ' g'})));
+      color: VV.color('--est-detectado'), titulo: (x.etiqueta_manual || x.clase) + ' · ' + x.p2p_g + ' g'})));
     if (g.fix) { mapa.puntos('yo', [{lat: g.lat, lon: g.lon, color: VV.color('--acento'), radio: 8}]);
-      if (!centrado || e.grabando) { mapa.centrar(g.lat, g.lon); centrado = true; } }
+      if (!centrado || e.grabando) { mapa.centrar(g.lat, g.lon, centrado ? 0 : 16); centrado = true; } }
   }
 
   $('sensores').innerHTML = Object.entries(e.sensores).map(([n, s]) => '<li>' + punto(s.presente && !(s.edad_s > 15)) +
-    '<b>' + VV.escapar(n) + '</b> ' + (s.presente ? (s.edad_s !== null && s.edad_s !== undefined ? 'hace ' + s.edad_s + ' s' : '') +
+    '<span><b>' + VV.escapar(n) + '</b> ' + (s.presente ? (s.edad_s !== null && s.edad_s !== undefined ? 'hace ' + s.edad_s + ' s' : '') +
     (s.desbordes_fifo ? ' · FIFO desbordada ' + s.desbordes_fifo : '') + (s.fallos ? ' · fallos ' + s.fallos : '') +
     (s.archivo ? VV.escapar(s.archivo) + ' · ' + s.fs_hz + ' Hz · vuelta ' + s.vueltas : '')
-    : '<span class="sub">' + VV.escapar(s.error || 'no detectado') + '</span>') + '</li>').join('');
+    : '<span class="sub">' + VV.escapar(s.error || 'no detectado') + '</span>') + '</span></li>').join('');
   const a = e.ambiente;
   $('ambiente').textContent = 'Ambiente: ' + VV.texto(a.temperatura_c, ' °C') + ' · ' + VV.texto(a.humedad_pct, ' % HR', 0) +
     ' · ' + VV.texto(a.lux, ' lx', 0) + ' · distancia ' + VV.texto(e.distancia_mm, ' mm', 0);
 
-  const s = e.sistema, est = s.estrangulamiento;
-  $('sistema').innerHTML = [['CPU', VV.texto(s.cpu_pct, ' %')], ['Temp.', VV.texto(s.temp_c, ' °C')],
-    ['RAM proceso', VV.texto(s.memoria.proceso_mb, ' MB')], ['Libre', VV.texto(s.disco.libre_gb, ' GB')],
+  const s = e.sistema, est = s.estrangulamiento, lat = e.latencias.detector_us;
+  $('sistema').innerHTML = [['CPU', VV.texto(s.cpu_pct, ' %')], ['Temperatura', VV.texto(s.temp_c, ' °C')],
+    ['RAM proceso', VV.texto(s.memoria.proceso_mb, ' MB')], ['microSD libre', VV.texto(s.disco.libre_gb, ' GB')],
     ['Voltaje', est ? (est.bajo_voltaje ? '<span class="malt">BAJO</span>' : est.hubo_bajo_voltaje ? 'hubo bajo' : 'OK') : '—'],
-    ['Detector', e.latencias.detector_us ? e.latencias.detector_us.media + ' ± ' + e.latencias.detector_us.desv + ' µs' : '—']]
+    ['Detector', lat ? lat.media.toFixed(1) + ' ± ' + lat.desv.toFixed(1) + ' µs' : '—']]
     .map(([k, v]) => '<div><span class="et">' + k + '</span><span>' + v + '</span></div>').join('');
   const sy = e.sincronizacion;
   $('sync').textContent = !sy ? 'Sincronización apagada.' : !sy.configurado ? 'Sin nube configurada: todo queda en la Pi.' :
-    'Nube: pendientes ' + JSON.stringify(sy.pendientes || {}) + (sy.ultimo_error ? ' · último error: ' + sy.ultimo_error : ' · al día');
+    'Nube: ' + (Object.values(sy.pendientes || {}).reduce((x, y) => x + y, 0)) + ' pendientes' +
+    (sy.ultimo_error ? ' · último error: ' + sy.ultimo_error : ' · al día');
 
-  $('eventos').innerHTML = e.ultimos_eventos.slice().reverse().map(x => '<tr><td>' + x.t_s.toFixed(1) + '</td><td>' +
-    x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') + '</td><td>' +
-    (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
+  $('eventos').innerHTML = e.ultimos_eventos.slice().reverse().map(x => '<tr><td class="num">' + x.t_s.toFixed(1) +
+    '</td><td class="num">' + x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') +
+    '</td><td>' + (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
   $('mensajes').innerHTML = e.mensajes.slice().reverse().map(m => '<li>' + VV.escapar(m) + '</li>').join('');
 }
 
-(async () => { mapa = await VV.crearMapa($('mapa')); actualizar(); setInterval(actualizar, 500); })();
+(async () => {
+  VV.usuario($('cuenta')).catch(() => {});
+  mapa = await VV.crearMapa($('mapa'));
+  actualizar(); setInterval(actualizar, 500);
+})();
 </script>
 </body>
 </html>

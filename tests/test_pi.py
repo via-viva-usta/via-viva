@@ -226,22 +226,129 @@ def test_servidor_reproduce_graba_detecta_y_guarda(tmp_path, monkeypatch):
         app.fuente.cerrar()
 
 
-def test_cambiar_estado_exige_clave(tmp_path, monkeypatch):
+def _pedir(srv, metodo, ruta, cuerpo=None, galleta=None, tipo="application/json"):
+    import http.client
+    c = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=10)
+    datos = cuerpo if isinstance(cuerpo, bytes) else (json.dumps(cuerpo).encode() if cuerpo is not None else None)
+    c.request(metodo, ruta, body=datos, headers={"Content-Type": tipo, **({"Cookie": galleta} if galleta else {})})
+    r = c.getresponse()
+    cuerpo_r = r.read()
+    return r.status, r.getheader("Location"), r.getheader("Set-Cookie"), cuerpo_r
+
+
+def _servidor(tmp_path, url, segundos=5):
     from pi.servidor import construir, crear_manejador
-    monkeypatch.setenv("TABLERO_CLAVE", "clave-de-prueba")
-    url = _base_con_calle(tmp_path)
-    app = construir("reproducir", str(_export_sintetico(tmp_path / "e", 5)), velocidad=50, url_db=url,
+    app = construir("reproducir", str(_export_sintetico(tmp_path / "e", segundos)), velocidad=50, url_db=url,
                     dir_grabaciones=tmp_path / "g", sync=False)
+    app.calles.listo.wait(10)
     srv = ThreadingHTTPServer(("127.0.0.1", 0), crear_manejador(app))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return app, srv
+
+
+def test_roles_y_sesiones(tmp_path):
+    from pi import usuarios
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    usuarios.crear(con, "editor1", "clave-editor-prueba", "editor", "Editor")
+    usuarios.crear(con, "alcaldia1", "clave-alcaldia-prueba", "alcaldia", "Secretaría")
+    con.close()
+    app, srv = _servidor(tmp_path, url)
     try:
-        with pytest.raises(urllib.error.HTTPError) as e:
-            _post(srv, "/api/tablero/reportes/1/estado", {"estado": "reparado"}, {"X-Clave": "otra"})
-        assert e.value.code == 403
-        assert _post(srv, "/api/tablero/reportes/1/estado", {"estado": "reparado"}, {"X-Clave": "clave-de-prueba"})["ok"]
+        assert _pedir(srv, "GET", "/api/tablero/huecos")[0] == 401          # con usuarios creados, sin sesión: nada
+        st, destino, _, _ = _pedir(srv, "GET", "/")
+        assert st == 303 and destino.startswith("/entrar")
+        assert _pedir(srv, "POST", "/api/entrar", {"usuario": "alcaldia1", "clave": "mala"})[0] == 401
+        st, _, galleta, _ = _pedir(srv, "POST", "/api/entrar", {"usuario": "alcaldia1", "clave": "clave-alcaldia-prueba"})
+        assert st == 200 and "HttpOnly" in galleta and "SameSite=Strict" in galleta
+        g = galleta.split(";")[0]
+        assert _pedir(srv, "GET", "/api/tablero/huecos", galleta=g)[0] == 200
+        assert _pedir(srv, "GET", "/api/exportar/huecos.csv", galleta=g)[0] == 200   # exportar: también lectura
+        assert _pedir(srv, "GET", "/api/estado", galleta=g)[0] == 403              # la captura es del equipo
+        assert _pedir(srv, "GET", "/", galleta=g)[1] == "/tablero"
+        assert _pedir(srv, "POST", "/api/tablero/reportes/1/estado", {"estado": "reparado"}, g)[0] == 403
+        assert _pedir(srv, "POST", "/api/importar/reparaciones", b"id_hueco\n1\n", g, "text/csv")[0] == 403
+        g2 = _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "clave-editor-prueba"})[2].split(";")[0]
+        assert _pedir(srv, "POST", "/api/tablero/reportes/1/estado", {"estado": "reparado"}, g2)[0] == 200
+        con = almacen.conectar(url)
+        assert con.execute("SELECT usuario, origen FROM cambios_estado").fetchall() == [("editor1", "web")]
+        con.close()
+        _pedir(srv, "POST", "/api/salir", galleta=g2)
+        assert _pedir(srv, "GET", "/api/estado", galleta=g2)[0] == 401             # la sesión se cerró de verdad
+        for _ in range(5):
+            _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "otra"})
+        assert _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "clave-editor-prueba"})[0] == 429
     finally:
         srv.shutdown()
         app.fuente.cerrar()
+
+
+def _evento(con, nodo, ts, lat, lon, clase="impacto_fuerte", origen="nodo"):
+    con.execute("INSERT INTO eventos (id_nodo, ts_utc, lat, lon, clase, origen, ts_carga, id_tramo) "
+                "VALUES (?,?,?,?,?,?,'x',1)", (nodo, ts, lat, lon, clase, origen))
+
+
+def test_huecos_agrupan_reabren_e_importan(tmp_path):
+    from pi import exportar
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    _evento(con, "pi-01", "2026-11-05T10:00:00.000Z", 5.53500, -73.36500)
+    _evento(con, "pi-01", "2026-11-06T10:00:00.000Z", 5.53505, -73.36504, "hueco")   # ~7 m: mismo hueco
+    _evento(con, "pi-01", "2026-11-06T10:01:00.000Z", 5.53500, -73.36400)            # ~110 m: otro
+    _evento(con, "reproduccion", "2026-11-06T10:02:00.000Z", 5.53500, -73.36500, origen="simulado")  # aparte
+    _evento(con, "pi-01", "2026-11-06T10:03:00.000Z", 5.53600, -73.36500, "resalto")  # no es hueco
+    con.commit()
+    assert almacen.agrupar_huecos(con) == 4
+    hs = {h["id_hueco"]: h for h in almacen.huecos(con)}
+    reales = [h for h in hs.values() if not h["simulado"]]
+    assert len(hs) == 3 and len(reales) == 2
+    doble = next(h for h in reales if h["n_detecciones"] == 2)
+    assert doble["clase"] == "hueco" and doble["estado"] == "detectado"
+    otro = next(h for h in reales if h["n_detecciones"] == 1)
+    # Importar: un archivo con un error no cambia nada; corregido, se aplica todo junto
+    malo = (f"id_hueco;estado;fecha;nota\n{doble['id_hueco']};reparado;2026-11-07;cuadrilla 3\n"
+            f"{otro['id_hueco']};reparado;;\n999;reparado;2026-11-07;\n{doble['id_hueco']};verificado;;\n").encode()
+    r = exportar.importar_reparaciones(con, malo, "editor1", aplicar=True)
+    assert not r["aplicado"] and {(e["fila"], e["columna"]) for e in r["errores"]} == \
+        {(3, "fecha"), (4, "id_hueco"), (5, "id_hueco")}
+    assert all(h["estado"] == "detectado" for h in almacen.huecos(con))
+    bom = chr(0xFEFF)
+    bueno = f"{bom}id_hueco,estado,fecha,nota\n{doble['id_hueco']},reparado,07/11/2026,cuadrilla 3\n".encode()
+    r = exportar.importar_reparaciones(con, bueno, "editor1", aplicar=True)
+    assert r["aplicado"] and r["validas"] == 1
+    h = next(x for x in almacen.huecos(con) if x["id_hueco"] == doble["id_hueco"])
+    assert h["estado"] == "reparado" and h["usuario_estado"] == "csv:editor1" and h["ts_estado"] == "2026-11-07T17:00:00Z"
+    # Una detección nueva en el mismo sitio después de la reparación reabre el hueco
+    _evento(con, "pi-01", "2026-11-08T09:00:00.000Z", 5.53502, -73.36502)
+    con.commit()
+    almacen.agrupar_huecos(con)
+    h = next(x for x in almacen.huecos(con) if x["id_hueco"] == doble["id_hueco"])
+    assert h["estado"] == "detectado" and h["n_detecciones"] == 3
+    assert [x["estado_despues"] for x in almacen.historial(con, "huecos", h["id_hueco"])] == ["detectado", "reparado"]
+    con.close()
+
+
+def test_exportables(tmp_path):
+    import io
+    from openpyxl import load_workbook
+    from pi import exportar
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    _evento(con, "pi-01", "2026-11-06T10:00:00.000Z", 5.5350, -73.3650, "hueco")
+    con.commit()
+    almacen.agrupar_huecos(con)
+    calles = almacen.Calles().cargar(url)
+    hs, rg = almacen.huecos(con, calles), almacen.riesgo(con, calles)
+    resumen, pel = almacen.resumen_estados(con), almacen.peligros(con, calles)
+    wb = load_workbook(io.BytesIO(exportar.excel(hs, rg, pel, resumen)))
+    assert wb.sheetnames == ["Huecos", "Riesgo por tramo", "Top-10 y resumen"]
+    assert wb["Huecos"]["H2"].value == "Calle de prueba" and wb["Riesgo por tramo"]["G2"].value == 0.8
+    pdf = exportar.pdf_top10(rg, hs, resumen, calles)
+    assert pdf[:5] == b"%PDF-" and len(pdf) > 2000
+    texto = exportar.csv_tabla(hs, exportar.COL_HUECOS).decode("utf-8-sig")
+    assert texto.splitlines()[0].startswith("Id hueco,Estado") and "Calle de prueba" in texto
+    assert exportar.plantilla_reparaciones().decode("utf-8-sig").startswith("id_hueco,estado,fecha,nota")
+    con.close()
 
 
 # ------------------------------------------------------------------------------------------------ sincronización

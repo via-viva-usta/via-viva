@@ -25,7 +25,9 @@ RAIZ = Path(__file__).resolve().parent.parent      # carpeta via-viva/
 COLUMNAS_NUEVAS = [("riesgo", "fuente_etiquetas", "TEXT"),
                    # 5-nov: sugerencia de la CNN de fotos en los reportes del bot (no reemplaza la revisión humana)
                    ("reportes", "clase_sugerida", "TEXT"), ("reportes", "confianza_sugerida", "REAL"),
-                   ("reportes", "modelo_sugerencia", "TEXT")]
+                   ("reportes", "modelo_sugerencia", "TEXT"),
+                   # 7-nov: cada detección pertenece a un hueco físico (tabla huecos, con su estado)
+                   ("eventos", "id_hueco", "INTEGER REFERENCES huecos (id_hueco)")]
 ESQUEMA_SQL = Path(__file__).resolve().parent / "schema.sql"
 
 try:                                               # python-dotenv es opcional para esta capa

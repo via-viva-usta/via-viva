@@ -242,3 +242,58 @@ CREATE TABLE IF NOT EXISTS sync_marcas (
     ultimo_id       INTEGER NOT NULL DEFAULT 0,-- último id ya revisado para la cola
     enviados        INTEGER NOT NULL DEFAULT 0
 );
+
+-- ---------------------------------------------------------------------
+-- huecos (7-nov): un hueco físico = detecciones (eventos) a <= 10 m entre sí.
+-- El ciclo de vida para la Alcaldía vive aquí: detectado → verificado → reparado
+-- (o descartado si fue una falsa detección). eventos.id_hueco apunta aquí.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS huecos (
+    id_hueco        INTEGER PRIMARY KEY AUTOINCREMENT,
+    lat             REAL NOT NULL,             -- promedio de las detecciones
+    lon             REAL NOT NULL,
+    geohash7        TEXT NOT NULL,
+    id_tramo        INTEGER REFERENCES tramos (id_tramo),
+    clase           TEXT NOT NULL,             -- hueco si alguien lo etiquetó así; si no, impacto_fuerte (sin clasificar)
+    n_detecciones   INTEGER NOT NULL DEFAULT 1,
+    primera_ts      TEXT NOT NULL,             -- UTC de la primera detección
+    ultima_ts       TEXT NOT NULL,
+    estado          TEXT NOT NULL DEFAULT 'detectado'
+                    CHECK (estado IN ('detectado', 'verificado', 'reparado', 'descartado')),
+    ts_estado       TEXT,
+    usuario_estado  TEXT,                      -- quién cambió el estado (usuario del tablero o 'csv:<usuario>')
+    nota            TEXT,
+    simulado        INTEGER NOT NULL DEFAULT 0,-- 1 = reproducción/demo: nunca se mezcla con lo real ni sale a la nube
+    ts_carga        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_huecos_geohash ON huecos (geohash7);
+CREATE INDEX IF NOT EXISTS idx_huecos_estado  ON huecos (estado);
+
+-- Historial de cambios de estado (huecos y reportes): quién, cuándo, desde dónde (web o CSV).
+CREATE TABLE IF NOT EXISTS cambios_estado (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tabla           TEXT NOT NULL CHECK (tabla IN ('huecos', 'reportes')),
+    id_fila         INTEGER NOT NULL,
+    estado_antes    TEXT,
+    estado_despues  TEXT NOT NULL,
+    usuario         TEXT NOT NULL,
+    origen          TEXT NOT NULL CHECK (origen IN ('web', 'csv')),
+    nota            TEXT,
+    ts_utc          TEXT NOT NULL
+);
+
+-- Usuarios del aplicativo: editor (equipo, 4), alcaldia y docente (solo lectura).
+-- Solo el hash PBKDF2 de la contraseña; se crean en la consola con: python -m pi.usuarios crear <usuario> --rol ...
+CREATE TABLE IF NOT EXISTS usuarios (
+    usuario         TEXT PRIMARY KEY,
+    nombre          TEXT,
+    rol             TEXT NOT NULL CHECK (rol IN ('editor', 'alcaldia', 'docente')),
+    hash_clave      TEXT NOT NULL,             -- pbkdf2_sha256$iteraciones$sal$hash
+    activo          INTEGER NOT NULL DEFAULT 1,
+    creado          TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sesiones (
+    token_sha256    TEXT PRIMARY KEY,          -- el token viaja en la cookie; aquí solo su hash
+    usuario         TEXT NOT NULL REFERENCES usuarios (usuario),
+    expira          TEXT NOT NULL              -- UTC
+);
