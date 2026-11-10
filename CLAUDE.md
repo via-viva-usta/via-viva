@@ -4,13 +4,15 @@ Lee este archivo completo antes de trabajar. Es la fuente de verdad técnica del
 **Para continuar el trabajo, lee después `docs/ESTADO.md`** (qué está hecho, qué está probado y qué falta por persona)
 y los issues abiertos de GitHub. Con esos dos archivos un chat nuevo puede seguir sin más contexto.
 
-Última actualización: **7-nov-2026**. Entrega final: **13-nov-2026**.
+Última actualización: **10-nov-2026**. Informes: **13-nov-2026**. Prototipo funcionando: **26-nov-2026** o antes.
+**Primero lee `CHANGELOG.md` (10-nov), `docs/ARQUITECTURA.md` y `viaviva/README.md`**: la sección 7b manda sobre las
+secciones 6–7 (ESP32), que quedan como historia.
 
 ## 1. Qué es el proyecto
 VÍA VIVA es el Proyecto Integrador 2026-2 (2.º semestre, Ingeniería de Datos e IA, Universidad Santo Tomás, Seccional Tunja).
 Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las vías de Tunja (Colombia).
 
-- **Nodo central en el carro (desde el 7-nov): Raspberry Pi 4 Model B** (`pi/`, guía en `pi/README.md`): los sensores van
+- **Nodo central en el carro (desde el 7-nov): Raspberry Pi 4 Model B** (`viaviva/`, guía en `viaviva/README.md`): los sensores van
   directo a la Pi; detector por umbrales; SQLite local (fuente de verdad); servidor web propio (captura para celular o tablet
   fija y tablero de la Alcaldía) en su WiFi `VIA-VIVA`; sincronización opcional a Supabase. El ESP32 de abajo queda como
   **línea base de R7** y argumento de Arquitectura (`pi/justificacion.md`).
@@ -61,6 +63,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 7-nov | Un solo `iniciar.ps1` en la raíz; lo obsoleto se **mueve** a `docs/archivo/` (nunca se borra; lista en `LEEME.md`) |
 | **7-nov (noche)** | **Raspberry Pi 4 Model B = nodo central** (el docente de Arquitectura vio insuficiente el ESP32). Sensores directo a la Pi: ADXL345 por SPI con **FIFO + interrupción en GPIO** (sustituye al DMA), MPU-6050/VL53L0X/BH1750 por I2C, GPS por UART, DHT22 tolerante a fallos, pulsador y LED; **sin módulo microSD**. ESP32 = línea base de R7. **Pines por confirmar con la rama de Dany** (no tocar firmware ni hardware antes) |
 | 7-nov | **Aplicativo web servido por la Pi**, local primero (la Pi es punto de acceso `VIA-VIVA`, 192.168.4.1): captura para celular o tablet fija (botones grandes) y tablero en vivo para la Alcaldía (capas de huecos por estado y de riesgo por tramo). **Hueco** = detecciones a ≤ 10 m; estado detectado → verificado → reparado (o descartado), con historial. **Roles:** 4 editores (equipo), Alcaldía y docentes de solo lectura. Exportar PDF (top-10 con mapa), CSV y Excel (3 hojas); importar reparaciones por CSV con validación. Prioridad: captura → tablero → exportables → sincronización |
+| **9-nov** | **La ESP32 sale del proyecto** (alternativa descartada por recursos; `firmware/` se conserva sin tocar). Raspberry Pi 4 = único nodo, Pi OS Lite 64, systemd, sin Docker. Interfaz local con **FastAPI** y botón grande MARCAR. Tablero en línea estático (Netlify) que lee de Supabase. Fase 1 umbrales; Fase 2 TFLite solo con datos suficientes. R7 sin ESP32 (PC vs. Pi; umbrales vs. TFLite) |
+| **10-nov** | Una sola aplicación `viaviva/` (antes `pi/`), fuente `phyphox \| pi \| replay`. Salida de prueba: iPhone 1 con phyphox + hotspot, PC con `viaviva capture`, marcas 1–7 + U (retardo −1 s) en el PC o en `/marcar` (PIN), video con destellos en `/sync`. Sesiones en `02_VIA_VIVA/06_CAMPO/sesiones/` (nunca en Git). Pines de la Pi = manual v3 (pulsador por `gpio-shutdown`). Nube: huecos además de eventos y riesgo; los editores cambian estados en línea y la Pi los aplica. Rama `ac/cierre-software` |
 | 7-nov | **Nube opcional:** solo eventos y riesgo a **Supabase** (cola con reintentos, lista blanca de columnas, nada de fotos, video, trazas ni datos de la Alcaldía); SQLite local = fuente de verdad; claves solo en `.env`. Alimentación: 12 V del carro → USB-C 5 V / 3 A; **apagado seguro** con el pulsador (3 s). La cámara no va en la Pi (fotos con el celular). **Bot de Telegram pospuesto** (`futuro/bot/`). Estructuras de datos en Python (`pi/estructuras.py`), justificadas con Big-O |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
@@ -90,13 +94,14 @@ via-viva/
 ├── etl/             osm_tunja, barrios_tunja, elevacion, scraping/ (clima IDEAM, noticias), recorridos, recorrido_sintetico
 ├── analysis/        senales.py, detector_umbral.py, modelo_cnn.py, entrenar_detector.py, experimentos.py, notebook
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
-├── pi/              NODO CENTRAL Raspberry Pi: sensores, nucleo, almacen (huecos), servidor web (captura + tablero),
-│                    usuarios (roles), exportar, sincronizacion (+ supabase_esquema.sql), instalar.sh, sistemas/, r7/
+├── viaviva/         LA APLICACIÓN: captura (phyphox | pi | replay), doctor, resumen, detector, dataset, FastAPI,
+│                    usuarios, exportar, sincronizacion, nube, instalar.sh / instalar_pc.ps1, sistemas/, r7/
+├── config/          detector.yaml · web/en_linea/ tablero en línea · SALIDA_DE_CAMPO.cmd · viaviva.cmd
 ├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
 ├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html), validar_campo.py, programar_scraping.ps1, buscar_secretos.py
-├── iniciar.ps1      todo en un comando en el PC (servidor de la Pi en :8081, mapa, clasificador, phyphox)
+├── iniciar.ps1      demo en el PC (viaviva en :8000, mapa, clasificador); salida de campo: SALIDA_DE_CAMPO.cmd
 ├── demo/            datos_demo.py (base DEMO aparte)
-├── tests/           pytest (68 pruebas)
+├── tests/           pytest (81 pruebas; ruff y cobertura en la CI)
 ├── entornos/        pip freeze exacto de cada venv (reproducibilidad) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
 ├── futuro/          trabajo futuro: bot/ (Telegram, pospuesto el 7-nov), nodo-camara (ESP32-CAM), láser, OBD2
@@ -175,21 +180,23 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 - Tamaño (esp32dev, 5-nov): RAM estática 66 348 B (20,2 %), flash 944 269 B (48,0 %), partición `min_spiffs.csv`.
   Wokwi: `wokwi-esp32-devkit-v1` + DHT22.
 
-## 7b. Nodo central Raspberry Pi (`pi/`, desde el 7-nov) — guía completa en `pi/README.md`
-- **Fuentes** (`pi/fuentes.py`): `FuenteSensores` (hilos: ADXL con SCHED_FIFO, I2C 100 Hz, GPS, ambiente 10 s, LED) y
-  `FuenteReproduccion` (export de phyphox o grabación de la Pi, `--velocidad`, `--bucle`; eventos `origen='simulado'`).
-- **Núcleo** (`pi/nucleo.py`): detector idéntico al de `analysis/detector_umbral.py` (prueba en `tests/test_pi.py`),
-  clase provisional `impacto_fuerte` hasta que el copiloto etiquete a ± 3 s; grabación en `data/raw/pi/` en **formato
-  phyphox iOS** (+ Ambiente, Distancia_vl53l0x, Accelerometer_mpu6050, eventos, etiquetas); hora corregida con el GPS.
-- **Base:** tablas nuevas `huecos`, `cambios_estado`, `usuarios`, `sesiones`, `cola_envio`, `sync_marcas`; columna
-  `eventos.id_hueco`. Agrupación ≤ 10 m con geohash; lo simulado se agrupa aparte; un hueco reparado que se vuelve a
-  detectar se reabre.
-- **Servidor** (`python -m pi.servidor`): `/` captura (editor), `/tablero` (todos), `/entrar`, `/api/...`. Sin usuarios
-  creados solo responde a 127.0.0.1 (demo en el PC). Usuarios: `python -m pi.usuarios crear <u> --rol editor|alcaldia|docente`
-  (contraseña por getpass; **nunca** crearla ni pedirla por chat).
-- **En el PC:** `.\iniciar.ps1 -Reproducir data\raw\phyphox\2026-11-07_03_pipe.zip` → http://localhost:8081.
-- **R7:** `data/logs/r7_pi.jsonl` cada 10 s; `pi/r7/tabla_r7.py tabla` arma la tabla Pi vs. ESP32 vs. celular.
-- Todo lo de hardware de la Pi está **[VALIDAR EN PLACA]**; pines en `pi/config.py` pendientes de Dany.
+## 7b. Aplicación `viaviva/` (desde el 10-nov; antes `pi/`) — guía en `viaviva/README.md`
+- **Comandos:** `viaviva.cmd doctor | capture [--replay X --por-http] | serve | resumen | detector | dataset | modelo |
+  usuarios | sync | nube | r7`. Venv del PC: `viaviva\.venv` (`viaviva\instalar_pc.ps1`); pruebas con `dataset\.venv`
+  (tiene fastapi, httpx, pyyaml, pytest-cov, ruff); TensorFlow y matplotlib solo en `%USERPROFILE%\.venvs\vv-modelo`.
+- **Captura:** `fuente_phyphox.py` (HTTP cada 0,25 s, reconexión; phyphox guarda durante el corte → sin pérdida),
+  `simulador_phyphox.py` (pruebas), `fuentes.py` (Pi y reproducción), `nucleo.py` (sesión, marcas, destellos, bitácora),
+  `resumen.py`. Clases 1–7: hueco, resalto, grieta, parche, tapa, obstaculo, via_buena (`config.ETIQUETAS`).
+- **Servidor:** `app.py` (FastAPI, puerto 8000; `/captura`, `/marcar`, `/sync`, `/tablero`, `/entrar`). Roles editor /
+  alcaldia / docente + `marcador` (PIN que imprime la captura). Sin usuarios, solo 127.0.0.1 entra como editor.
+- **Fase B:** `senal.py` (eje vertical por gravedad), `detector.py` + `config/detector.yaml`, `ventanas.py`,
+  `modelo_ventanas.py`. Sin marcas reales todavía: todo lo calibrado/evaluado es SINTÉTICO hasta etiquetar.
+- **Nube:** `sincronizacion.py` (eventos, huecos, riesgo; trae `cambios_remotos`), `supabase_esquema.sql`, `nube.py`,
+  `web/en_linea/` (MapLibre + Chart.js + Pico; `?demo=1`, `?kiosco=1`), `docs/NUBE.md`.
+- **Trampas:** `.cmd` con CRLF (`.gitattributes`); en Windows el manejador de `GetCurrentProcess` es de 64 bits
+  (`restype = c_void_p`); la caché de características del detector se limpia para medir R7; uvicorn atiende SIGTERM y
+  la captura cierra la sesión en `finally`.
+- Todo lo de la Pi está **sin probar en hardware** (pruebas con spidev/pyserial/gpiozero falsos).
 
 ## 8. Señal, detector y entrenamiento
 - Muestreo de trabajo 200 Hz (hipótesis; se valida con el espectro de los primeros recorridos: 95 % de la energía).

@@ -11,41 +11,41 @@ Proyecto Integrador 2026-2 · Ingeniería de Datos e Inteligencia Artificial · 
 *Tablero web en vivo (servido por la Pi, sin internet) con datos **DEMO** marcados: capa de huecos por estado y
 capa de riesgo por tramo, top-10, orden de atención (montículo) y exportables. Tablero Java anterior: `docs/img/tablero_reportes.png`.*
 
+## Salida de campo (lo urgente)
+
+Doble clic en **`SALIDA_DE_CAMPO.cmd`**: corre `viaviva doctor` y, si está LISTO, la captura con phyphox y el tablero
+en `http://localhost:8000`. Paso a paso de una página: **[`README_SALIDA.md`](README_SALIDA.md)**.
+
 ## Arrancar en 3 pasos (Windows, PowerShell)
 
-1. **Clonar e instalar** (una vez; Python 3.11, JDK 21+, ver `CONTRIBUTING.md`):
+1. **Clonar e instalar** (una vez; Python 3.11):
    ```powershell
    git clone https://github.com/via-viva-usta/via-viva.git; cd via-viva
-   copy .env.example .env      # claves solo aquí (nunca se suben)
-   foreach ($m in "etl","dataset") { py -3.11 -m venv "$m\.venv"; & "$m\.venv\Scripts\python" -m pip install -r "$m\requirements.txt" }
+   powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y .env
    ```
-2. **Base de datos** (OpenStreetMap, barrios, pendiente, lluvia IDEAM; ~5 min con internet):
+2. **Probar sin carro** (reproduce una salida real como si fuera en vivo):
    ```powershell
-   .\db\reconstruir.ps1
+   .\viaviva.cmd capture --replay "..\..\06_CAMPO\phyphox\2026-11-07\VÍA VIVA 2.0 2026-11-07 09-42-16.zip" --por-http --abrir
    ```
-3. **Todo en un comando** (servidor de la Pi con captura y tablero en http://localhost:8081, mapa web, clasificador
-   para el celular y, si se pide, la captura de phyphox):
-   ```powershell
-   .\iniciar.ps1                                                         # o -Demo para la base con datos DEMO
-   .\iniciar.ps1 -Reproducir data\raw\phyphox\<grabación>.zip            # demo sin carro: la Pi reproduce una grabación
-   .\iniciar.ps1 -Phyphox http://172.20.10.1:8080                        # en el carro, con el iPhone (acceso remoto)
-   ```
+3. **Base de datos y demo completa** (OpenStreetMap, riesgo, mapa): `.\db\reconstruir.ps1` y `.\iniciar.ps1 -Demo`.
 
-Pruebas: `dataset\.venv\Scripts\python -m pytest` (también corren en GitHub Actions con cada push).
+Todos los comandos: [`viaviva/README.md`](viaviva/README.md). Pruebas: `dataset\.venv\Scripts\python -m pytest`
+(también en GitHub Actions, con `ruff` y cobertura).
 
 ## Cómo funciona
 
 | Pieza | Qué hace | Dónde |
 |---|---|---|
-| **Nodo en el carro** | **Raspberry Pi 4** + ADXL345 (SPI, FIFO + interrupción) + MPU-6050 + VL53L0X + BH1750 + GPS + DHT22; detector por umbrales; SQLite local; WiFi propia | `pi/` (en la Pi: `pi/instalar.sh`) |
-| **Captura (celular o tablet fija)** | Página de la Pi con botones grandes: grabar, etiquetar, señal y GPS en vivo, estado de sensores, apagado seguro | `pi/web/captura.html` |
+| **Salida de prueba (hoy)** | iPhone con phyphox + PC con `viaviva capture`: doctor, marcas 1–7, sincronía con video, RESUMEN | `viaviva/`, `SALIDA_DE_CAMPO.cmd` |
+| **Nodo en el carro** | **Raspberry Pi 4** + ADXL345 (SPI, FIFO + interrupción) + MPU-6050 + VL53L0X + BH1750 + GPS + DHT22; detector por umbrales; SQLite local | `viaviva/` (en la Pi: `viaviva/instalar.sh`) |
+| **Captura (celular o tablet fija)** | Página de la Pi con botones grandes: grabar, etiquetar, señal y GPS en vivo, estado de sensores, apagado seguro | `viaviva/web/captura.html`, `marcar.html` |
 | **Línea base (R7)** | ESP32 + los mismos sensores con FIFO + DMA y doble núcleo: comparación de Arquitectura | `firmware/` |
 | **Respaldo con phyphox** | phyphox en el iPhone por el acceso remoto: CSV en vivo, etiquetas con el teclado | `herramientas/captura_phyphox_remoto.py` |
 | **Fotos (celular)** | Dataset propio de 9 clases con GPS y clima, tarjeta ArUco para la escala, CNN int8 que corre en el navegador del celular | `dataset/`, `web/clasificador/` |
 | **Reportes ciudadanos** | Bot de Telegram: **pospuesto** (7-nov) | `futuro/bot/` |
 | **Datos y riesgo** | ETL → SQLite → modelo de riesgo por tramo validado por barrios (plan B de etiquetas) | `etl/`, `db/`, `risk_model/` |
-| **Tablero (Alcaldía)** | Web en vivo: huecos (detectado → verificado → reparado) y riesgo por tramo; roles (4 editores, Alcaldía y docentes de lectura); PDF/Excel/CSV; importar reparaciones; estructuras propias (tabla hash, montículo, BFS, geohash) | `pi/` |
-| **Nube (opcional)** | Solo eventos y riesgo a Supabase, con cola y reintentos; SQLite local es la fuente de verdad | `pi/sincronizacion.py` |
+| **Tablero (Alcaldía)** | Web en vivo: huecos (detectado → verificado → reparado) y riesgo por tramo; roles (4 editores, Alcaldía y docentes de lectura); PDF/Excel/CSV; importar reparaciones; estructuras propias (tabla hash, montículo, BFS, geohash) | `viaviva/` (local), `web/en_linea/` (Netlify) |
+| **Nube (opcional)** | Eventos, huecos y riesgo a Supabase, con cola y reintentos; SQLite local es la fuente de verdad | `viaviva/sincronizacion.py`, `docs/NUBE.md` |
 
 **Estado honesto:** qué está probado con datos reales y qué no, en [`docs/ESTADO.md`](docs/ESTADO.md). Lo SINTÉTICO y lo
 DEMO siempre van marcados y no se presentan como resultados. Contexto técnico completo: [`CLAUDE.md`](CLAUDE.md).
@@ -59,9 +59,11 @@ DEMO siempre van marcados y no se presentan como resultados. Contexto técnico c
 | `analysis/` | Señales, detector por umbrales, entrenamiento del detector del nodo, conversor de vueltas |
 | `dataset/` | Fotos: ingesta, planilla, etiquetador, escala ArUco, CNN, datasets externos |
 | `etl/`, `db/`, `risk_model/` | OpenStreetMap, scraping, SQLite, recorridos y modelo de riesgo |
-| `pi/` | Nodo central Raspberry Pi: sensores, servidor web (captura + tablero), sincronización, systemd, R7 |
+| `viaviva/` | La aplicación: captura (phyphox, Pi o reproducción), detector, dataset, tablero FastAPI, nube, R7 |
+| `config/` | Parámetros del detector (`detector.yaml`) |
 | `web/`, `dashboard-java/` | Mapa web estático y clasificador del celular; tablero NetBeans (versión anterior) |
-| `docs/` | Estado, montaje, protocolo de fotos, demo, presupuesto, diagramas; lo obsoleto en `docs/archivo/` |
+| `docs/` | ARQUITECTURA, DATOS, SEGURIDAD, DISENO, NUBE, SCRAPING, R7, ESTADO; lo obsoleto en `docs/archivo/` |
+| `web/en_linea/` | Tablero en línea (Netlify + Supabase) |
 | `futuro/` | Trabajo futuro: bot de Telegram, ESP32-CAM, láser de cuadrícula, OBD2 |
 | `tests/` | Pruebas pytest |
 
