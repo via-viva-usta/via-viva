@@ -7,7 +7,7 @@ const VV = {};
 
 VV.json = async (url, opciones) => {
   const r = await fetch(url, Object.assign({credentials: 'same-origin'}, opciones || {}));
-  if (r.status === 401 && !location.pathname.startsWith('/entrar')) {
+  if (r.status === 401 && !['/entrar', '/marcar', '/sync'].includes(location.pathname)) {
     location.href = '/entrar?siguiente=' + encodeURIComponent(location.pathname);
     throw new Error('Debe entrar');
   }

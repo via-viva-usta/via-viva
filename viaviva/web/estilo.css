@@ -188,3 +188,19 @@ dialog::backdrop { background: rgba(10, 14, 20, .45); }
 .entrar .tarjeta { width: min(380px, 100%); padding: 24px; }
 .entrar form { display: grid; gap: 12px; margin-top: 18px; }
 .entrar label { display: grid; gap: 6px; font-size: 13px; color: var(--sub); }
+
+/* ---------------------------------------------------------------- marcar (celular del copiloto) */
+.pantalla-marcar { -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+.marcar { padding: 10px 12px 24px; max-width: 900px; margin: 0 auto; display: grid; gap: 10px; }
+.tira { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tira > span { background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; }
+.tira .et { color: var(--sub); font-size: 11px; } .tira b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.botones-marcar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.b-marcar { min-height: 96px; font-size: 24px; font-weight: 800; border-radius: 16px; border-width: 2px; position: relative; }
+.b-marcar:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.b-marcar.pulsado { background: var(--acento); color: #fff; border-color: var(--acento); }
+kbd { font: 600 12px ui-monospace, Consolas, monospace; border: 1px solid var(--borde); border-radius: 6px; padding: 1px 6px; color: var(--sub); }
+.b-marcar kbd { position: absolute; top: 8px; left: 10px; }
+.b-marcar.pulsado kbd { color: #fff; border-color: #fff; }
+.grande-sec { width: 100%; min-height: 60px; font-size: 18px; }
+@media (min-width: 700px) { .botones-marcar { grid-template-columns: repeat(4, minmax(0, 1fr)); } .b-marcar { min-height: 130px; } }

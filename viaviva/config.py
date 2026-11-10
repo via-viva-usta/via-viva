@@ -56,9 +56,20 @@ SOSTENER_APAGADO_S = 3.0
 
 # --- servidor y datos
 ID_NODO = os.getenv("PI_ID_NODO", "pi-01")
-PUERTO = _ent("PI_PUERTO", 8080)
-DIR_GRABACIONES = Path(os.getenv("PI_DIR_GRABACIONES", str(RAIZ / "data" / "raw" / "pi")))
-LOG_R7 = RAIZ / "data" / "logs" / "r7_pi.jsonl"
+PUERTO = _ent("VIAVIVA_PUERTO", 8000)
+PHYPHOX_URL = os.getenv("VIAVIVA_PHYPHOX_URL", "http://172.20.10.1:8080")   # iPhone de punto de acceso
+FS_PHYPHOX_HZ = 100.0
+SPI_CS_ADXL2 = 1                 # ADXL345 #2 en CE1 (opcional, manual v3)
+_CAMPO = RAIZ.parent.parent / "06_CAMPO"   # 02_VIA_VIVA/06_CAMPO: datos crudos fuera del repo
+DIR_GRABACIONES = Path(os.getenv("VIAVIVA_DIR_SESIONES") or os.getenv("PI_DIR_GRABACIONES") or
+                       (_CAMPO / "sesiones" if _CAMPO.exists() else RAIZ / "data" / "raw" / "sesiones"))
+LOG_R7 = RAIZ / "data" / "logs" / "r7.jsonl"
+RETARDO_REACCION_S = float(os.getenv("VIAVIVA_RETARDO_S", "-1.0"))   # la marca se corre 1 s atrás (reacción humana)
+# Teclas del etiquetado (mismas en el PC, el celular y la consola). U = deshacer la última.
+ETIQUETAS = [("1", "hueco", "Hueco"), ("2", "resalto", "Resalto"), ("3", "grieta", "Grieta"), ("4", "parche", "Parche"),
+             ("5", "tapa", "Tapa"), ("6", "obstaculo", "Obstáculo"), ("7", "via_buena", "Vía buena")]
+VEL_MAX_KMH = 30.0               # protocolo de campo
+QUIETO_INICIO_FIN_S = 60.0       # 1 min quieto al inicio y al final
 MAX_M_TRAMO = 25.0              # ajuste a la calle (igual que etl.recorridos)
 VENTANA_ETIQUETA_S = 3.0        # una etiqueta a ± 3 s de un disparo se le asigna a ese evento
 

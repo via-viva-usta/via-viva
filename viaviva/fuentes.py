@@ -318,3 +318,14 @@ class _EstadoReproduccion:
         return {"presente": True, "archivo": self.f.ruta.name, "fs_hz": self.f.fs,
                 "duracion_s": round(self.f.duracion_s, 1), "velocidad": self.f.velocidad,
                 "vueltas": self.f.vueltas, "terminada": self.f.terminada.is_set(), "error": None}
+
+
+class FuenteNula:
+    """Sin captura: solo el tablero (`viaviva serve`)."""
+    fs = 100.0
+
+    def arrancar(self, n: Nucleo) -> None:
+        n.sensores = {}
+
+    def cerrar(self) -> None:
+        pass

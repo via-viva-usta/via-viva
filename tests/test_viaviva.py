@@ -6,6 +6,7 @@ import random
 import sqlite3
 import threading
 import time
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -175,75 +176,47 @@ def _base_con_calle(tmp_path: Path) -> str:
     return url
 
 
-def _url(srv, ruta):
-    return f"http://127.0.0.1:{srv.server_address[1]}{ruta}"
+def _cliente(tmp_path, url, segundos=40.0, velocidad=40.0, fuente="replay", **kw):
+    from fastapi.testclient import TestClient
+    from viaviva.app import construir, crear_app
+    ctx = construir(fuente, str(_export_sintetico(tmp_path / f"e{segundos}", segundos)), velocidad=velocidad,
+                    url_db=url, dir_grabaciones=tmp_path / "grab", sync=False, **kw)
+    ctx.calles.listo.wait(10)
+    return ctx, TestClient(crear_app(ctx), follow_redirects=False)
 
 
-def _post(srv, ruta, cuerpo, cabeceras=None):
-    req = urllib.request.Request(_url(srv, ruta), data=json.dumps(cuerpo).encode(), method="POST",
-                                 headers={"Content-Type": "application/json", **(cabeceras or {})})
-    return json.loads(urllib.request.urlopen(req, timeout=10).read())
-
-
-def test_servidor_reproduce_graba_detecta_y_guarda(tmp_path, monkeypatch):
-    from viaviva.servidor import construir, crear_manejador
-    monkeypatch.setenv("TABLERO_CLAVE", "")
+def test_servidor_reproduce_graba_detecta_y_guarda(tmp_path):
     url = _base_con_calle(tmp_path)
-    exp = _export_sintetico(tmp_path / "export")
-    app = construir("reproducir", str(exp), velocidad=40, url_db=url, dir_grabaciones=tmp_path / "grab", sync=False)
-    app.calles.listo.wait(10)
-    srv = ThreadingHTTPServer(("127.0.0.1", 0), crear_manejador(app))
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    ctx, c = _cliente(tmp_path, url)
     try:
-        assert _post(srv, "/api/grabar", {"accion": "iniciar", "nombre": "prueba"})["ok"]
-        app.fuente.terminada.wait(10)
-        assert app.n.n_eventos_total == 3                     # los 3 golpes, ninguno falso
-        ev = app.n.eventos.ultimos(3)
+        assert c.post("/api/grabar", json={"accion": "iniciar", "nombre": "prueba"}).json()["ok"]
+        ctx.fuente.terminada.wait(10)
+        assert ctx.n.n_eventos_total == 3                     # los 3 golpes, ninguno falso
+        ev = ctx.n.eventos.ultimos(3)
         assert [round(e["t_s"]) for e in ev] == [10, 20, 30] and all(e["id_tramo"] == 1 for e in ev)
-        _post(srv, "/api/etiqueta", {"clase": "hueco"})       # t ≈ 40 s: lejos de los eventos → no se asigna
-        carpeta = _post(srv, "/api/grabar", {"accion": "detener"})["carpeta"]
-        estado = json.loads(urllib.request.urlopen(_url(srv, "/api/estado")).read())
+        c.post("/api/etiqueta", json={"clase": "hueco"})      # t ≈ 40 s: lejos de los eventos → no se asigna
+        carpeta = c.post("/api/grabar", json={"accion": "detener"}).json()["carpeta"]
+        assert carpeta.startswith("sesion_") and carpeta.endswith("_prueba")
+        estado = c.get("/api/estado").json()
         assert not estado["grabando"] and estado["latencias"]["detector_us"]["n"] == 4000
         con = sqlite3.connect(tmp_path / "pi.db")
         filas = con.execute("SELECT origen, id_nodo, clase, id_tramo, ts_utc FROM eventos ORDER BY ts_utc").fetchall()
         assert len(filas) == 3 and {f[:4] for f in filas} == {("simulado", "reproduccion", "impacto_fuerte", 1)}
         assert filas[0][4][:19] in ("2026-11-07T12:20:09", "2026-11-07T12:20:10")   # hora del export, no la del PC
-        # La grabación queda en formato phyphox: se puede volver a reproducir
         from viaviva.fuentes import FuenteReproduccion
         grab = tmp_path / "grab" / carpeta
-        f2 = FuenteReproduccion(grab)
+        f2 = FuenteReproduccion(grab)                          # la sesión se vuelve a reproducir
         assert f2.fs == 100.0 and len(f2.tablas["acc"]) > 3000 and len(f2.tablas["gps"]) > 30
         assert (tmp_path / "grab" / f"{carpeta}_etiquetas.csv").read_text(encoding="utf-8").count("hueco") == 1
-        # Tablero
-        r = json.loads(urllib.request.urlopen(_url(srv, "/api/tablero/riesgo")).read())
+        assert (grab / "RESUMEN.md").exists() and "Marcas" in (grab / "RESUMEN.md").read_text(encoding="utf-8")
+        r = c.get("/api/tablero/riesgo").json()
         assert r["top10"][0]["nombre"] == "Calle de prueba" and r["corrida"]["demo"] is False
-        p = json.loads(urllib.request.urlopen(_url(srv, "/api/tablero/peligros")).read())
+        p = c.get("/api/tablero/peligros").json()
         reporte = next(x for x in p["top"] if x["tipo_fila"] == "reporte")
-        assert reporte["prioridad"] == 3 * 3 * 1 and p["top"][0]["tipo_fila"] == "reporte"  # lo real antes que lo simulado
-        assert _post(srv, "/api/tablero/reportes/1/estado", {"estado": "en_reparacion"})["ok"]  # desde la misma máquina
+        assert reporte["prioridad"] == 3 * 3 * 1 and p["top"][0]["tipo_fila"] == "reporte"  # lo real antes
+        assert c.post("/api/tablero/reportes/1/estado", json={"estado": "en_reparacion"}).json()["ok"]
     finally:
-        srv.shutdown()
-        app.fuente.cerrar()
-
-
-def _pedir(srv, metodo, ruta, cuerpo=None, galleta=None, tipo="application/json"):
-    import http.client
-    c = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=10)
-    datos = cuerpo if isinstance(cuerpo, bytes) else (json.dumps(cuerpo).encode() if cuerpo is not None else None)
-    c.request(metodo, ruta, body=datos, headers={"Content-Type": tipo, **({"Cookie": galleta} if galleta else {})})
-    r = c.getresponse()
-    cuerpo_r = r.read()
-    return r.status, r.getheader("Location"), r.getheader("Set-Cookie"), cuerpo_r
-
-
-def _servidor(tmp_path, url, segundos=5):
-    from viaviva.servidor import construir, crear_manejador
-    app = construir("reproducir", str(_export_sintetico(tmp_path / "e", segundos)), velocidad=50, url_db=url,
-                    dir_grabaciones=tmp_path / "g", sync=False)
-    app.calles.listo.wait(10)
-    srv = ThreadingHTTPServer(("127.0.0.1", 0), crear_manejador(app))
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    return app, srv
+        ctx.fuente.cerrar()
 
 
 def test_roles_y_sesiones(tmp_path):
@@ -253,34 +226,59 @@ def test_roles_y_sesiones(tmp_path):
     usuarios.crear(con, "editor1", "clave-editor-prueba", "editor", "Editor")
     usuarios.crear(con, "alcaldia1", "clave-alcaldia-prueba", "alcaldia", "Secretaría")
     con.close()
-    app, srv = _servidor(tmp_path, url)
+    ctx, c = _cliente(tmp_path, url, segundos=5, velocidad=50)
     try:
-        assert _pedir(srv, "GET", "/api/tablero/huecos")[0] == 401          # con usuarios creados, sin sesión: nada
-        st, destino, _, _ = _pedir(srv, "GET", "/")
-        assert st == 303 and destino.startswith("/entrar")
-        assert _pedir(srv, "POST", "/api/entrar", {"usuario": "alcaldia1", "clave": "mala"})[0] == 401
-        st, _, galleta, _ = _pedir(srv, "POST", "/api/entrar", {"usuario": "alcaldia1", "clave": "clave-alcaldia-prueba"})
-        assert st == 200 and "HttpOnly" in galleta and "SameSite=Strict" in galleta
-        g = galleta.split(";")[0]
-        assert _pedir(srv, "GET", "/api/tablero/huecos", galleta=g)[0] == 200
-        assert _pedir(srv, "GET", "/api/exportar/huecos.csv", galleta=g)[0] == 200   # exportar: también lectura
-        assert _pedir(srv, "GET", "/api/estado", galleta=g)[0] == 403              # la captura es del equipo
-        assert _pedir(srv, "GET", "/", galleta=g)[1] == "/tablero"
-        assert _pedir(srv, "POST", "/api/tablero/reportes/1/estado", {"estado": "reparado"}, g)[0] == 403
-        assert _pedir(srv, "POST", "/api/importar/reparaciones", b"id_hueco\n1\n", g, "text/csv")[0] == 403
-        g2 = _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "clave-editor-prueba"})[2].split(";")[0]
-        assert _pedir(srv, "POST", "/api/tablero/reportes/1/estado", {"estado": "reparado"}, g2)[0] == 200
+        assert c.get("/api/tablero/huecos").status_code == 401   # con usuarios creados, sin sesión: nada
+        r = c.get("/captura")
+        assert r.status_code == 303 and r.headers["location"].startswith("/entrar")
+        assert c.post("/api/entrar", json={"usuario": "alcaldia1", "clave": "mala"}).status_code == 401
+        r = c.post("/api/entrar", json={"usuario": "alcaldia1", "clave": "clave-alcaldia-prueba"})
+        galleta = r.headers["set-cookie"]
+        assert r.status_code == 200 and "HttpOnly" in galleta and "samesite=strict" in galleta.lower()
+        assert c.get("/api/tablero/huecos").status_code == 200
+        assert c.get("/api/exportar/huecos.csv").status_code == 200   # exportar: también lectura
+        assert c.get("/api/estado").status_code == 403                # la captura es del equipo
+        assert c.get("/captura").headers["location"] == "/tablero"
+        assert c.post("/api/tablero/reportes/1/estado", json={"estado": "reparado"}).status_code == 403
+        assert c.post("/api/importar/reparaciones", content=b"id_hueco\n1\n").status_code == 403
+        assert c.post("/api/etiqueta", json={"clase": "hueco"}).status_code == 403
+        c.post("/api/salir")
+        c.post("/api/entrar", json={"usuario": "editor1", "clave": "clave-editor-prueba"})
+        assert c.post("/api/tablero/reportes/1/estado", json={"estado": "reparado"}).status_code == 200
         con = almacen.conectar(url)
         assert con.execute("SELECT usuario, origen FROM cambios_estado").fetchall() == [("editor1", "web")]
         con.close()
-        _pedir(srv, "POST", "/api/salir", galleta=g2)
-        assert _pedir(srv, "GET", "/api/estado", galleta=g2)[0] == 401             # la sesión se cerró de verdad
+        c.post("/api/salir")
+        assert c.get("/api/estado").status_code == 401                # la sesión se cerró de verdad
         for _ in range(5):
-            _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "otra"})
-        assert _pedir(srv, "POST", "/api/entrar", {"usuario": "editor1", "clave": "clave-editor-prueba"})[0] == 429
+            c.post("/api/entrar", json={"usuario": "editor1", "clave": "otra"})
+        assert c.post("/api/entrar", json={"usuario": "editor1", "clave": "clave-editor-prueba"}).status_code == 429
     finally:
-        srv.shutdown()
-        app.fuente.cerrar()
+        ctx.fuente.cerrar()
+
+
+def test_marcador_con_pin_solo_marca(tmp_path):
+    from viaviva import usuarios
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    usuarios.crear(con, "editor1", "clave-editor-prueba", "editor")
+    con.close()
+    ctx, c = _cliente(tmp_path, url, segundos=5, velocidad=50, pin="123456")
+    try:
+        assert c.get("/marcar").status_code == 200                     # la página siempre carga (pide el PIN)
+        assert c.get("/api/marcar/estado").status_code == 401
+        assert c.post("/api/pin", json={"pin": "000000"}).status_code == 401
+        assert c.post("/api/pin", json={"pin": "123456"}).status_code == 200
+        assert c.get("/api/marcar/estado").json()["retardo_s"] == config.RETARDO_REACCION_S
+        e = c.post("/api/etiqueta", json={"clase": "via_buena"}).json()["etiqueta"]
+        assert e["origen"] == "marcador" and e["retardo_s"] == -1.0
+        assert c.post("/api/deshacer").json()["deshecha"]["clase"] == "via_buena"
+        assert c.post("/api/destello", json={}).json()["ok"]
+        assert c.get("/api/estado").status_code == 403                 # no ve la trayectoria ni graba
+        assert c.post("/api/grabar", json={"accion": "detener"}).status_code == 403
+        assert c.get("/api/tablero/huecos").status_code == 403         # el tablero no es para el PIN
+    finally:
+        ctx.fuente.cerrar()
 
 
 def _evento(con, nodo, ts, lat, lon, clase="impacto_fuerte", origen="nodo"):
