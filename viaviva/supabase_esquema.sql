@@ -1,5 +1,5 @@
 -- VÍA VIVA · tablas públicas en Supabase (PostgreSQL). Se pegan UNA vez en el editor SQL del proyecto de Supabase.
--- Solo reciben lo que pi/sincronizacion.py deja salir (lista blanca): eventos sin velocidad, vehículo, foto ni
+-- Solo reciben lo que viaviva/sincronizacion.py deja salir (lista blanca): eventos sin velocidad, vehículo, foto ni
 -- etiqueta en texto, y probabilidad de riesgo por tramo sin variables ni datos de la Alcaldía.
 -- SQLite en la Pi sigue siendo la fuente de verdad; esto es una copia para consulta.
 --

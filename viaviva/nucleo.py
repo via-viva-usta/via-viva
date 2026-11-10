@@ -15,9 +15,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pi import config
-from pi.config import ParametrosUmbral
-from pi.estructuras import BuferCircular
+from viaviva import config
+from viaviva.config import ParametrosUmbral
+from viaviva.estructuras import BuferCircular
 
 G = 9.81
 CLASES_ETIQUETA = {"hueco", "resalto", "grieta", "tapa", "obstaculo", "impacto_fuerte", "parche", "otro", "parada"}

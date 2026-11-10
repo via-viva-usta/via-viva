@@ -10,9 +10,9 @@ nunca pasan por el chat, por Git ni por la nube; en la base solo queda el hash P
 Sin ningún usuario creado, el aplicativo solo responde a la misma máquina (127.0.0.1) como editor: sirve para la
 demo en el PC y para la instalación. En la red WiFi pide entrar.
 
-    python -m pi.usuarios crear andres --rol editor --nombre "Andrés Cárdenas"
-    python -m pi.usuarios listar
-    python -m pi.usuarios desactivar docente1
+    python -m viaviva.usuarios crear andres --rol editor --nombre "Andrés Cárdenas"
+    python -m viaviva.usuarios listar
+    python -m viaviva.usuarios desactivar docente1
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ import secrets
 import time
 from datetime import datetime, timedelta, timezone
 
-from pi.almacen import conectar
+from viaviva.almacen import conectar
 
 ROLES = ("editor", "alcaldia", "docente")
 ITERACIONES = 200_000

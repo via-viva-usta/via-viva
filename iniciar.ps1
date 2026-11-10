@@ -1,5 +1,5 @@
 ﻿# VÍA VIVA — todo en un comando en el PC (PowerShell, desde la carpeta via-viva). En la Raspberry Pi lo arranca
-# systemd (pi/instalar.sh); este script es para la demo y el desarrollo en Windows.
+# systemd (viaviva/instalar.sh); este script es para la demo y el desarrollo en Windows.
 #
 #   .\iniciar.ps1                       base real (o DEMO si no tiene datos) + servidor de la Pi + mapa + clasificador
 #   .\iniciar.ps1 -Demo                 fuerza la base DEMO (data\via_viva_demo.db, datos marcados DEMO)
@@ -51,7 +51,7 @@ Paso "3/6 Mapa web"
 & $etl web\exportar.py
 Start-Process $etl -ArgumentList "-m", "http.server", "8080", "--directory", "web"
 
-# 4. Tablero Java (Estructuras de Datos; las mismas estructuras están en pi\estructuras.py)
+# 4. Tablero Java (Estructuras de Datos; las mismas estructuras están en viaviva\estructuras.py)
 if ($ConTablero) {
     Paso "4/6 Tablero Java"
     $jar = Join-Path $raiz "dashboard-java\dist\TableroViaViva.jar"

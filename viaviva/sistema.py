@@ -15,8 +15,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pi import config
-from pi.nucleo import Welford
+from viaviva import config
+from viaviva.nucleo import Welford
 
 
 def _leer(ruta: str) -> str | None:

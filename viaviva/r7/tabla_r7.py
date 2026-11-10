@@ -4,11 +4,11 @@ en lo que falta. No inventa nada: cada celda sale de un archivo de data/logs/ (i
     # 1. Con el servidor corriendo en la Pi (servicio via-viva-pi), el registro sale solo cada 10 s:
     #       data/logs/r7_pi.jsonl  (latencias del detector, lectura de la FIFO, ciclo I2C, % CPU, °C, RAM)
     # 2. Consumo con el tester USB entre el adaptador y la Pi (anotar a mano, en reposo y grabando):
-    pi/.venv/bin/python pi/r7/tabla_r7.py consumo --estado reposo --ma 540 --v 5.08
-    pi/.venv/bin/python pi/r7/tabla_r7.py consumo --estado grabando --ma 610 --v 5.07
-    # 3. CNN de fotos en la Pi: pi/r7/benchmark_cnn.py  → data/logs/benchmark_cnn.jsonl
+    viaviva/.venv/bin/python viaviva/r7/tabla_r7.py consumo --estado reposo --ma 540 --v 5.08
+    viaviva/.venv/bin/python viaviva/r7/tabla_r7.py consumo --estado grabando --ma 610 --v 5.07
+    # 3. CNN de fotos en la Pi: viaviva/r7/benchmark_cnn.py  → data/logs/benchmark_cnn.jsonl
     # 4. Tabla (Markdown, para docs/experimentos.md y el texto del informe):
-    pi/.venv/bin/python pi/r7/tabla_r7.py tabla
+    viaviva/.venv/bin/python viaviva/r7/tabla_r7.py tabla
 """
 from __future__ import annotations
 

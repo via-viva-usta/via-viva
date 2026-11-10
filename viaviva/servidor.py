@@ -1,12 +1,12 @@
 """Servidor web de la Raspberry Pi: captura en el carro (/), tablero en vivo (/tablero) y exportables.
 
 Biblioteca estándar (http.server con hilos): nada que instalar en el celular ni en el PC, solo abrir el navegador.
-Roles: editor (equipo) | alcaldia y docente (solo lectura). Ver pi/usuarios.py.
+Roles: editor (equipo) | alcaldia y docente (solo lectura). Ver viaviva/usuarios.py.
 
-    # En la Pi (lo arranca systemd: pi/sistemas/via-viva-pi.service)
-    python -m pi.servidor --fuente sensores --puerto 80 --permitir-apagado
+    # En la Pi (lo arranca systemd: viaviva/sistemas/via-viva-pi.service)
+    python -m viaviva.servidor --fuente sensores --puerto 80 --permitir-apagado
     # Demo sin carro (Pi o PC): reproduce una grabación de phyphox o de la Pi
-    python -m pi.servidor --fuente reproducir --archivo data/raw/phyphox/2026-11-07_03_pipe.zip --bucle
+    python -m viaviva.servidor --fuente reproducir --archivo data/raw/phyphox/2026-11-07_03_pipe.zip --bucle
 """
 from __future__ import annotations
 
@@ -26,11 +26,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
 
-from pi import almacen, config, exportar
-from pi.nucleo import Nucleo
-from pi.sincronizacion import Sincronizador
-from pi.sistema import Sistema, registrar_r7
-from pi.usuarios import DURACION_SESION, Sesiones, hay_usuarios
+from viaviva import almacen, config, exportar
+from viaviva.nucleo import Nucleo
+from viaviva.sincronizacion import Sincronizador
+from viaviva.sistema import Sistema, registrar_r7
+from viaviva.usuarios import DURACION_SESION, Sesiones, hay_usuarios
 
 WEB = Path(__file__).resolve().parent / "web"
 mimetypes.add_type("application/javascript", ".js")
@@ -367,11 +367,11 @@ def construir(fuente_tipo: str, archivo: str | None = None, velocidad: float = 1
     calles = almacen.Calles()
     threading.Thread(target=calles.cargar, args=(url_db,), daemon=True, name="calles").start()
     if fuente_tipo == "reproducir":
-        from pi.fuentes import FuenteReproduccion
+        from viaviva.fuentes import FuenteReproduccion
         fuente = FuenteReproduccion(Path(archivo), velocidad=velocidad, bucle=bucle)
         origen, id_nodo = "simulado", "reproduccion"
     else:
-        from pi.fuentes import FuenteSensores
+        from viaviva.fuentes import FuenteSensores
         fuente = FuenteSensores()
         origen, id_nodo = "nodo", config.ID_NODO
     app_ref: list[App] = []
@@ -425,7 +425,7 @@ def main():
     signal.signal(signal.SIGTERM, terminar)
     sin = app.leer(lambda c: not hay_usuarios(c))
     print(f"VÍA VIVA: captura http://<ip>:{a.puerto}/ · tablero http://<ip>:{a.puerto}/tablero · fuente {a.fuente}"
-          + (" · SIN USUARIOS: solo responde a esta máquina (python -m pi.usuarios crear ...)" if sin else ""),
+          + (" · SIN USUARIOS: solo responde a esta máquina (python -m viaviva.usuarios crear ...)" if sin else ""),
           flush=True)
     try:
         servidor.serve_forever()

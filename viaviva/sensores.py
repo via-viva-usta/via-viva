@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from pi import config
+from viaviva import config
 
 G = 9.81
 

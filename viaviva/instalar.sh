@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS Bookworm 64 bits). [VALIDAR EN PLACA]: escrito sin la Pi.
-# Uso (con internet, una sola vez):   cd ~/via-viva && bash pi/instalar.sh
+# Uso (con internet, una sola vez):   cd ~/via-viva && bash viaviva/instalar.sh
 # Pide sudo para apt, interfaces, systemd y el punto de acceso. Las claves NO van aquí: van en ~/via-viva/.env
 #
-# Hace: (1) paquetes, (2) SPI + I2C a 400 kHz + UART sin consola, (3) venv pi/.venv y etl/.venv, (4) Leaflet local
+# Hace: (1) paquetes, (2) SPI + I2C a 400 kHz + UART sin consola, (3) venv viaviva/.venv y etl/.venv, (4) Leaflet local
 # (mapa sin internet), (5) .env, (6) punto de acceso WiFi VIA-VIVA en 192.168.4.1, (7) permiso de apagado seguro,
 # (8) servicios systemd: via-viva-pi (captura + tablero) y el scraping diario de las 06:30.
 set -euo pipefail
@@ -27,17 +27,17 @@ grep -q '^dtparam=i2c_arm_baudrate=' "$CONFIG" || echo 'dtparam=i2c_arm_baudrate
 sudo usermod -aG gpio,i2c,spi,dialout "$USUARIO"
 
 paso "3/8 Entornos de Python"
-python3 -m venv --system-site-packages pi/.venv
-pi/.venv/bin/python -m pip install --upgrade pip
-pi/.venv/bin/python -m pip install -r pi/requirements.txt
+python3 -m venv --system-site-packages viaviva/.venv
+viaviva/.venv/bin/python -m pip install --upgrade pip
+viaviva/.venv/bin/python -m pip install -r viaviva/requirements.txt
 python3 -m venv etl/.venv
 etl/.venv/bin/python -m pip install --upgrade pip
 etl/.venv/bin/python -m pip install -r etl/requirements.txt
 
 paso "4/8 Leaflet local (el mapa funciona sin internet; sin internet no hay fondo, sí calles y huecos)"
-mkdir -p pi/web/vendor/leaflet
+mkdir -p viaviva/web/vendor/leaflet
 for f in leaflet.js leaflet.css; do
-  curl -fsSL "https://unpkg.com/leaflet@1.9.4/dist/$f" -o "pi/web/vendor/leaflet/$f"
+  curl -fsSL "https://unpkg.com/leaflet@1.9.4/dist/$f" -o "viaviva/web/vendor/leaflet/$f"
 done
 
 paso "5/8 Archivo .env (claves solo aquí)"
@@ -68,7 +68,7 @@ sudo visudo -cf /etc/sudoers.d/via-viva
 
 paso "8/8 Servicios systemd"
 for u in via-viva-pi.service via-viva-scraping.service via-viva-scraping.timer; do
-  sed "s#__RAIZ__#$RAIZ#g; s#__USUARIO__#$USUARIO#g" "pi/sistemas/$u" | sudo tee "/etc/systemd/system/$u" >/dev/null
+  sed "s#__RAIZ__#$RAIZ#g; s#__USUARIO__#$USUARIO#g" "viaviva/sistemas/$u" | sudo tee "/etc/systemd/system/$u" >/dev/null
 done
 sudo systemctl daemon-reload
 sudo systemctl enable via-viva-pi.service via-viva-scraping.timer
@@ -80,8 +80,8 @@ cat <<FIN
 Listo. Falta (una vez):
   1. Copiar la base del PC con las calles de OSM:  scp data/via_viva.db $USUARIO@via-viva.local:$RAIZ/data/
   2. Crear los usuarios (cada quien escribe su contraseña):
-       pi/.venv/bin/python -m pi.usuarios crear andres --rol editor --nombre "Andrés Cárdenas"
-       pi/.venv/bin/python -m pi.usuarios crear alcaldia --rol alcaldia --nombre "Secretaría de Infraestructura"
+       viaviva/.venv/bin/python -m viaviva.usuarios crear andres --rol editor --nombre "Andrés Cárdenas"
+       viaviva/.venv/bin/python -m viaviva.usuarios crear alcaldia --rol alcaldia --nombre "Secretaría de Infraestructura"
   3. Reiniciar para aplicar SPI/I2C/UART:  sudo reboot
 Luego: WiFi VIA-VIVA → http://192.168.4.1 (captura) y http://192.168.4.1/tablero
 Ver: systemctl status via-viva-pi · journalctl -u via-viva-pi -f · systemctl list-timers 'via-viva*'

@@ -14,8 +14,8 @@ import time
 import zipfile
 from pathlib import Path
 
-from pi import config
-from pi.nucleo import Nucleo
+from viaviva import config
+from viaviva.nucleo import Nucleo
 
 
 # ------------------------------------------------------------------------------------------------ sensores reales
@@ -23,7 +23,7 @@ class FuenteSensores:
     fs = config.FS_ADXL_HZ
 
     def __init__(self, al_apagar=None):
-        from pi import sensores as s
+        from viaviva import sensores as s
         self.s = s
         self.al_apagar = al_apagar           # función: apagado seguro (pulsador sostenido 3 s)
         self.parar = threading.Event()

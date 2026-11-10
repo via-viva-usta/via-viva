@@ -11,7 +11,7 @@ import threading
 from datetime import datetime, timezone
 
 from db.acceso import conectar as _conectar
-from pi.estructuras import (GrafoCalles, IndiceGeohash, TablaHash, distancia_m, geohash, leer_wkt_linea, top_k,
+from viaviva.estructuras import (GrafoCalles, IndiceGeohash, TablaHash, distancia_m, geohash, leer_wkt_linea, top_k,
                             vecinos_geohash)
 
 CLASES_VIA = ("hueco", "resalto", "impacto_fuerte", "normal", "obstaculo")

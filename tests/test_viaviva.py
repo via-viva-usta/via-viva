@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from pi import almacen, config
-from pi.estructuras import (BuferCircular, Cola, GrafoCalles, IndiceGeohash, MonticuloMax, TablaHash, geohash,
+from viaviva import almacen, config
+from viaviva.estructuras import (BuferCircular, Cola, GrafoCalles, IndiceGeohash, MonticuloMax, TablaHash, geohash,
                             top_k, vecinos_geohash)
-from pi.nucleo import Detector, Nucleo, Welford
-from pi.sensores import ParserNMEA, suma_nmea_ok
+from viaviva.nucleo import Detector, Nucleo, Welford
+from viaviva.sensores import ParserNMEA, suma_nmea_ok
 
 
 # ------------------------------------------------------------------------------------------------ estructuras
@@ -186,7 +186,7 @@ def _post(srv, ruta, cuerpo, cabeceras=None):
 
 
 def test_servidor_reproduce_graba_detecta_y_guarda(tmp_path, monkeypatch):
-    from pi.servidor import construir, crear_manejador
+    from viaviva.servidor import construir, crear_manejador
     monkeypatch.setenv("TABLERO_CLAVE", "")
     url = _base_con_calle(tmp_path)
     exp = _export_sintetico(tmp_path / "export")
@@ -209,7 +209,7 @@ def test_servidor_reproduce_graba_detecta_y_guarda(tmp_path, monkeypatch):
         assert len(filas) == 3 and {f[:4] for f in filas} == {("simulado", "reproduccion", "impacto_fuerte", 1)}
         assert filas[0][4][:19] in ("2026-11-07T12:20:09", "2026-11-07T12:20:10")   # hora del export, no la del PC
         # La grabación queda en formato phyphox: se puede volver a reproducir
-        from pi.fuentes import FuenteReproduccion
+        from viaviva.fuentes import FuenteReproduccion
         grab = tmp_path / "grab" / carpeta
         f2 = FuenteReproduccion(grab)
         assert f2.fs == 100.0 and len(f2.tablas["acc"]) > 3000 and len(f2.tablas["gps"]) > 30
@@ -237,7 +237,7 @@ def _pedir(srv, metodo, ruta, cuerpo=None, galleta=None, tipo="application/json"
 
 
 def _servidor(tmp_path, url, segundos=5):
-    from pi.servidor import construir, crear_manejador
+    from viaviva.servidor import construir, crear_manejador
     app = construir("reproducir", str(_export_sintetico(tmp_path / "e", segundos)), velocidad=50, url_db=url,
                     dir_grabaciones=tmp_path / "g", sync=False)
     app.calles.listo.wait(10)
@@ -247,7 +247,7 @@ def _servidor(tmp_path, url, segundos=5):
 
 
 def test_roles_y_sesiones(tmp_path):
-    from pi import usuarios
+    from viaviva import usuarios
     url = _base_con_calle(tmp_path)
     con = almacen.conectar(url)
     usuarios.crear(con, "editor1", "clave-editor-prueba", "editor", "Editor")
@@ -289,7 +289,7 @@ def _evento(con, nodo, ts, lat, lon, clase="impacto_fuerte", origen="nodo"):
 
 
 def test_huecos_agrupan_reabren_e_importan(tmp_path):
-    from pi import exportar
+    from viaviva import exportar
     url = _base_con_calle(tmp_path)
     con = almacen.conectar(url)
     _evento(con, "pi-01", "2026-11-05T10:00:00.000Z", 5.53500, -73.36500)
@@ -331,7 +331,7 @@ def test_huecos_agrupan_reabren_e_importan(tmp_path):
 def test_exportables(tmp_path):
     import io
     from openpyxl import load_workbook
-    from pi import exportar
+    from viaviva import exportar
     url = _base_con_calle(tmp_path)
     con = almacen.conectar(url)
     _evento(con, "pi-01", "2026-11-06T10:00:00.000Z", 5.5350, -73.3650, "hueco")
@@ -379,7 +379,7 @@ class _NubeFalsa:
 
 
 def test_sincronizacion_cola_reintentos_y_lista_blanca(tmp_path):
-    from pi import sincronizacion as s
+    from viaviva import sincronizacion as s
     url = _base_con_calle(tmp_path)
     viejo = "2026-11-01T00:00:00Z"
     con = almacen.conectar(url)
@@ -417,7 +417,7 @@ def test_sincronizacion_cola_reintentos_y_lista_blanca(tmp_path):
 
 
 def test_sin_claves_no_sale_nada(tmp_path):
-    from pi import sincronizacion as s
+    from viaviva import sincronizacion as s
     sin = s.Sincronizador(url="", clave="", url_db=_base_con_calle(tmp_path))
     r = sin.una_vez()
     assert not r["configurado"] and r["enviados"] == 0 and r["pendientes"] == {"riesgo": 1}

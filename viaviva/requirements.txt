@@ -1,4 +1,4 @@
-# VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS Bookworm 64 bits). Lo instala pi/instalar.sh en pi/.venv.
+# VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS Bookworm 64 bits). Lo instala viaviva/instalar.sh en viaviva/.venv.
 # El venv se crea con --system-site-packages para usar los paquetes de apt de los pines
 # (python3-lgpio, python3-gpiozero, python3-spidev, python3-smbus2, python3-serial).
 python-dotenv
