@@ -1,0 +1,17 @@
+# Tablero en línea de VÍA VIVA: carpeta estática, sin compilación. Antes de publicar: `viaviva nube preparar`.
+[build]
+  publish = "web/en_linea"
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self' https://tiles.openfreemap.org; connect-src 'self' https://*.supabase.co https://tiles.openfreemap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-ancestors 'none'"
+
+[[headers]]
+  for = "/datos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

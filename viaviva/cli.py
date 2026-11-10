@@ -150,10 +150,10 @@ def _resumen(a) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in ("usuarios", "sync", "detector", "dataset", "r7", "modelo"):   # delegar a cada módulo
+    if argv and argv[0] in ("usuarios", "sync", "detector", "dataset", "r7", "modelo", "nube"):   # delegar a cada módulo
         cmd, resto = argv[0], argv[1:]
         modulo = {"usuarios": "viaviva.usuarios", "sync": "viaviva.sincronizacion", "detector": "viaviva.detector",
-                  "dataset": "viaviva.ventanas", "r7": "viaviva.r7.medir", "modelo": "viaviva.modelo_ventanas"}[cmd]
+                  "dataset": "viaviva.ventanas", "r7": "viaviva.r7.medir", "modelo": "viaviva.modelo_ventanas", "nube": "viaviva.nube"}[cmd]
         import importlib
         sys.argv = [f"viaviva {cmd}", *resto]
         return importlib.import_module(modulo).main() or 0
@@ -199,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("detector", help="detector calibrable (Fase B)")
     sub.add_parser("dataset", help="constructor del dataset (Fase B)")
     sub.add_parser("r7", help="informe de recursos")
+    sub.add_parser("modelo", help="esqueleto TFLite del clasificador de ventanas")
+    sub.add_parser("nube", help="preparar el tablero en línea (config.js + tramos.geojson)")
     a = ap.parse_args(argv)
     return {"doctor": _doctor, "capture": _capture, "serve": _serve, "resumen": _resumen}[a.cmd](a)
 

@@ -1,0 +1,73 @@
+/* VÍA VIVA · tablero en línea. Pico.css da tipografía, formularios y claro/oscuro; aquí solo la composición. */
+:root {
+  --pico-primary: #1f6feb; --pico-primary-background: #1f6feb; --pico-primary-hover-background: #1858c4;
+  --pico-border-radius: 12px; --pico-font-size: 15px; --pico-spacing: .9rem;
+  --est-detectado: #d6402b; --est-verificado: #b7791f; --est-reparado: #1a7f37; --est-descartado: #8c959f;
+  --r1: #fde7a9; --r2: #fbb862; --r3: #f07c3c; --r4: #d6402b; --r5: #8f1d21;
+}
+[data-theme="dark"] { --est-reparado: #3fb950; }
+body { margin: 0; }
+.oculto { display: none !important; }
+.sub { color: var(--pico-muted-color); font-size: .85rem; font-weight: 400; }
+.barra { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  padding: .6rem 1rem; background: var(--pico-background-color); border-bottom: 1px solid var(--pico-muted-border-color); }
+.barra .espacio, .filtros .espacio { flex: 1; }
+.marca { display: flex; align-items: center; gap: .6rem; line-height: 1.15; }
+.marca small { display: block; color: var(--pico-muted-color); font-size: .75rem; }
+.logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #1f6feb, #8f1d21); }
+.chico { padding: .3rem .6rem; margin: 0; font-size: .85rem; width: auto; }
+.vivo { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--pico-muted-color); }
+.punto { width: 9px; height: 9px; border-radius: 50%; background: #1a7f37; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) { .punto { animation: latido 2s infinite; } }
+@keyframes latido { 50% { opacity: .3; } }
+.cuenta { font-size: .85rem; display: flex; gap: .5rem; align-items: center; }
+.rol { padding: .1rem .5rem; border-radius: 99px; border: 1px solid var(--pico-muted-border-color); font-size: .75rem; font-weight: 600; }
+.entrar { max-width: 420px; margin: 8vh auto; padding: 0 1rem; }
+.error { color: var(--est-detectado); }
+.aviso { margin: .75rem 1rem 0; padding: .6rem .9rem; border-radius: 10px; background: color-mix(in srgb, var(--est-detectado) 14%, transparent); }
+.filtros { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; padding: .75rem 1rem 0; }
+.filtros select, .filtros input, .filtros button, .filtros summary { margin: 0; width: auto; padding-top: .4rem; padding-bottom: .4rem; font-size: .9rem; }
+.filtros .capas { margin: 0; display: flex; gap: .75rem; }
+.filtros .capas label { margin: 0; font-size: .9rem; }
+.fecha { display: inline-flex; align-items: center; gap: .3rem; margin: 0; font-size: .85rem; }
+.menu-exportar { margin: 0; }
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: .75rem 1rem 0; }
+.cifras article { margin: 0; padding: .8rem 1rem; display: flex; flex-direction: column; }
+.cifras .et { color: var(--pico-muted-color); font-size: .8rem; }
+.cifras b { font-size: 2rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.cifras small { color: var(--pico-muted-color); font-size: .75rem; }
+.rejilla { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: .75rem; padding: .75rem 1rem; }
+.tarjeta { background: var(--pico-card-background-color); border-radius: var(--pico-border-radius); padding: .9rem 1rem;
+  box-shadow: var(--pico-card-box-shadow); margin-bottom: .75rem; min-width: 0; }
+.tarjeta h3 { font-size: 1rem; margin-bottom: .5rem; }
+.mapa-tarjeta { padding: .5rem; }
+#mapa { height: calc(100vh - 290px); min-height: 420px; border-radius: 10px; }
+.leyenda { display: flex; gap: .8rem; flex-wrap: wrap; font-size: .78rem; color: var(--pico-muted-color); padding: .5rem .25rem 0; }
+.leyenda i { display: inline-block; width: 16px; height: 6px; border-radius: 3px; margin-right: .25rem; vertical-align: middle; }
+.leyenda .b { width: 10px; height: 10px; border-radius: 50%; }
+.tabla { font-size: .85rem; margin: 0; }
+.tabla td, .tabla th { padding: .35rem .4rem; }
+.tabla tr[data-t] { cursor: pointer; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.estado { display: inline-flex; align-items: center; gap: .35rem; font-weight: 600; }
+.estado i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.botones-estado { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem; margin: .5rem 0; }
+.botones-estado button { margin: 0; }
+.pie { padding: 0 1rem 1rem; }
+dialog article { max-width: 640px; }
+#vista { max-height: 320px; overflow: auto; margin-top: .75rem; }
+/* Pantalla fija (Alcaldía): sin controles, letra grande, refresco cada minuto */
+.kiosco .filtros, .kiosco #cuenta, .kiosco #b-kiosco, .kiosco #b-tema, .kiosco .pie { display: none !important; }
+.kiosco .cifras b { font-size: 2.6rem; }
+.kiosco #mapa { height: calc(100vh - 210px); }
+@media (max-width: 1000px) {
+  .rejilla { grid-template-columns: 1fr; }
+  #mapa { height: 55vh; min-height: 320px; }
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media print {
+  .barra, .filtros, .pie button, dialog { display: none !important; }
+  .rejilla { grid-template-columns: 1fr; }
+  #mapa { height: 420px; }
+  .tarjeta { box-shadow: none; break-inside: avoid; }
+}

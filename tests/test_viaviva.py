@@ -402,7 +402,8 @@ def test_sincronizacion_cola_reintentos_y_lista_blanca(tmp_path):
     con.commit()
     con.close()
     r3 = sin.una_vez()
-    assert r3["enviados"] == 1 and r3["pendientes"] == {} and r3["enviados_total"] == {"eventos": 1, "riesgo": 1}
+    assert r3["enviados"] == 1 and r3["pendientes"] == {} and r3["enviados_total"] == {"eventos": 1, "huecos": 0,
+                                                                                 "riesgo": 1}
     tablas = {t: c for t, c in nube.recibido}
     ev = tablas["/rest/v1/eventos_publicos"][0]
     assert set(ev) == {"id_origen", "ts_utc", "lat", "lon", "clase", "etiquetado", "id_tramo", "geohash7", "origen",
@@ -419,3 +420,71 @@ def test_sin_claves_no_sale_nada(tmp_path):
     sin = s.Sincronizador(url="", clave="", url_db=_base_con_calle(tmp_path))
     r = sin.una_vez()
     assert not r["configurado"] and r["enviados"] == 0 and r["pendientes"] == {"riesgo": 1}
+
+
+class _NubeConCambios(_NubeFalsa):
+    """Además de recibir, entrega un cambio de estado pedido en el tablero en línea y anota el PATCH."""
+
+    def __init__(self, cambios):
+        super().__init__(fallas=0)
+        nube, self.parches = self, []
+        manejador = self.srv.RequestHandlerClass
+
+        def do_GET(h):
+            assert "aplicado=eq.false" in h.path and "instancia=eq.pi-01" in h.path
+            cuerpo = json.dumps(cambios).encode()
+            h.send_response(200)
+            h.send_header("Content-Length", str(len(cuerpo)))
+            h.end_headers()
+            h.wfile.write(cuerpo)
+
+        def do_PATCH(h):
+            nube.parches.append((h.path, json.loads(h.rfile.read(int(h.headers["Content-Length"])))))
+            h.send_response(204)
+            h.end_headers()
+        manejador.do_GET, manejador.do_PATCH = do_GET, do_PATCH
+
+
+def test_sincroniza_huecos_y_aplica_cambios_hechos_en_linea(tmp_path):
+    from viaviva import sincronizacion as s
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    _evento(con, "pi-01", "2026-11-06T10:00:00.000Z", 5.5350, -73.3650, "hueco")
+    con.commit()
+    almacen.agrupar_huecos(con)
+    id_h = almacen.huecos(con)[0]["id_hueco"]
+    con.close()
+    nube = _NubeConCambios([{"id": 7, "id_local": id_h, "estado": "verificado", "nota": "visto", "autor": "a@b.co"},
+                            {"id": 8, "id_local": 999, "estado": "reparado", "nota": None, "autor": "a@b.co"}])
+    sin = s.Sincronizador(url=nube.url, clave="clave-prueba", url_db=url)
+    r = sin.una_vez()
+    assert r["cambios_en_linea"] == 1                     # el 999 no existe: se marca rechazado
+    hp = dict(nube.recibido)["/rest/v1/huecos_publicos"][0]
+    assert hp["id_origen"] == f"pi-01|{id_h}" and hp["estado"] == "detectado" and "nota" not in hp
+    assert [b["resultado"] for _, b in nube.parches] == ["aplicado", "rechazado"]
+    con = almacen.conectar(url)
+    h = almacen.huecos(con)[0]
+    assert h["estado"] == "verificado" and h["usuario_estado"] == "nube:a@b.co"
+    con.close()
+    nube.recibido.clear()
+    sin.una_vez()                                         # el hueco cambió: se vuelve a subir con el estado nuevo
+    assert dict(nube.recibido)["/rest/v1/huecos_publicos"][0]["estado"] == "verificado"
+    nube.srv.shutdown()
+
+
+def test_nube_preparar_no_publica_la_clave_secreta(tmp_path, monkeypatch):
+    from viaviva import nube
+    url = _base_con_calle(tmp_path)
+    monkeypatch.setattr(nube, "SITIO", tmp_path / "sitio")
+    monkeypatch.setenv("SUPABASE_URL", "https://ejemplo.supabase.co")
+    monkeypatch.setenv("SUPABASE_CLAVE", "secreta-prueba")
+    monkeypatch.setenv("SUPABASE_CLAVE_PUBLICA", "secreta-prueba")
+    with pytest.raises(SystemExit):
+        nube.preparar(url)
+    monkeypatch.setenv("SUPABASE_CLAVE_PUBLICA", "publica-prueba")
+    r = nube.preparar(url)
+    assert r == {"config": True, "tramos": 1, "kb_geojson": 0}
+    cfg = (tmp_path / "sitio" / "config.js").read_text(encoding="utf-8")
+    assert "publica-prueba" in cfg and "secreta-prueba" not in cfg
+    g = json.loads((tmp_path / "sitio" / "datos" / "tramos.geojson").read_text(encoding="utf-8"))
+    assert g["features"][0]["id"] == 1 and g["features"][0]["geometry"]["coordinates"][0] == [-73.37, 5.535]

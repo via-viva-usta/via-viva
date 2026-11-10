@@ -55,11 +55,13 @@ def guardar_eventos(lote: list[dict], id_nodo: str, origen: str, url: str | None
     con = conectar(url)
     try:
         datos = [(id_nodo, e["ts_utc"], e["lat"], e["lon"], e.get("vel_kmh"), e["clase"], e.get("etiqueta_manual"),
-                  origen, e.get("razon"), MODELO_NODO, e.get("id_tramo"), geohash(e["lat"], e["lon"], 7), ahora_utc())
+                  origen, e.get("razon"), MODELO_NODO, e.get("id_tramo"), geohash(e["lat"], e["lon"], 7), ahora_utc(),
+                  SEVERIDAD_NUM.get(e.get("severidad")), e.get("confianza"))
                  for e in lote if e.get("lat") is not None]
         con.executemany(
             "INSERT INTO eventos (id_nodo, ts_utc, lat, lon, velocidad_kmh, clase, etiqueta_manual, origen, "
-            "razon_umbral, modelo_version, id_tramo, geohash7, ts_carga) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "razon_umbral, modelo_version, id_tramo, geohash7, ts_carga, severidad, confianza) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT (id_nodo, ts_utc) DO UPDATE SET clase = excluded.clase, "
             "etiqueta_manual = excluded.etiqueta_manual, id_tramo = excluded.id_tramo", datos)
         con.commit()
@@ -77,9 +79,9 @@ def _registrar_cambio(con, tabla, id_fila, antes, despues, usuario, origen, nota
 
 def _recontar(con, ids: set[int]) -> None:
     for h in ids:
-        n, lat, lon, pri, ult, hay_hueco = con.execute(
-            "SELECT COUNT(*), AVG(lat), AVG(lon), MIN(ts_utc), MAX(ts_utc), MAX(clase = 'hueco') FROM eventos "
-            "WHERE id_hueco = ?", (h,)).fetchone()
+        n, lat, lon, pri, ult, hay_hueco, sev = con.execute(
+            "SELECT COUNT(*), AVG(lat), AVG(lon), MIN(ts_utc), MAX(ts_utc), MAX(clase = 'hueco'), MAX(severidad) "
+            "FROM eventos WHERE id_hueco = ?", (h,)).fetchone()
         if n == 0:                         # todas sus detecciones se reetiquetaron como otra cosa
             antes = con.execute("SELECT estado FROM huecos WHERE id_hueco = ?", (h,)).fetchone()[0]
             con.execute("UPDATE huecos SET n_detecciones = 0, estado = 'descartado', ts_estado = ?, "
@@ -89,8 +91,9 @@ def _recontar(con, ids: set[int]) -> None:
                 _registrar_cambio(con, "huecos", h, antes, "descartado", "sistema", "web", "sin detecciones")
             continue
         con.execute("UPDATE huecos SET n_detecciones = ?, lat = ?, lon = ?, geohash7 = ?, primera_ts = ?, "
-                    "ultima_ts = ?, clase = ? WHERE id_hueco = ?",
-                    (n, lat, lon, geohash(lat, lon, 7), pri, ult, "hueco" if hay_hueco else "impacto_fuerte", h))
+                    "ultima_ts = ?, clase = ?, severidad = ? WHERE id_hueco = ?",
+                    (n, lat, lon, geohash(lat, lon, 7), pri, ult, "hueco" if hay_hueco else "impacto_fuerte",
+                     severidad_texto(sev), h))
 
 
 def agrupar_huecos(con) -> int:
@@ -139,6 +142,15 @@ def huecos(con, calles: "Calles | None" = None, incluir_simulados: bool = True) 
         h["nombre_via"], h["barrio"], h["tipo_via"] = info.get("nombre"), info.get("barrio"), info.get("tipo_via")
         h["simulado"] = bool(h["simulado"])
     return lista
+
+
+SEVERIDAD_NUM = {"baja": 0.2, "media": 0.5, "alta": 0.9}     # eventos.severidad es REAL 0–1
+
+
+def severidad_texto(v) -> str | None:
+    if v is None:
+        return None
+    return "alta" if v >= 2 / 3 else "media" if v >= 1 / 3 else "baja"
 
 
 def cambiar_estado_hueco(con, id_hueco: int, estado: str, usuario: str, origen: str = "web",

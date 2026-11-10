@@ -25,7 +25,8 @@ from datetime import datetime, timedelta, timezone
 
 from viaviva.almacen import conectar
 
-TABLAS = {"eventos": "eventos_publicos", "riesgo": "riesgo_publico"}
+TABLAS = {"eventos": "eventos_publicos", "huecos": "huecos_publicos", "riesgo": "riesgo_publico"}
+INSTANCIA = os.getenv("VIAVIVA_INSTANCIA") or os.getenv("PI_ID_NODO", "pi-01")   # distingue la base de la Pi y la del PC
 LOTE = 200
 ESPERA_MIN_S, ESPERA_MAX_S = 30, 3600
 EDAD_MIN_EVENTO_S = 60          # deja tiempo a que llegue la etiqueta del copiloto (± 3 s) antes de enviar
@@ -50,6 +51,16 @@ def evento_publico(fila: dict) -> dict:
             "lat": round(fila["lat"], 5), "lon": round(fila["lon"], 5), "clase": fila["clase"],
             "etiquetado": fila.get("etiqueta_manual") is not None, "id_tramo": fila.get("id_tramo"),
             "geohash7": fila.get("geohash7"), "origen": fila["origen"], "modelo_version": fila.get("modelo_version")}
+
+
+def hueco_publico(fila: dict) -> dict:
+    """Hueco = eventos agrupados (≤ 10 m) con su estado. Sin usuario ni nota (texto libre)."""
+    return {"id_origen": f"{INSTANCIA}|{fila['id_hueco']}", "instancia": INSTANCIA, "id_local": fila["id_hueco"],
+            "lat": round(fila["lat"], 5), "lon": round(fila["lon"], 5), "clase": fila["clase"],
+            "n_detecciones": fila["n_detecciones"], "primera_ts": fila["primera_ts"], "ultima_ts": fila["ultima_ts"],
+            "estado": fila["estado"], "ts_estado": fila.get("ts_estado"), "id_tramo": fila.get("id_tramo"),
+            "severidad": fila.get("severidad"),
+            "geohash7": fila.get("geohash7")}
 
 
 def riesgo_publico(fila: dict) -> dict:
@@ -106,6 +117,15 @@ class Sincronizador:
                         ("riesgo", json.dumps(riesgo_publico(f)), _iso(_ahora())))
             n += 1
         self._poner_marca(con, "riesgo", ultimo)
+        # huecos: se reenvían cuando cambian (nueva detección o estado); la marca es la hora del último barrido
+        desde = _iso(datetime.fromtimestamp(self._marca(con, "huecos"), timezone.utc))
+        barrido = int(_ahora().timestamp())
+        for f in _filas(con, "SELECT * FROM huecos WHERE simulado = 0 AND (ts_carga >= ? OR ultima_ts >= ? OR "
+                             "COALESCE(ts_estado, '') >= ?)", (desde, desde, desde)):
+            con.execute("INSERT INTO cola_envio (tabla, carga_json, creado) VALUES (?, ?, ?)",
+                        ("huecos", json.dumps(hueco_publico(f)), _iso(_ahora())))
+            n += 1
+        self._poner_marca(con, "huecos", barrido)
         con.commit()
         return n
 
@@ -148,12 +168,46 @@ class Sincronizador:
         self.enviados_sesion += enviados
         return enviados
 
+    # ---------------------------------------------------------------- cambios hechos en el tablero en línea
+    def _json(self, metodo: str, ruta: str, datos=None):
+        req = urllib.request.Request(f"{self.url}/rest/v1/{ruta}", method=metodo,
+                                     data=None if datos is None else json.dumps(datos).encode(),
+                                     headers={"apikey": self.clave, "Authorization": f"Bearer {self.clave}",
+                                              "Content-Type": "application/json", "Prefer": "return=minimal"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            cuerpo = r.read()
+        return json.loads(cuerpo) if cuerpo else None
+
+    def traer_cambios(self, con) -> int:
+        """Los editores cambian estados en línea → tabla cambios_remotos. La Pi (fuente de verdad) los aplica a
+        SQLite con el historial (usuario `nube:<correo>`) y los marca como aplicados. Los ajenos se ignoran."""
+        pendientes = self._json("GET", f"cambios_remotos?aplicado=eq.false&instancia=eq.{INSTANCIA}"
+                                       "&select=id,id_local,estado,nota,autor&order=id") or []
+        from viaviva.almacen import cambiar_estado_hueco
+        aplicados = 0
+        for c in pendientes:
+            try:
+                ok = cambiar_estado_hueco(con, int(c["id_local"]), c["estado"], f"nube:{c.get('autor') or '?'}",
+                                          nota=c.get("nota"))
+            except ValueError:
+                ok = False
+            self._json("PATCH", f"cambios_remotos?id=eq.{int(c['id'])}",
+                       {"aplicado": True, "resultado": "aplicado" if ok else "rechazado"})
+            aplicados += ok
+        return aplicados
+
     def una_vez(self) -> dict:
         con = conectar(self.url_db)
         try:
             encolados = self.encolar_nuevos(con)
             enviados = self.enviar_pendientes(con) if self.configurado else 0
-            return {"encolados": encolados, "enviados": enviados, **self.estado(con)}
+            traidos = 0
+            if self.configurado:
+                try:
+                    traidos = self.traer_cambios(con)
+                except Exception as err:
+                    self.ultimo_error = f"{_iso(_ahora())} cambios en línea: {type(err).__name__}: {err}"[:200]
+            return {"encolados": encolados, "enviados": enviados, "cambios_en_linea": traidos, **self.estado(con)}
         finally:
             con.close()
 

@@ -56,6 +56,27 @@ def _f(v) -> str:
     return str(v)
 
 
+_PARAMS: dict | None = None
+
+
+def _parametros_detector() -> dict:
+    global _PARAMS
+    if _PARAMS is None:
+        _PARAMS = {'v_min_kmh': 5, 'v_ref_kmh': 20, 'exponente_velocidad': 0.5, 'severidad_media_g': 0.6,
+                   'severidad_alta_g': 1.0}
+        try:
+            import yaml
+            for nombre in ('detector_calibrado.yaml', 'detector.yaml'):
+                ruta = config.RAIZ / 'config' / nombre
+                if ruta.exists():
+                    _PARAMS.update({k: v for k, v in yaml.safe_load(ruta.read_text(encoding='utf-8')).items()
+                                    if k in _PARAMS})
+                    break
+        except ImportError:
+            pass
+    return _PARAMS
+
+
 def _utc(epoch: float) -> str:
     return datetime.fromtimestamp(epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
@@ -375,11 +396,12 @@ class Nucleo:
         id_tramo = None
         if tiene_gps and self.ajustar_tramo:
             id_tramo, _ = self.ajustar_tramo(self.lat, self.lon)
+        sev, conf = self._severidad(p2p)
         e = {"t_s": round(t, 3), "ts_utc": self.ts_utc(t), "p2p_g": round(p2p, 3),
              "razon": round(p2p / self.det.rms_disparo, 1) if self.det.rms_disparo > 0 else None,
              "lat": round(self.lat, 7) if tiene_gps else None, "lon": round(self.lon, 7) if tiene_gps else None,
              "vel_kmh": round(self.vel_kmh, 1), "id_tramo": id_tramo, "clase": "impacto_fuerte",
-             "etiqueta_manual": None, "id_etiqueta": None, "severidad": None, "confianza": None}
+             "etiqueta_manual": None, "id_etiqueta": None, "severidad": sev, "confianza": conf}
         # Clase provisional = impacto_fuerte (sin clasificar) hasta que alguien la etiquete a ± 3 s.
         for etq in self.etiquetas.ultimos(5):
             if (not etq.get("anulada") and abs(etq["t_abs"] - t) <= config.VENTANA_ETIQUETA_S
@@ -392,9 +414,18 @@ class Nucleo:
         if self.sesion:
             t_rel = round(t - self.t0_sesion, 3)
             self.sesion.fila("eventos", (t_rel, e["ts_utc"], e["p2p_g"], e["razon"], e["lat"], e["lon"], e["vel_kmh"],
-                                         id_tramo, e["clase"], "", ""))
+                                         id_tramo, e["clase"], sev, conf))
             self.sesion.evento(e, t_rel)
         return e
+
+    def _severidad(self, p2p: float) -> tuple[str, float]:
+        """Amplitud normalizada por velocidad = (p2p / 2) / (max(v, v_min) / v_ref) ** exp, con los cortes de
+        config/detector.yaml. Confianza = cuánto supera el disparo al umbral de pico (1 − umbral/p2p)."""
+        p = _parametros_detector()
+        factor = (max(self.vel_kmh, p['v_min_kmh']) / p['v_ref_kmh']) ** p['exponente_velocidad']
+        amp = (p2p / 2) / factor
+        sev = 'alta' if amp >= p['severidad_alta_g'] else 'media' if amp >= p['severidad_media_g'] else 'baja'
+        return sev, round(max(0.0, 1 - self.det.p.p2p_min_g / p2p), 3) if p2p > 0 else 0.0
 
     @staticmethod
     def _aplicar_etiqueta(e: dict, etq: dict) -> None:

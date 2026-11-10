@@ -228,7 +228,7 @@ CREATE INDEX IF NOT EXISTS idx_variables_barrio ON variables_tramo (barrio);
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS cola_envio (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    tabla           TEXT NOT NULL CHECK (tabla IN ('eventos', 'riesgo')),
+    tabla           TEXT NOT NULL CHECK (tabla IN ('eventos', 'huecos', 'riesgo')),
     carga_json      TEXT NOT NULL,             -- fila ya filtrada (sin velocidad, vehículo, fotos ni datos de la Alcaldía)
     creado          TEXT NOT NULL,             -- UTC
     intentos        INTEGER NOT NULL DEFAULT 0,
