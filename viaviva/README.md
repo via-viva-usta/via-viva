@@ -15,7 +15,7 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 | Comando | Para qué |
 |---|---|
 | `viaviva doctor [--source pi] [--url …] [--simulado <export>]` | Pre-chequeo: LISTO o FALTA X (código de salida 0/1) |
-| `viaviva capture` | Captura con phyphox (`http://172.20.10.1:8080` por defecto) + tablero en `:8000`; graba sola |
+| `viaviva capture` | Captura con phyphox (`http://172.20.10.1`, puerto 80 u 8080 autodetectado) + tablero en `:8000`; graba sola |
 | `viaviva capture --replay <export> [--por-http] [--velocidad 5] [--bucle]` | Reproduce una salida como si fuera en vivo |
 | `viaviva capture --source pi --puerto 80 --permitir-apagado` | En la Pi (lo usa el servicio) |
 | `viaviva serve` | Solo el tablero local |

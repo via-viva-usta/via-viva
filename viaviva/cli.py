@@ -33,6 +33,9 @@ def _doctor(a) -> int:
     inf = doctor.correr(fuente, url, a.puerto, segundos=a.segundos, con_internet=not a.sin_internet)
     if sim:
         sim.cerrar()
+    elif fuente == "phyphox" and inf.url_phyphox and not a.no_guardar and inf.url_phyphox != config.PHYPHOX_URL:
+        config.guardar_env("VIAVIVA_PHYPHOX_URL", inf.url_phyphox)
+        print(f"URL de phyphox guardada en .env: {inf.url_phyphox}")
     if a.json:
         import json
         print(json.dumps(inf.dict(), ensure_ascii=False, indent=1))
@@ -169,6 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--segundos", type=float, default=5.0)
     d.add_argument("--sin-internet", action="store_true", help="no comparar la hora con internet")
     d.add_argument("--simulado", metavar="EXPORT", help="probar contra un simulador de phyphox con este export")
+    d.add_argument("--no-guardar", action="store_true", help="no dejar en .env la URL de phyphox detectada")
     d.add_argument("--json", action="store_true")
     c = sub.add_parser("capture", help="captura + tablero local")
     c.add_argument("--source", choices=["phyphox", "pi", "replay"], default="phyphox")

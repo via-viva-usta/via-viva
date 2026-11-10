@@ -6,12 +6,13 @@
 
 ## 1. Antes de arrancar (en el parqueadero)
 
-1. **iPhone 1:** phyphox → experimento **«VÍA VIVA 2.0»** → menú ⋮ → **Permitir acceso remoto** (anota la dirección
-   que muestra, normalmente `http://172.20.10.1:8080`) → ▶ para empezar a medir. Activa el **Punto de acceso personal**.
+1. **iPhone 1:** phyphox → experimento **«VÍA VIVA 2.0»** → menú ⋮ → **Permitir acceso remoto** (en el iPhone muestra
+   `http://172.20.10.1`, puerto 80; no hace falta anotarla: el doctor la encuentra sola) → ▶ para empezar a medir. Activa el **Punto de acceso personal**.
 2. **PC:** conéctate al WiFi del iPhone 1. Doble clic en **`SALIDA_DE_CAMPO.cmd`** (carpeta `via-viva`).
    Primero corre el **doctor**: debe decir **LISTO**. Si dice FALTA, haz lo que indica y vuelve a abrirlo.
-   - Si el iPhone da otra dirección: en una consola, `viaviva.cmd doctor --url http://<ip>:8080` y después
-     `viaviva.cmd capture --url http://<ip>:8080 --abrir`.
+   - El doctor prueba solo los puertos **80 y 8080**, lee de phyphox los nombres reales de los buffers y deja la
+     dirección que respondió en `.env`. Solo si el iPhone tiene otra IP: `viaviva.cmd doctor --url http://<ip>`
+     (queda guardada para la captura).
    - La primera vez Windows pregunta por el **Firewall**: permitir en **redes privadas** (si no, el celular de Anzola
      no podrá abrir `/marcar`).
 3. Con LISTO, la captura **empieza a grabar sola** y abre el navegador en `http://localhost:8000/captura`. La consola
@@ -36,7 +37,7 @@
 
 1. **1 minuto quieto**, destello en `/sync` y **Q** en la consola del PC (o Ctrl+C).
 2. La consola muestra el **RESUMEN**: duración, pérdidas, marcas por clase, km, velocidad máxima y **avisos** (si
-   faltó el minuto quieto, si se pasó de 30 km/h…).
+   faltó el minuto quieto —se toleran hasta 5 km/h de ruido del GPS—, si se pasó de 30 km/h…).
 3. La sesión queda en `02_VIA_VIVA\06_CAMPO\sesiones\sesion_AAAA-MM-DD_hhmm\`. Súbela al **Drive restringido** junto
    con el video de Pipe. **Nunca** al repositorio. Sin caras ni placas.
 4. En phyphox: ⋮ → exportar CSV → Drive (`06_CAMPO/phyphox/AAAA-MM-DD/`), como respaldo.

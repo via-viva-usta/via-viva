@@ -58,7 +58,8 @@ SOSTENER_APAGADO_S = 1.0       # gpio-shutdown: pulsar ~1 s (manual v3, paso 5f)
 # --- servidor y datos
 ID_NODO = os.getenv("PI_ID_NODO", "pi-01")
 PUERTO = _ent("VIAVIVA_PUERTO", 8000)
-PHYPHOX_URL = os.getenv("VIAVIVA_PHYPHOX_URL", "http://172.20.10.1:8080")   # iPhone de punto de acceso
+PHYPHOX_URL = os.getenv("VIAVIVA_PHYPHOX_URL", "http://172.20.10.1")   # iPhone de punto de acceso (iOS: puerto 80;
+#                                                                        se autodetecta 80/8080 con `viaviva doctor`)
 FS_PHYPHOX_HZ = 100.0
 SPI_CS_ADXL2 = 1                 # ADXL345 #2 en CE1 (opcional, manual v3)
 _CAMPO = RAIZ.parent.parent / "06_CAMPO"   # 02_VIA_VIVA/06_CAMPO: datos crudos fuera del repo
@@ -85,3 +86,16 @@ class ParametrosUmbral:
     tau_base_s: float = 2.0
     ventana_p2p_s: float = 0.05
     refractario_s: float = 1.0
+
+
+def guardar_env(clave: str, valor: str, ruta: Path | None = None) -> None:
+    """Deja `clave=valor` en .env sin tocar las demás líneas (para datos NO secretos, como la URL de phyphox)."""
+    ruta = ruta or RAIZ / ".env"
+    lineas = ruta.read_text(encoding="utf-8").splitlines() if ruta.exists() else []
+    nueva, puesto = f"{clave}={valor}", False
+    for i, l in enumerate(lineas):
+        if l.split("=", 1)[0].strip() == clave:
+            lineas[i], puesto = nueva, True
+    if not puesto:
+        lineas.append(nueva)
+    ruta.write_text("\n".join(lineas) + "\n", encoding="utf-8")

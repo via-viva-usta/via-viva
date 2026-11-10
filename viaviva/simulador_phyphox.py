@@ -15,14 +15,16 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from viaviva.fuente_phyphox import GRUPOS
+from viaviva.fuente_phyphox import FUENTES, GRUPOS, SALIDAS
 from viaviva.fuentes import _leer_tabla
 
 ARCHIVO = {"acc": ("Accelerometer.csv", 4), "giro": ("Gyroscope.csv", 4), "gps": ("Location.csv", 8)}
 
 
 class SimuladorPhyphox:
-    def __init__(self, ruta: Path, velocidad: float = 1.0, puerto: int = 0, host: str = "127.0.0.1"):
+    def __init__(self, ruta: Path, velocidad: float = 1.0, puerto: int = 0, host: str = "127.0.0.1",
+                 grupos: dict | None = None):
+        self.grupos = grupos or GRUPOS
         self.datos = {}
         for g, (nombre, ancho) in ARCHIVO.items():
             filas = [f[:ancho] + [math.nan] * (ancho - len(f)) for f in _leer_tabla(Path(ruta), nombre)]
@@ -47,7 +49,10 @@ class SimuladorPhyphox:
                 u = urllib.parse.urlsplit(self.path)
                 if u.path == "/config":
                     cuerpo = {"title": "VÍA VIVA 2.0 (simulado)", "buffers": [
-                        {"name": n, "size": 0} for t, vs in GRUPOS.values() for n in [t, *vs]]}
+                        {"name": n, "size": 0} for t, vs in sim.grupos.values() for n in [t, *vs]],
+                        "inputs": [{"source": FUENTES[g][0], "outputs": [{"t": t}, *({k: v} for k, v in
+                                                                                   zip(SALIDAS[g], vs))]}
+                                   for g, (t, vs) in sim.grupos.items()]}
                 elif u.path == "/get":
                     sim.peticiones += 1
                     cuerpo = sim.responder(urllib.parse.unquote(u.query))
@@ -75,7 +80,7 @@ class SimuladorPhyphox:
     def responder(self, consulta: str) -> dict:
         t_ahora = min(self.ahora(), self.fin)
         indice = {}
-        for g, (tiempo, valores) in GRUPOS.items():
+        for g, (tiempo, valores) in self.grupos.items():
             indice[tiempo] = (g, 0)
             for k, v in enumerate(valores, 1):
                 indice[v] = (g, k)

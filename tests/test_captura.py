@@ -87,3 +87,39 @@ def test_resumen_de_export_por_cli(tmp_path, capsys):
     assert main(["resumen", str(exp)]) == 0
     salida = capsys.readouterr().out
     assert "Muestras del acelerómetro" in salida and "2 000" in salida and (exp / "RESUMEN.md").exists()
+
+
+def test_phyphox_autodetecta_y_mapea_buffers_reales(tmp_path):
+    """El experimento puede llamar distinto a sus buffers: se leen de /config. Y la URL sin puerto se resuelve."""
+    from viaviva import fuente_phyphox as fp
+    from viaviva.simulador_phyphox import SimuladorPhyphox
+    otros = {"acc": ("t_a", ["ax", "ay", "az"]), "giro": ("t_g", ["wx", "wy", "wz"]),
+             "gps": ("t_p", ["la", "lo", "alt", "vel", "rumbo", "prec", "precz"])}
+    sim = SimuladorPhyphox(_export_sintetico(tmp_path / "e", segundos=20), velocidad=5, grupos=otros)
+    try:
+        url, cfg = fp.descubrir(sim.url)
+        assert url == sim.url and fp.mapear_buffers(cfg) == otros and fp.buffers_faltantes(cfg) == []
+        cli = fp.ClientePhyphox(sim.url)
+        assert cli.conectar() is not None and cli.grupos["gps"][1][0] == "la"
+        time.sleep(0.5)
+        filas = fp.filas_de(cli.nuevos({"acc": -1.0, "giro": -1.0, "gps": -1.0}), "acc", cli.grupos)
+        assert len(filas) > 100 and len(filas[0]) == 4
+    finally:
+        sim.cerrar()
+    assert fp.candidatos("http://172.20.10.1") == ["http://172.20.10.1", "http://172.20.10.1:8080"]
+    assert fp.candidatos("172.20.10.1:8080") == ["http://172.20.10.1:8080", "http://172.20.10.1"]
+    assert fp.descubrir("http://127.0.0.1:9", timeout=0.3)[0] is None
+    sin_inputs = {"buffers": [{"name": n} for n in ("acc_time", "accX", "accY", "accZ", "gps_time", "gpsLat", "gpsLon")]}
+    assert fp.mapear_buffers(sin_inputs) == fp.GRUPOS and fp.buffers_faltantes(sin_inputs) == []
+    assert fp.buffers_faltantes({"buffers": [{"name": "acc_time"}]}) == ["accX", "accY", "accZ", "gpsLat", "gpsLon",
+                                                                         "gps_time"]
+
+
+def test_guardar_env_no_toca_lo_demas(tmp_path):
+    from viaviva import config
+    env = tmp_path / ".env"
+    env.write_text("OTRA=1\nVIAVIVA_PHYPHOX_URL=http://viejo:8080\nULTIMA=x\n", encoding="utf-8")
+    config.guardar_env("VIAVIVA_PHYPHOX_URL", "http://172.20.10.1", env)
+    config.guardar_env("NUEVA", "2", env)
+    assert env.read_text(encoding="utf-8").splitlines() == ["OTRA=1", "VIAVIVA_PHYPHOX_URL=http://172.20.10.1",
+                                                            "ULTIMA=x", "NUEVA=2"]

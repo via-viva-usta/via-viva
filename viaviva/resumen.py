@@ -18,7 +18,7 @@ from viaviva import config
 from viaviva.estructuras import distancia_m
 from viaviva.fuentes import _leer_tabla
 
-QUIETO_MAX_KMH = 2.0
+QUIETO_MAX_KMH = 5.0     # tolerancia: el GPS marca 3–5 km/h con el carro detenido
 QUIETO_MAX_G = 0.05        # desviación de |a| (g) con el carro quieto (igual criterio que herramientas.validar_campo)
 SALTO_GPS_MAX_M = 100.0    # un salto mayor entre dos fijaciones seguidas se descarta (error de GPS)
 

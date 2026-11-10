@@ -1,5 +1,14 @@
 # Cambios
 
+## 2026-11-11 — conexión con phyphox
+
+- phyphox en iOS responde en el **puerto 80** (no 8080): la URL por defecto es `http://172.20.10.1` y `doctor` y
+  `capture` **autodetectan 80/8080**; si la captura pierde la conexión, vuelve a probar los dos puertos.
+- Los nombres de los buffers (aceleración, ubicación, giroscopio) se leen de `/config` (`inputs`); si el experimento no
+  los declara, se usan los de «VÍA VIVA 2.0». `doctor` muestra el mapeo y verifica muestras y GPS.
+- `viaviva doctor [--url …]` deja la URL que respondió en `.env` (`VIAVIVA_PHYPHOX_URL`; `--no-guardar` para evitarlo).
+- Minuto quieto: tolerancia de **5 km/h** (antes 2): el GPS del iPhone marca 3–5 km/h con el carro detenido.
+
 ## 2026-11-10 — cierre del software (rama `ac/cierre-software`)
 
 - **Fase A — captura de campo con el PC + phyphox:** `viaviva doctor` (LISTO / FALTA), `viaviva capture` con reconexión
