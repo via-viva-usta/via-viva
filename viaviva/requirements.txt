@@ -2,6 +2,9 @@
 # El venv se crea con --system-site-packages para usar los paquetes de apt de los pines
 # (python3-lgpio, python3-gpiozero, python3-spidev, python3-smbus2, python3-serial).
 python-dotenv
+fastapi==0.115.6     # tablero local (decisión del 9-nov)
+uvicorn==0.32.1
+pyyaml==6.0.2       # parámetros del detector
 openpyxl            # Excel de 3 hojas
 reportlab           # PDF del top-10
 adafruit-blinka     # base de las dos librerías de Adafruit

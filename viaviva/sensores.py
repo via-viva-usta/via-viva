@@ -60,8 +60,12 @@ class ADXL345(Sensor):
     LEER, MULTI = 0x80, 0x40
     ESCALA_G = 0.0039               # resolución completa: 3,9 mg/LSB en cualquier rango
 
-    def __init__(self, fs: float = config.FS_ADXL_HZ, watermark: int = config.WATERMARK_FIFO):
+    def __init__(self, fs: float = config.FS_ADXL_HZ, watermark: int = config.WATERMARK_FIFO,
+                 cs: int = config.SPI_CS, con_interrupcion: bool = True):
         super().__init__()
+        self.cs, self.con_interrupcion = cs, con_interrupcion
+        if cs != config.SPI_CS:
+            self.nombre = f"adxl345_{cs + 1}"
         self.fs, self.watermark = fs, watermark
         self.desbordes = 0
         self.spi = None
@@ -78,7 +82,7 @@ class ADXL345(Sensor):
         try:
             import spidev
             self.spi = spidev.SpiDev()
-            self.spi.open(config.SPI_BUS, config.SPI_CS)
+            self.spi.open(config.SPI_BUS, self.cs)
             self.spi.mode, self.spi.max_speed_hz = 3, config.SPI_HZ
             devid = self._leer(self.R_DEVID)[0]
             if devid != 0xE5:
@@ -91,6 +95,8 @@ class ADXL345(Sensor):
             self._escribir(self.R_INT_ENABLE, 0x02)                     # watermark
             self._escribir(self.R_POWER, 0x08)                          # medir
             try:
+                if not self.con_interrupcion:
+                    raise RuntimeError("sin INT1 (se lee junto con el #1)")
                 from gpiozero import DigitalInputDevice
                 self.int1 = DigitalInputDevice(config.PIN_INT1, pull_up=None, active_state=True)
                 self.int1.when_activated = self.hay_datos.set

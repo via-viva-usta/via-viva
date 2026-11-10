@@ -28,6 +28,7 @@ class FuenteSensores:
         self.al_apagar = al_apagar           # función: apagado seguro (pulsador sostenido 3 s)
         self.parar = threading.Event()
         self.adxl = s.ADXL345()
+        self.adxl2 = s.ADXL345(cs=config.SPI_CS_ADXL2, con_interrupcion=False)   # opcional (manual v3)
         self.gps = s.GPS()
         self.dht = s.DHT22()
         self.vl = s.VL53L0X()
@@ -48,12 +49,15 @@ class FuenteSensores:
     def arrancar(self, n: Nucleo) -> None:
         self.n = n
         n.base_epoch = time.time() - self.t()
-        for sensor in (self.adxl, self.gps, self.dht, self.vl):
+        for sensor in (self.adxl, self.adxl2, self.gps, self.dht, self.vl):
             sensor.iniciar()
         if self.bus is not None:
             self.mpu.iniciar()
             self.luz.iniciar()
-        n.sensores = {x.nombre: x for x in (self.adxl, self.mpu, self.vl, self.luz, self.gps, self.dht)}
+        n.sensores = {x.nombre: x for x in (self.adxl, self.adxl2, self.mpu, self.vl, self.luz, self.gps, self.dht)}
+        faltan = [x.nombre for x in n.sensores.values() if not x.presente]
+        if faltan:                       # cada sensor es opcional: se arma por fases
+            n.aviso(f"Sin conectar o sin responder: {', '.join(faltan)} (el resto funciona)")
         for nombre, f in (("adq-adxl", self._hilo_adxl), ("i2c", self._hilo_i2c), ("gps", self._hilo_gps),
                           ("ambiente", self._hilo_ambiente), ("led", self._hilo_led)):
             threading.Thread(target=f, daemon=True, name=nombre).start()
@@ -97,6 +101,12 @@ class FuenteSensores:
             filas = [(t_base + (k + i) / self.fs, *m) for i, m in enumerate(lote)]
             k += len(lote)
             self.n.acc(filas)
+            if self.adxl2.presente:          # el #2 no tiene INT: se vacía su FIFO en el mismo momento
+                try:
+                    lote2 = self.adxl2.leer_fifo()
+                    self.n.acc2([(filas[-1][0] - (len(lote2) - 1 - i) / self.fs, *m) for i, m in enumerate(lote2)])
+                except Exception as err:
+                    self.adxl2.falla(err)
 
     # --- I2C: MPU-6050 a 100 Hz; VL53L0X cuando tiene dato; BH1750 cada 1 s
     def _hilo_i2c(self) -> None:
@@ -163,28 +173,14 @@ class FuenteSensores:
                 if r is not None:
                     self.n.ambiente(self.t(), temperatura=r[0], humedad=r[1], sensor="dht22")
 
-    # --- pulsador y LED
+    # --- LED (el pulsador de GPIO27 lo maneja el sistema: dtoverlay=gpio-shutdown; al apagar, systemd manda
+    #     SIGTERM y la captura cierra la sesión con fsync antes de que se corte la corriente)
     def _pulsador(self) -> None:
         try:
-            from gpiozero import LED, Button
+            from gpiozero import LED
             self.led = LED(config.PIN_LED)
-            self.boton = Button(config.PIN_PULSADOR, pull_up=True, bounce_time=0.05,
-                                hold_time=config.SOSTENER_APAGADO_S)
-            sostenido = [False]
-
-            def al_sostener():
-                sostenido[0] = True
-                if self.al_apagar:
-                    self.al_apagar("pulsador")
-
-            def al_soltar():
-                if not sostenido[0]:
-                    self.n.etiquetar("otro", origen="boton")      # marca rápida; se corrige en la web
-                sostenido[0] = False
-            self.boton.when_held = al_sostener
-            self.boton.when_released = al_soltar
         except Exception as err:
-            self.n.aviso(f"Pulsador/LED no disponibles: {err}")
+            self.n.aviso(f"LED no disponible: {err}")
 
     def _hilo_led(self) -> None:
         modo = None

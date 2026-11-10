@@ -38,6 +38,7 @@ ARCHIVOS = {   # clave → (archivo, encabezado). Los 3 primeros como los escrib
     "gps": ("Location.csv", ["Time (s)", "Latitude (°)", "Longitude (°)", "Height (m)", "Velocity (m/s)",
                              "Direction (°)", "Horizontal Accuracy (m)", "Vertical Accuracy (°)", "UTC PC (s)"]),
     "acc_mpu": ("Accelerometer_mpu6050.csv", ["Time (s)", "X (m/s^2)", "Y (m/s^2)", "Z (m/s^2)"]),
+    "acc2": ("Accelerometer_adxl2.csv", ["Time (s)", "X (m/s^2)", "Y (m/s^2)", "Z (m/s^2)"]),
     "distancia": ("Distancia_vl53l0x.csv", ["Time (s)", "distancia_mm"]),
     "ambiente": ("Ambiente.csv", ["Time (s)", "temperatura_c", "humedad_pct", "lux", "sensor"]),
     "eventos": ("eventos.csv", ["t_s", "ts_utc", "p2p_g", "razon", "lat", "lon", "vel_kmh", "id_tramo", "clase",
@@ -306,6 +307,12 @@ class Nucleo:
                 for t, x, y, z in filas:
                     utc = (recibido_epoch - (filas[-1][0] - t)) if recibido_epoch else self.epoch(t)
                     self.sesion.fila("giro", (t - self.t0_sesion, x, y, z, round(utc, 3)))
+
+    def acc2(self, filas) -> None:
+        with self.candado:
+            if self.sesion:
+                for t, x, y, z in filas:
+                    self.sesion.fila("acc2", (t - self.t0_sesion, x, y, z))
 
     def acc_mpu(self, filas) -> None:
         with self.candado:

@@ -1,7 +1,7 @@
 """Configuración del nodo central Raspberry Pi 4 (decisión del 7-nov). Un solo lugar para pines, tasas y rutas.
 
-Pines en numeración **BCM**. Son una PROPUESTA de software: [PENDIENTE: confirmar con la rama de hardware de Dany]
-antes de soldar. Se pueden cambiar sin tocar código con variables de entorno en `.env` (p. ej. `PI_PIN_INT1=17`).
+Pines en numeración **BCM**, iguales a la tabla oficial del `02_HARDWARE/VIA_VIVA_Manual_Armado_v3_Pi4.pdf`
+(apartado 5). ADXL345 #2 en CE1 (GPIO7, opcional). Pulsador: `dtoverlay=gpio-shutdown,gpio_pin=27` (apaga el sistema). Se pueden cambiar sin tocar código con variables de entorno en `.env` (p. ej. `PI_PIN_INT1=17`).
 
 | Señal                     | Pin BCM (físico)        | Bus / nota                                                   |
 |---------------------------|-------------------------|--------------------------------------------------------------|
@@ -10,7 +10,7 @@ antes de soldar. Se pueden cambiar sin tocar código con variables de entorno en
 | I2C SDA / SCL             | 2 / 3 (3 / 5)           | I2C1 a 400 kHz: MPU-6050 0x68, VL53L0X 0x29, BH1750 0x23     |
 | GPS NEO-6M TX → RX Pi     | 15 (10)                 | UART `/dev/serial0`, 9600 baud (RX del GPS a 14 es opcional) |
 | DHT22 DATA                | 4 (7)                   | Pull-up 10 kΩ a 3V3; lectura tolerante a fallos              |
-| Pulsador (a GND)          | 27 (13)                 | Corto = marca; sostenido 3 s = apagado seguro                |
+| Pulsador (a GND)          | 27 (13)                 | Apagado limpio del sistema (gpio-shutdown, pulsar 1 s)       |
 | LED (con 330 Ω)           | 22 (15)                 | Lento = grabando; fijo = listo; rápido = falla de sensor     |
 Todo a 3,3 V (los módulos con regulador a 5 V se alimentan del pin 2/4 pero sus señales deben quedar a 3,3 V).
 """
@@ -52,7 +52,7 @@ FS_MPU_HZ = 100.0
 PERIODO_LUZ_S = 1.0
 PERIODO_DISTANCIA_S = 0.05      # VL53L0X continuo ~20 Hz
 PERIODO_AMBIENTE_S = 10.0       # DHT22: ≥ 2 s entre lecturas por hoja de datos; 10 s como el nodo
-SOSTENER_APAGADO_S = 3.0
+SOSTENER_APAGADO_S = 1.0       # gpio-shutdown: pulsar ~1 s (manual v3, paso 5f)
 
 # --- servidor y datos
 ID_NODO = os.getenv("PI_ID_NODO", "pi-01")
