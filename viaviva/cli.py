@@ -150,10 +150,10 @@ def _resumen(a) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in ("usuarios", "sync", "detector", "dataset", "r7"):   # delegar a cada módulo
+    if argv and argv[0] in ("usuarios", "sync", "detector", "dataset", "r7", "modelo"):   # delegar a cada módulo
         cmd, resto = argv[0], argv[1:]
         modulo = {"usuarios": "viaviva.usuarios", "sync": "viaviva.sincronizacion", "detector": "viaviva.detector",
-                  "dataset": "viaviva.dataset", "r7": "viaviva.r7.medir"}[cmd]
+                  "dataset": "viaviva.ventanas", "r7": "viaviva.r7.medir", "modelo": "viaviva.modelo_ventanas"}[cmd]
         import importlib
         sys.argv = [f"viaviva {cmd}", *resto]
         return importlib.import_module(modulo).main() or 0
