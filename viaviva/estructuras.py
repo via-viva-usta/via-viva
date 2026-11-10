@@ -15,7 +15,8 @@ complejidad. Python trae `dict`, `heapq` y `deque`, pero aquí se implementan pa
 from __future__ import annotations
 
 import math
-from typing import Any, Callable, Generic, Iterable, Iterator, TypeVar
+from collections.abc import Callable, Iterable, Iterator
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -194,8 +195,7 @@ class TablaHash(Generic[K, V]):
 
     def items(self) -> Iterator[tuple[K, V]]:
         for cub in self._cubetas:
-            for k, v in cub:
-                yield k, v
+            yield from ((k, v) for k, v in cub)
 
     def cubeta_mas_larga(self) -> int:            # diagnóstico de colisiones
         return max((len(c) for c in self._cubetas), default=0)

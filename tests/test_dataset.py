@@ -42,6 +42,7 @@ def test_sitios_por_gps_y_por_hora():
 
 def test_exif_con_gps_y_zona(tmp_path):
     from PIL import Image
+
     from dataset.ingesta import leer_exif
     from dataset.sintetico import guardar_con_exif
     ruta = tmp_path / "foto.jpg"

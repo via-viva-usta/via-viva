@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
@@ -89,7 +89,7 @@ def main():
     a = ap.parse_args()
     if a.cmd == "consumo":
         LOGS.mkdir(parents=True, exist_ok=True)
-        fila = {"ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "equipo": platform.node(),
+        fila = {"ts_utc": datetime.now(UTC).isoformat(timespec="seconds"), "equipo": platform.node(),
                 "estado": a.estado, "ma": a.ma, "v": a.v}
         with open(LOGS / "consumo_pi.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(fila) + "\n")

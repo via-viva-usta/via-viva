@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from viaviva import config
@@ -106,7 +106,7 @@ def registrar_r7(nucleo, sistema: Sistema, parar: threading.Event, periodo_s: fl
     ruta.parent.mkdir(parents=True, exist_ok=True)
     while not parar.wait(periodo_s):
         s = sistema.estado()
-        fila = {"ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "equipo": s["equipo"],
+        fila = {"ts_utc": datetime.now(UTC).isoformat(timespec="seconds"), "equipo": s["equipo"],
                 "origen": nucleo.origen, "fs_hz": nucleo.fs, "grabando": nucleo.sesion is not None,
                 "muestras": nucleo.n_acc, "cpu_pct": s["cpu_pct"], "temp_c": s["temp_c"],
                 "memoria": s["memoria"], "estrangulamiento": s["estrangulamiento"],

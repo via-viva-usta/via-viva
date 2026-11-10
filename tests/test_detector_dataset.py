@@ -93,3 +93,14 @@ def test_esqueleto_tflite_humo(tmp_path):
     from viaviva.modelo_ventanas import entrenar, manifest_sintetico
     r = entrenar(manifest_sintetico(tmp_path / "m.csv"), epocas=3, salida=tmp_path / "mod", sintetico=True)
     assert (tmp_path / "mod" / "modelo_int8.tflite").exists() and r["kb_int8"] < 50
+
+
+def test_r7_mide_100_corridas_y_arma_la_tabla(tmp_path, monkeypatch):
+    from viaviva.r7 import medir
+    monkeypatch.setattr(medir, "LOG", tmp_path / "r7.jsonl")
+    monkeypatch.setattr(medir, "LOG_CONSUMO", tmp_path / "consumo.jsonl")
+    fila = medir.medir(100)
+    assert all(d["n"] >= 100 and d["media"] > 0 for d in fila["etapas"].values())
+    medir.consumo("reposo", 540, 5.08)
+    t = medir.tabla()
+    assert "detector_v2_30s_ms" in t and "540" in t and "[PENDIENTE: correr `viaviva r7 medir` en la Pi]" in t

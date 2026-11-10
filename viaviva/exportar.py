@@ -8,7 +8,7 @@ from __future__ import annotations
 import csv
 import io
 import math
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from viaviva import almacen
 
@@ -44,7 +44,7 @@ def csv_tabla(filas: list[dict], columnas) -> bytes:
 
 def plantilla_reparaciones() -> bytes:
     return ("﻿id_hueco,estado,fecha,nota\n"
-            "12,reparado,2026-11-20,Parcheo cuadrilla 3 (EJEMPLO: borre esta fila)\n").encode("utf-8")
+            "12,reparado,2026-11-20,Parcheo cuadrilla 3 (EJEMPLO: borre esta fila)\n").encode()
 
 
 # ------------------------------------------------------------------------------------------------ Excel
@@ -297,7 +297,7 @@ def importar_reparaciones(con, datos: bytes, usuario: str, aplicar: bool = False
                     error(n, "fecha", f"{f} es anterior a la primera detección ({h[1][:10]})")
                     continue
                 ts = datetime(f.year, f.month, f.day, 12, tzinfo=timezone(timedelta(hours=-5))) \
-                    .astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    .astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             elif estado == "reparado":
                 error(n, "fecha", "falta la fecha de la reparación")
                 continue

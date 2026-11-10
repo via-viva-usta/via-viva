@@ -5,18 +5,24 @@ import math
 import random
 import sqlite3
 import threading
-import time
-import urllib.error
-import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 
 from viaviva import almacen, config
-from viaviva.estructuras import (BuferCircular, Cola, GrafoCalles, IndiceGeohash, MonticuloMax, TablaHash, geohash,
-                            top_k, vecinos_geohash)
-from viaviva.nucleo import Detector, Nucleo, Welford
+from viaviva.estructuras import (
+    BuferCircular,
+    Cola,
+    GrafoCalles,
+    IndiceGeohash,
+    MonticuloMax,
+    TablaHash,
+    geohash,
+    top_k,
+    vecinos_geohash,
+)
+from viaviva.nucleo import Detector, Welford
 from viaviva.sensores import ParserNMEA, suma_nmea_ok
 
 
@@ -178,6 +184,7 @@ def _base_con_calle(tmp_path: Path) -> str:
 
 def _cliente(tmp_path, url, segundos=40.0, velocidad=40.0, fuente="replay", **kw):
     from fastapi.testclient import TestClient
+
     from viaviva.app import construir, crear_app
     ctx = construir(fuente, str(_export_sintetico(tmp_path / f"e{segundos}", segundos)), velocidad=velocidad,
                     url_db=url, dir_grabaciones=tmp_path / "grab", sync=False, **kw)
@@ -328,7 +335,9 @@ def test_huecos_agrupan_reabren_e_importan(tmp_path):
 
 def test_exportables(tmp_path):
     import io
+
     from openpyxl import load_workbook
+
     from viaviva import exportar
     url = _base_con_calle(tmp_path)
     con = almacen.conectar(url)

@@ -20,7 +20,7 @@ import queue
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from viaviva import config
@@ -78,7 +78,7 @@ def _parametros_detector() -> dict:
 
 
 def _utc(epoch: float) -> str:
-    return datetime.fromtimestamp(epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return datetime.fromtimestamp(epoch, UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 class Welford:

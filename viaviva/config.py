@@ -1,7 +1,8 @@
 """Configuración del nodo central Raspberry Pi 4 (decisión del 7-nov). Un solo lugar para pines, tasas y rutas.
 
 Pines en numeración **BCM**, iguales a la tabla oficial del `02_HARDWARE/VIA_VIVA_Manual_Armado_v3_Pi4.pdf`
-(apartado 5). ADXL345 #2 en CE1 (GPIO7, opcional). Pulsador: `dtoverlay=gpio-shutdown,gpio_pin=27` (apaga el sistema). Se pueden cambiar sin tocar código con variables de entorno en `.env` (p. ej. `PI_PIN_INT1=17`).
+(apartado 5). ADXL345 #2 en CE1 (GPIO7, opcional). Pulsador: `dtoverlay=gpio-shutdown,gpio_pin=27` (apaga el
+sistema). Se pueden cambiar sin tocar código con variables de entorno en `.env` (p. ej. `PI_PIN_INT1=17`).
 
 | Señal                     | Pin BCM (físico)        | Bus / nota                                                   |
 |---------------------------|-------------------------|--------------------------------------------------------------|

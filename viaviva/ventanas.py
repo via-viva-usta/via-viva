@@ -19,7 +19,7 @@ import csv
 import json
 import math
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -70,7 +70,7 @@ def ventanas(s: Senal) -> list[dict]:
             estado = "quieto"
         medio = i + n // 2
         filas.append({"sesion": s.nombre, "ventana": k, "t0_s": round(t0, 2), "t1_s": round(t1, 2),
-                      "utc_centro": (datetime.fromtimestamp(s.inicio_epoch + centro, timezone.utc).isoformat(
+                      "utc_centro": (datetime.fromtimestamp(s.inicio_epoch + centro, UTC).isoformat(
                           timespec="seconds") if s.inicio_epoch else ""),
                       "lat": None if math.isnan(s.lat[medio]) else round(float(s.lat[medio]), 7),
                       "lon": None if math.isnan(s.lon[medio]) else round(float(s.lon[medio]), 7),
@@ -113,7 +113,7 @@ def calidad(filas: list[dict], n_fotos: int, n_fotos_asociadas: int) -> str:
     validas = [w for w in filas if w["estado"] == "ok"]
     marcadas = [w for w in validas if w["etiqueta"] != "sin_marca"]
     cuenta = Counter(w["etiqueta"] for w in marcadas)
-    l = [f"# Calidad del dataset de ventanas", "", f"Generado {datetime.now():%Y-%m-%d %H:%M}. Ventanas de {VENTANA_S:.0f} s "
+    l = ["# Calidad del dataset de ventanas", "", f"Generado {datetime.now():%Y-%m-%d %H:%M}. Ventanas de {VENTANA_S:.0f} s "
          f"con 50 % de solape; etiqueta a ± {TOLERANCIA_S} s del centro.", "",
          "| Sesión | Ventanas | Válidas | Quieto | Con huecos de datos | Con marca | Sin GPS |", "|---|---|---|---|---|---|---|"]
     for s in sorted({w["sesion"] for w in filas}):

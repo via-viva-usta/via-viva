@@ -22,7 +22,7 @@ import hashlib
 import hmac
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from viaviva.almacen import conectar
 
@@ -33,7 +33,7 @@ MAX_INTENTOS, VENTANA_INTENTOS_S = 5, 300
 
 
 def _ahora():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def hash_clave(clave: str, sal: str | None = None, iteraciones: int = ITERACIONES) -> str:

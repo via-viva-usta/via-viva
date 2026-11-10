@@ -8,11 +8,19 @@ calles y consultas del tablero. Misma base y esquema que el PC (`db/schema.sql`,
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from db.acceso import conectar as _conectar
-from viaviva.estructuras import (GrafoCalles, IndiceGeohash, TablaHash, distancia_m, geohash, leer_wkt_linea, top_k,
-                            vecinos_geohash)
+from viaviva.estructuras import (
+    GrafoCalles,
+    IndiceGeohash,
+    TablaHash,
+    distancia_m,
+    geohash,
+    leer_wkt_linea,
+    top_k,
+    vecinos_geohash,
+)
 
 CLASES_VIA = ("hueco", "resalto", "impacto_fuerte", "normal", "obstaculo")
 CLASES_HUECO = ("hueco", "impacto_fuerte")
@@ -24,7 +32,7 @@ _candado_huecos = threading.Lock()
 
 
 def ahora_utc() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def conectar(url: str | None = None):
@@ -134,7 +142,7 @@ def agrupar_huecos(con) -> int:
         return len(pendientes)
 
 
-def huecos(con, calles: "Calles | None" = None, incluir_simulados: bool = True) -> list[dict]:
+def huecos(con, calles: Calles | None = None, incluir_simulados: bool = True) -> list[dict]:
     lista = filas(con, "SELECT * FROM huecos" + ("" if incluir_simulados else " WHERE simulado = 0") +
                   " ORDER BY ultima_ts DESC")
     for h in lista:
@@ -184,7 +192,7 @@ class Calles:
         self.info: TablaHash[int, dict] = TablaHash(8192)
         self.error: str | None = None
 
-    def cargar(self, url: str | None = None) -> "Calles":
+    def cargar(self, url: str | None = None) -> Calles:
         try:
             con = conectar(url)
             for t, u, v, nombre, tipo, barrio, largo, wkt in con.execute(

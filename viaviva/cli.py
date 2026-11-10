@@ -72,6 +72,7 @@ def _teclado(ctx, parar: threading.Event) -> None:
 
 def _servir(ctx, a, grabar: bool) -> int:
     import uvicorn
+
     from viaviva import doctor
     from viaviva.app import crear_app
     from viaviva.sistema import registrar_r7
@@ -153,7 +154,8 @@ def main(argv: list[str] | None = None) -> int:
     if argv and argv[0] in ("usuarios", "sync", "detector", "dataset", "r7", "modelo", "nube"):   # delegar a cada módulo
         cmd, resto = argv[0], argv[1:]
         modulo = {"usuarios": "viaviva.usuarios", "sync": "viaviva.sincronizacion", "detector": "viaviva.detector",
-                  "dataset": "viaviva.ventanas", "r7": "viaviva.r7.medir", "modelo": "viaviva.modelo_ventanas", "nube": "viaviva.nube"}[cmd]
+                  "dataset": "viaviva.ventanas", "r7": "viaviva.r7.medir", "modelo": "viaviva.modelo_ventanas",
+                  "nube": "viaviva.nube"}[cmd]
         import importlib
         sys.argv = [f"viaviva {cmd}", *resto]
         return importlib.import_module(modulo).main() or 0

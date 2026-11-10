@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from viaviva import config
 
@@ -192,9 +192,9 @@ class VL53L0X(Sensor):
 
     def iniciar(self) -> bool:
         try:
+            import adafruit_vl53l0x
             import board
             import busio
-            import adafruit_vl53l0x
             self.dev = adafruit_vl53l0x.VL53L0X(busio.I2C(board.SCL, board.SDA))
             self.dev.measurement_timing_budget = 33000
             self.dev.start_continuous()
@@ -222,8 +222,8 @@ class DHT22(Sensor):
 
     def iniciar(self) -> bool:
         try:
-            import board
             import adafruit_dht
+            import board
             self.dev = adafruit_dht.DHT22(getattr(board, f"D{config.PIN_DHT22}"), use_pulseio=False)
             self.presente = True
         except Exception as err:
@@ -289,7 +289,7 @@ class ParserNMEA:
             hh, mm, ss = int(c[1][0:2]), int(c[1][2:4]), float(c[1][4:])
             d, mo, a = int(c[9][0:2]), int(c[9][2:4]), 2000 + int(c[9][4:6])
             utc = datetime(a, mo, d, hh, mm, int(ss), int(round((ss % 1) * 1e6)) % 1000000,
-                           tzinfo=timezone.utc).timestamp()
+                           tzinfo=UTC).timestamp()
         nudos = float(c[7]) if c[7] else math.nan
         return {"valido": valido, "utc_epoch": utc,
                 "lat": _grados(c[3], c[4]) if valido else math.nan, "lon": _grados(c[5], c[6]) if valido else math.nan,

@@ -18,10 +18,9 @@ import argparse
 import json
 import os
 import threading
-import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from viaviva.almacen import conectar
 
@@ -33,7 +32,7 @@ EDAD_MIN_EVENTO_S = 60          # deja tiempo a que llegue la etiqueta del copil
 
 
 def _ahora() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _iso(d: datetime) -> str:
@@ -118,7 +117,7 @@ class Sincronizador:
             n += 1
         self._poner_marca(con, "riesgo", ultimo)
         # huecos: se reenvían cuando cambian (nueva detección o estado); la marca es la hora del último barrido
-        desde = _iso(datetime.fromtimestamp(self._marca(con, "huecos"), timezone.utc))
+        desde = _iso(datetime.fromtimestamp(self._marca(con, "huecos"), UTC))
         barrido = int(_ahora().timestamp())
         for f in _filas(con, "SELECT * FROM huecos WHERE simulado = 0 AND (ts_carga >= ? OR ultima_ts >= ? OR "
                              "COALESCE(ts_estado, '') >= ?)", (desde, desde, desde)):
