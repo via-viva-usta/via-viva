@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0a0a0a">
+<title>Tablero · VÍA VIVA</title>
+<meta name="description" content="Tablero de VÍA VIVA: huecos detectados en las vías de Tunja, su estado y el riesgo estimado por tramo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0a'/%3E%3Crect x='14' y='4' width='4' height='7' fill='%23ffd60a'/%3E%3Crect x='14' y='14' width='4' height='7' fill='%23ffd60a'/%3E%3Ccircle cx='16' cy='26' r='3.5' fill='%23ff3b30'/%3E%3C/svg%3E">
+<link rel="preload" href="fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="marca.css">
+<link rel="stylesheet" href="estilo.css">
+<script src="tema.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<a class="saltar" href="#principal">Saltar al mapa</a>
+<header class="barra">
+  <a class="logo-texto" href="index.html" title="Volver a la portada">Vía<i>·</i>Viva</a>
+  <span class="t-etiqueta barra-seccion">Tablero</span>
+  <span class="frescura" id="frescura" role="status" title="Los datos llegan cuando la Raspberry Pi (o el PC de captura) sincroniza. La página revisa cada 2 minutos.">
+    <span class="punto" aria-hidden="true"></span><span id="t-frescura">Cargando…</span></span>
+  <span class="espacio"></span>
+  <button class="icono" id="b-ayuda" type="button" aria-label="Cómo leer este tablero" title="Cómo leer este tablero">?</button>
+  <button class="icono" id="b-tema" type="button" aria-label="Cambiar entre modo oscuro y claro" title="Modo oscuro / claro">◐</button>
+  <button class="icono texto oculto" id="b-kiosco" type="button" title="Pantalla fija para la Alcaldía (se actualiza sola cada minuto)">Pantalla fija</button>
+  <span id="cuenta" class="cuenta"></span>
+</header>
+<div id="franja-demo" class="franja-demo oculto" role="note">Demostración · huecos y riesgo inventados, no son datos de Tunja</div>
+
+<main id="entrar" class="entrar oculto">
+  <article>
+    <p class="t-etiqueta sub">Equipo · Alcaldía · Docentes</p>
+    <h2 class="t-titulo">Entrar</h2>
+    <p class="sub">Las cuentas las crea el equipo (no hay registro abierto).</p>
+    <form id="f-entrar">
+      <label>Correo <input id="correo" type="email" autocomplete="username" required></label>
+      <label>Contraseña <input id="clave" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Entrar</button>
+      <p id="e-entrar" class="error oculto" role="alert"></p>
+    </form>
+    <p class="sub"><a href="?demo=1">Ver la demostración</a> (datos inventados, sin cuenta) · <a href="index.html">Volver a la portada</a></p>
+  </article>
+</main>
+
+<div id="app" class="oculto">
+  <p id="aviso" class="aviso oculto" role="status"></p>
+
+  <section class="cifras" aria-label="Resumen (toque una cifra para verla en el mapa)">
+    <button class="cifra" type="button" id="k-abiertos" style="--c:var(--vv-detectado); --i:0">
+      <span class="et">Huecos abiertos</span><b>—</b><small></small></button>
+    <button class="cifra" type="button" id="k-alta" style="--c:var(--vv-verificado); --i:1">
+      <span class="et">Severidad alta</span><b>—</b><small></small></button>
+    <button class="cifra" type="button" id="k-reparados" style="--c:var(--vv-reparado); --i:2" title="Días desde la primera detección hasta que se registró la reparación">
+      <span class="et">Reparados</span><b>—</b><small></small></button>
+    <button class="cifra" type="button" id="k-riesgo" style="--c:var(--vv-r3); --i:3" title="Riesgo de 60 % o más (niveles Alto y Muy alto)">
+      <span class="et">Tramos en riesgo alto</span><b>—</b><small></small></button>
+  </section>
+
+  <section class="filtros" aria-label="Filtros">
+    <div class="seg" role="radiogroup" aria-label="Qué huecos mostrar" id="f-vista">
+      <button type="button" role="radio" aria-checked="true" data-v="abiertos">Abiertos</button>
+      <button type="button" role="radio" aria-checked="false" data-v="reparados">Reparados</button>
+      <button type="button" role="radio" aria-checked="false" data-v="todos">Todos</button>
+    </div>
+    <button type="button" class="secundario" id="b-filtros" aria-expanded="false" aria-controls="mas-filtros">
+      Filtros <span id="n-filtros" class="contador oculto"></span></button>
+    <span class="espacio"></span>
+    <details class="dropdown menu-exportar">
+      <summary role="button" class="secundario">Descargar</summary>
+      <ul>
+        <li><a href="#" id="x-csv">CSV de los huecos que se ven</a></li>
+        <li><a href="#" id="x-xlsx">Excel (huecos, riesgo y resumen)</a></li>
+        <li><a href="#" id="x-pdf">PDF (imprimir esta vista)</a></li>
+      </ul>
+    </details>
+    <button type="button" class="secundario oculto" id="b-importar">Importar reparaciones</button>
+    <div class="mas-filtros" id="mas-filtros">
+      <label class="campo"><span>Severidad</span><select id="f-sev">
+        <option value="">Todas</option><option value="alta">Alta</option><option value="media">Media</option>
+        <option value="baja">Baja</option></select></label>
+      <label class="campo"><span>Tipo</span><select id="f-clase"><option value="">Todos</option></select></label>
+      <label class="campo"><span>Periodo</span><select id="f-periodo">
+        <option value="todo">Todo</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option>
+        <option value="90">Últimos 90 días</option><option value="rango">Elegir fechas…</option></select></label>
+      <span class="campo fechas oculto" id="f-fechas">
+        <input type="date" id="f-desde" aria-label="Desde"><span aria-hidden="true">a</span><input type="date" id="f-hasta" aria-label="Hasta"></span>
+      <button type="button" class="enlace oculto" id="b-limpiar">Quitar filtros</button>
+    </div>
+  </section>
+  <p class="contexto" id="contexto" aria-live="polite"></p>
+
+  <div class="rejilla" id="principal">
+    <section class="tarjeta mapa-tarjeta" aria-label="Mapa">
+      <div id="mapa" role="region" aria-label="Mapa de huecos y riesgo por tramo de Tunja"></div>
+      <div class="sobre-mapa">
+        <div class="seg seg-mapa" role="radiogroup" aria-label="Qué ver en el mapa" id="f-modo">
+          <button type="button" role="radio" aria-checked="true" data-m="huecos">Huecos</button>
+          <button type="button" role="radio" aria-checked="false" data-m="riesgo">Riesgo por tramo</button>
+        </div>
+      </div>
+      <details class="leyenda" id="leyenda"><summary id="leyenda-resumen">Leyenda</summary><div id="leyenda-cuerpo"></div></details>
+    </section>
+
+    <aside class="tarjeta panel" aria-label="Listas y tendencias">
+      <div class="pestanas" role="tablist" aria-label="Paneles">
+        <button type="button" role="tab" id="t-atender" aria-selected="true" aria-controls="p-atender">
+          <span id="t-atender-txt">Para atender</span> <span class="contador" id="n-atender"></span></button>
+        <button type="button" role="tab" id="t-tramos" aria-selected="false" aria-controls="p-tramos" tabindex="-1">Riesgo</button>
+        <button type="button" role="tab" id="t-tendencia" aria-selected="false" aria-controls="p-tendencia" tabindex="-1">Tendencia</button>
+      </div>
+      <div role="tabpanel" id="p-atender" aria-labelledby="t-atender">
+        <h3 class="solo-imprimir">Huecos</h3>
+        <p class="ayuda" id="ayuda-lista"></p>
+        <ol class="lista" id="lista"></ol>
+        <p class="sub" id="lista-pie"></p>
+        <div id="detalle" class="detalle oculto" tabindex="-1"></div>
+      </div>
+      <div role="tabpanel" id="p-tramos" aria-labelledby="t-tramos" hidden>
+        <h3 class="solo-imprimir">Tramos con más riesgo</h3>
+        <p class="ayuda" id="ayuda-tramos"></p>
+        <ol class="lista" id="top"></ol>
+      </div>
+      <div role="tabpanel" id="p-tendencia" aria-labelledby="t-tendencia" hidden>
+        <h3>Nuevos y reparados por semana</h3>
+        <p class="ayuda" id="ayuda-semana"></p>
+        <div class="grafico"><canvas id="g-semana" role="img" aria-label="Huecos nuevos y reparados por semana"></canvas></div>
+        <details class="tabla-alt"><summary>Ver los números</summary><div id="tabla-semana"></div></details>
+        <h3 id="h-donde">Dónde hay más huecos abiertos</h3>
+        <ol class="barras" id="donde"></ol>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="pie sub">
+    <p><a href="#" id="b-ayuda-pie">Cómo leer este tablero</a> · <a href="index.html">Portada</a> · Calles © OpenStreetMap (ODbL) ·
+      mapa base OpenFreeMap · lluvia IDEAM (CC BY-SA 4.0). Esta página muestra una copia: la fuente de verdad es la base de la
+      Raspberry Pi. No genera multas ni lee placas.</p>
+    <p class="solo-kiosco">Pantalla fija: se actualiza cada minuto. Pulse Esc para salir.</p>
+  </footer>
+</div>
+
+<dialog id="d-ayuda"><article>
+  <header><button aria-label="Cerrar" rel="prev" data-cerrar></button><h3>Cómo leer este tablero</h3></header>
+  <dl class="glosario">
+    <dt>Hueco</dt><dd>Un punto donde el sensor del carro sintió golpes fuertes. Las detecciones a menos de 10 m se juntan en un
+      solo hueco; «detecciones» dice cuántas veces se sintió.</dd>
+    <dt>Estado</dt><dd><b>Detectado</b>: lo sintió el sensor, falta verificarlo. <b>Verificado</b>: alguien del equipo lo
+      confirmó en sitio. <b>Reparado</b>: se registró la reparación. <b>Descartado</b>: no era un hueco (un resalto, una tapa…).
+      En el mapa, los abiertos son círculos llenos y los cerrados son anillos.</dd>
+    <dt>Tipo</dt><dd><b>Hueco</b> si alguien lo etiquetó así; <b>golpe sin clasificar</b> si solo lo detectó el sensor.</dd>
+    <dt>Severidad</dt><dd>Qué tan fuerte fue el golpe más fuerte, corregido por la velocidad (media desde 0,6 g, alta desde 1,0 g;
+      umbrales de <code>config/detector.yaml</code>, todavía sin calibrar con datos reales).</dd>
+    <dt>Prioridad</dt><dd>Orden de «Para atender»: severidad (1–3) × tipo de vía (residencial 1, secundaria 2, principal 3) ×
+      huecos abiertos en el mismo tramo. Es la misma fórmula del tablero local.</dd>
+    <dt>Riesgo por tramo</dt><dd>Probabilidad, estimada por el modelo, de que un tramo de calle (una cuadra, más o menos) tenga
+      un hueco que nadie ha reportado. Sirve para decidir por dónde revisar; no es una certeza. Si la corrida dice DEMO o
+      SINTÉTICO, no es un resultado.</dd>
+    <dt>Datos</dt><dd>Copia de la base de la Raspberry Pi o del PC de captura, que manda. No hay fotos, trayectorias, placas
+      ni nombres de quien conducía. Los datos de la Alcaldía no se publican aquí.</dd>
+  </dl>
+  <p class="sub"><a href="index.html#leer">Ver la guía con dibujos en la portada</a></p>
+</article></dialog>
+
+<dialog id="d-importar"><article>
+  <header><button aria-label="Cerrar" rel="prev" data-cerrar></button><h3>Importar reparaciones (CSV)</h3></header>
+  <p class="sub">Columnas: <b>id_hueco</b> (el número, sin #), <b>estado</b> (reparado si se deja vacío), <b>fecha</b>
+    (AAAA-MM-DD, obligatoria si es reparado), <b>nota</b> y, si dos equipos tienen el mismo número, <b>instancia</b>.
+    Se revisa todo el archivo y solo se envía si no hay errores. La Pi aplica los cambios al sincronizar.
+    <a href="#" id="x-plantilla">Descargar plantilla</a></p>
+  <input type="file" id="archivo" accept=".csv,text/csv">
+  <div id="vista"></div>
+  <footer><button type="button" id="b-enviar" disabled>Enviar cambios</button></footer>
+</article></dialog>
+
+<div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

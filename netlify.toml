@@ -15,3 +15,14 @@
   for = "/datos/*"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+
+# Portada y tablero: fuentes locales (web/en_linea/fuentes, OFL) e imágenes de la portada
+[[headers]]
+  for = "/fuentes/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

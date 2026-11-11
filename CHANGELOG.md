@@ -1,5 +1,21 @@
 # Cambios
 
+## 2026-11-10 — tablero en línea reorganizado (rama `web/interfaz-dany`)
+
+- **Portada** (`web/en_linea/index.html`) y tablero en `tablero.html` (los enlaces viejos con `?demo`/`?kiosco` se
+  redirigen). Marca de estilo brutalista (asfalto, blanco, amarillo de señal), Archivo Black + Inter alojadas en el sitio
+  (OFL, `fuentes/`), tablero oscuro por defecto. Menos saturación: filtros y leyenda plegados, filas de una línea, 15 por
+  página, datos que entran por partes. Imágenes de la portada desde el modo DEMO, con sello.
+- **Tablero en línea:** mapa en dos modos (Huecos / Riesgo por tramo) para que los colores no se mezclen; cifras que
+  también son atajos; filtros Abiertos/Reparados/Todos + severidad, tipo y periodo; pestañas «Para atender» (prioridad
+  explicada), «Tramos en riesgo» y «Tendencia» (nuevos vs. reparados por semana, con tabla); detalle en el panel;
+  indicador del último dato; ayuda «Cómo leer este tablero»; celular, pantalla fija e impresión revisados.
+  Código separado en `reglas.js`, `carga.js`, `mapa.js`, `app.js` y `tema.js`.
+- **Correcciones de datos:** lectura paginada de Supabase (se cortaba en 1 000 filas); prioridad del tablero local con
+  la severidad medida (antes todos los huecos valían 3; prueba nueva); número de hueco repetido entre equipos en la
+  importación; CSV descargado reutilizable para importar; fechas y semanas en hora de Tunja.
+- `tramos_demo.py` pasa a `herramientas/` y marca su archivo como DEMO. Hallazgos y propuestas: `docs/REVISION_INTERFAZ.md`.
+
 ## 2026-11-10 — cierre del software (rama `ac/cierre-software`)
 
 - **Fase A — captura de campo con el PC + phyphox:** `viaviva doctor` (LISTO / FALTA), `viaviva capture` con reconexión

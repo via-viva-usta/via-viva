@@ -36,6 +36,19 @@ https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css
 https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm
 ```
 
+## Portada y marca (10-nov, rama `web/interfaz-dany`)
+
+- **Portada** (`web/en_linea/index.html`) antes del tablero, para que los datos no aparezcan de golpe: qué hace VÍA VIVA,
+  las tres preguntas que responde el tablero (con capturas DEMO marcadas), cómo leer el mapa, la base (cifras de OSM y
+  datos abiertos, no resultados) y privacidad. No carga mapas, gráficos ni Supabase.
+- **Marca** (`marca.css`), tomada de un sitio de estilo brutalista: asfalto `#0a0a0a`, blanco, gris `#9a9a9a`, amarillo de
+  señal `#ffd60a` (acento de la portada y franja DEMO) y rojo `#ff3b30` (hueco en la portada). Titulares en **Archivo
+  Black** (la referencia se ve en Arial Black, que no existe en Android) y texto en **Inter**, ambas OFL y **alojadas en el
+  sitio** (`fuentes/`): la CSP no permite Google Fonts y así ningún tercero ve las visitas. Esquinas rectas, líneas finas.
+- **Tablero:** oscuro por defecto (el botón ◐ cambia a claro y se recuerda); los controles usan blanco/negro y no colores
+  de datos; filtros secundarios y leyenda plegados; lista de 15 en 15 (8 en el celular); cifras que cuentan y paneles
+  que entran por partes (desactivado con `prefers-reduced-motion`).
+
 ## Mapa base
 
 | Proveedor | Clave | Límites | Atribución | Claro / oscuro |
