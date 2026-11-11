@@ -1,6 +1,6 @@
 # Estado de VÍA VIVA
 
-Última actualización: **7-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **10-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
 ## Resumen
@@ -28,14 +28,24 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 |---|---|---|---|
 | 1 | Repositorio, datos y modelado | 26–30 oct | ✅ Hecha |
 | 2 | Firmware sin hardware, bot, mapa web, tablero | 28 oct – 2 nov | ✅ Hecha |
-| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–9 nov | 🟡 Software listo; **hardware por llegar; 0 recorridos** |
+| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–9 nov | 🟡 3 recorridos de phyphox recibidos, sin etiquetas; hardware por llegar |
 | 3b | Salidas de fotos (≥ 500) + planilla + validación | 5–9 nov | 🟡 Todo listo; **0 fotos** |
 | 4 | Detector int8 y modelo de riesgo con datos reales | 6–9 nov | 🟡 Cadenas listas (sintéticos); faltan datos |
 | 4b | Etiquetado, escala validada, modelo de fotos (int8), clasificador en el iPhone | 8–11 nov | 🟡 Cadena completa con sintéticos; faltan fotos |
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
-## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 81 pytest, ruff limpio, cobertura 78 %)
+## Hecho el 10-nov: un solo sistema (MVP para la presentación)
+
+| Qué | Estado |
+|---|---|
+| Conexión phyphox (puerto 80/8080, buffers desde `/config`, URL en `.env`, minuto quieto con 5 km/h) | Probado con el simulador; **falta el iPhone real** |
+| Campo, Sesiones, Importar video, Revisión, Dataset, Demo, Tablero con los temas A/B | 85 pruebas pasaron, 1 omitida; Ruff limpio. Las rutas responden en las pruebas; revisión visual de Sesiones y Revisión sigue pendiente |
+| Sincronía de video por destello | Probada con un video sintético; **falta un video real del iPhone B** (si es HEVC, Chrome/Edge en Windows puede no reproducirlo: grabar en «Más compatible») |
+| Dataset y umbrales desde la app | Funciona; **sin marcas reales aún**, así que las cifras no son resultados |
+| Tablero en línea | Tema B aplicado localmente; falta despliegue y la evidencia de video por evento |
+
+## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 85 pruebas pasaron, 1 omitida, Ruff limpio)
 
 | Fase | Terminado | Parcial / pendiente (por qué) |
 |---|---|---|

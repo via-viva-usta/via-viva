@@ -11,6 +11,11 @@ Proyecto Integrador 2026-2 · Ingeniería de Datos e Inteligencia Artificial · 
 *Tablero web en vivo (servido por la Pi, sin internet) con datos **DEMO** marcados: capa de huecos por estado y
 capa de riesgo por tramo, top-10, orden de atención (montículo) y exportables. Tablero Java anterior: `docs/img/tablero_reportes.png`.*
 
+## Un solo sistema
+
+`viaviva.cmd capture` abre todo en `http://localhost:8000`: **Campo** (grabar y marcar) → **Sesiones** → **importar el
+video** → **Revisión** → **Dataset** → **Demo** → **Tablero**. Sin Drive ni carpetas a mano.
+
 ## Salida de campo (lo urgente)
 
 Doble clic en **`SALIDA_DE_CAMPO.cmd`**: corre `viaviva doctor` y, si está LISTO, la captura con phyphox y el tablero

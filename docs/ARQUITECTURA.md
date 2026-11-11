@@ -40,6 +40,7 @@ flowchart LR
 | `senal.py`, `detector.py` | Eje vertical por gravedad, detector calibrable (`config/detector.yaml`) y evaluación por salida |
 | `ventanas.py`, `modelo_ventanas.py` | Dataset de ventanas de 2 s y esqueleto TFLite |
 | `almacen.py`, `estructuras.py` | SQLite (huecos, prioridad, riesgo) y estructuras de datos propias |
+| `sesiones.py` | Flujo único del dataset: lista de sesiones, importar y sincronizar video, revisión, construir dataset |
 | `app.py`, `usuarios.py`, `exportar.py` | FastAPI, roles, PDF/CSV/Excel e importación de reparaciones |
 | `sincronizacion.py`, `nube.py`, `supabase_esquema.sql` | Outbox a Supabase, cambios en línea y preparación del sitio |
 | `sistema.py`, `r7/medir.py` | Salud del equipo y R7 |

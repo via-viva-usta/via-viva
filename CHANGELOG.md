@@ -1,6 +1,24 @@
 # Cambios
 
-## 2026-11-11 — conexión con phyphox
+## 2026-11-10 — un solo sistema: campo → sesiones → video → revisión → dataset → demo
+
+- **Diseño:** dos temas con los mismos componentes (`docs/diseno/`): A · Asfalto (oscuro) en Campo, Sesiones,
+  Revisión, Dataset y Demo; B · Cartografía (claro) en el Tablero, la entrada y los reportes. Navegación común.
+- **Sesiones** (`/sesiones`): cada salida con resumen, calidad, recorrido, video y avance de la revisión.
+- **Importar video** (dentro de la revisión): se arrastra el .mov/.mp4 del iPhone B y la app lo sincroniza sola con
+  los destellos de `/sync`; si no los ve, usa la fecha del archivo (± 1–2 s) y deja ajustar el desfase.
+- **Revisión** (`/revision?s=…`): línea de tiempo con señal, eventos, marcas y video; confirmar (1–7 / Enter),
+  corregir o descartar (X). Se guarda en `sesion.sqlite` y rehace las etiquetas que usan detector y dataset.
+- **Carga de video:** límite de 8 GiB aplicado mientras se recibe; cada intento se guarda con nombre único y no pisa
+  el video anterior. `.m4v` se sirve con su tipo MIME reproducible.
+- **Dataset** (`/dataset`): un botón construye las ventanas y muestra balance, cobertura, umbrales por clase,
+  calibración por salida y clasificador.
+- **Demo** (`/demo`): 4 pasos de 30 s (captura → detección → mapa → reporte) con datos en vivo o `--replay`.
+- **Tablero en línea:** aplicado el tema B · Cartografía, con paleta cálida, titulares Instrument Serif, tarjetas, filtros
+  adaptables y el tema claro como predeterminado; se conserva la opción oscura.
+- R7 del PC rotulado «provisional, PC»; suite: 85 pasaron, 1 omitida; Ruff limpio.
+
+## 2026-11-10 — conexión con phyphox
 
 - phyphox en iOS responde en el **puerto 80** (no 8080): la URL por defecto es `http://172.20.10.1` y `doctor` y
   `capture` **autodetectan 80/8080**; si la captura pierde la conexión, vuelve a probar los dos puertos.
