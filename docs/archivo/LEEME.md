@@ -51,4 +51,4 @@ los venvs.
 
 | Antes | Ahora | Por qué |
 |---|---|---|
-| `web/en_linea/{index.html, app.js, estilo.css}` con el tema B · Cartografía (página única) | `docs/archivo/en_linea_tema_b_codex_2026-11-11/` | `main` reorganizó el sitio (portada + `tablero.html`, PR #30); se conserva la versión con el tema B por si el equipo decide llevarlo a la estructura nueva |
+| `web/en_linea/{index.html, app.js, estilo.css}` con el tema B · Cartografía (página única) | `docs/archivo/en_linea_tema_b_codex_2026-11-11/` | `main` reorganizó el sitio (portada + `tablero.html`, PR #30); se conserva la versión con el tema B como referencia; el 11-nov AC decidió mantener la marca de Dany en línea (`docs/DISENO.md`) |

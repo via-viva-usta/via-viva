@@ -60,7 +60,7 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | Campo, Sesiones, Importar video, Revisión, Dataset, Demo, Tablero con los temas A/B | 85 pruebas pasaron, 1 omitida; Ruff limpio. Revisión visual hecha el 11-nov (arriba) |
 | Sincronía de video por destello | Probada con un video sintético; **falta un video real del iPhone B** (HEVC: ver 11-nov) |
 | Dataset y umbrales desde la app | Funciona; **sin marcas reales aún**, así que las cifras no son resultados |
-| Tablero en línea | Portada + `tablero.html` de `main` (PR #30); el tema B de la página anterior quedó archivado; falta despliegue y la evidencia de video por evento |
+| Tablero en línea | Portada + `tablero.html` de `main` (PR #30) con la marca de Dany (decisión del 11-nov; el tema B queda para el tablero local y los reportes); falta despliegue y la evidencia de video por evento |
 
 ## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 85 pruebas pasaron, 1 omitida, Ruff limpio)
 

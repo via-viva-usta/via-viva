@@ -17,8 +17,12 @@ Maquetas en `docs/diseno/` (`maqueta.html?d=a|b`, `direccion_a.png`, `direccion_
 | **B · Cartografía** (claro, por defecto) | Tablero (Alcaldía/Tránsito), entrada, PDF | Papel cálido, titulares Instrument Serif, verde profundo |
 
 Mismos componentes y variables CSS (`viaviva/web/estilo.css`); fuentes de Google Fonts (OFL) con respaldo del sistema
-si no hay internet. El tablero en línea (`web/en_linea`) usa hoy la marca propia de la portada de `main` (PR #30); el
-tema B aplicado a la página anterior quedó en `docs/archivo/en_linea_tema_b_codex_2026-11-11/` (pendiente decidir si se lleva).
+si no hay internet.
+
+**Decisión del 11-nov (AC):** el sitio en línea (`web/en_linea/`: portada y `tablero.html`) **conserva la marca de Dany**
+(PR #30: asfalto, blanco y amarillo de señal; Archivo Black + Inter). El tema B queda para el **tablero local** de la
+Alcaldía, la entrada y los reportes PDF. El tema B que se aplicó a la página anterior sigue archivado en
+`docs/archivo/en_linea_tema_b_codex_2026-11-11/` solo como referencia; no se restaura.
 
 ## Comparación (10-nov-2026)
 
