@@ -11,3 +11,8 @@ py -3.11 -m venv viaviva\.venv
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 Write-Host "`nListo. Prueba sin iPhone:  .\viaviva.cmd doctor --simulado <export de phyphox .zip>" -ForegroundColor Green
 Write-Host "Salida de campo: doble clic en SALIDA_DE_CAMPO.cmd (pasos en README_SALIDA.md)" -ForegroundColor Green
+# Leaflet local: el tablero y la captura muestran el mapa aunque no haya internet en el carro
+New-Item -ItemType Directory -Force viaviva\web\vendor\leaflet | Out-Null
+foreach ($f in "leaflet.js", "leaflet.css") {
+    Invoke-WebRequest "https://unpkg.com/leaflet@1.9.4/dist/$f" -OutFile "viaviva\web\vendor\leaflet\$f" -UseBasicParsing
+}

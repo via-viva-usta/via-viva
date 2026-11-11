@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="tema-a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,7 +13,6 @@
   <span id="insignia" class="rol">—</span>
   <span class="espacio"></span>
   <button id="b-pantalla" class="enlace" title="Pantalla completa (tablet fija)">⛶ Pantalla completa</button>
-  <a href="/tablero">Tablero</a>
   <div class="cuenta" id="cuenta"></div>
 </header>
 
@@ -213,7 +212,7 @@ async function actualizar() {
 }
 
 (async () => {
-  VV.usuario($('cuenta')).catch(() => {});
+  VV.usuario($('cuenta')).then(r => VV.nav('campo', r.usuario && r.usuario.rol)).catch(() => {});
   ETIQUETAS = (await VV.json('/api/etiquetas')).etiquetas;
   const COLOR = ['--est-detectado', '--aviso', '--r3', '--est-verificado', '--sub', '--r4', '--ok'];
   ETIQUETAS.forEach(([tecla, c, t], i) => {

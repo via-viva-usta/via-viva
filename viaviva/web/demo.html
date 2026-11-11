@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es" class="tema-a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Demo</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <span class="espacio"></span>
+  <span class="pill" id="origen">—</span>
+  <button id="b-pausa">Pausar</button><button id="b-pantalla">Pantalla completa</button>
+</header>
+<main class="demo">
+  <div>
+    <div class="puntos" id="puntos"></div>
+    <div class="paso" id="paso" style="margin-top:14px"></div>
+    <p class="texto" id="texto"></p>
+  </div>
+  <div class="escena">
+    <section class="tarjeta" style="display:grid;min-height:0">
+      <canvas id="senal" style="width:100%;height:100%;min-height:300px"></canvas>
+      <div id="mapa" class="mapa oculto"></div>
+    </section>
+    <section class="tarjeta" style="display:grid;align-content:center;gap:10px">
+      <span class="et" id="et-cifra"></span>
+      <div class="cifra-g" id="cifra">—</div>
+      <p class="texto" id="detalle"></p>
+      <div class="fila-flex" id="acciones"></div>
+    </section>
+  </div>
+  <div class="fila-flex"><span class="sub" id="pie"></span><span class="espacio"></span>
+    <button id="b-ant">←</button><button id="b-sig" class="primario">Siguiente →</button></div>
+</main>
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const PASOS = [
+  {t: '1 · Captura', x: 'Un nodo en el carro mide la vibración 100 veces por segundo y la ubica con GPS. Sin intervención del conductor.',
+   et: 'Velocidad ahora', cifra: (e) => Math.round(e.gps.vel_kmh) + ' km/h',
+   det: (e) => e.muestras.toLocaleString('es-CO') + ' muestras · ' + (e.gps.fix ? 'GPS con posición' : 'GPS sin posición') + ' · ' + e.cortes + ' cortes'},
+  {t: '2 · Detección', x: 'Cada golpe que supera los umbrales (pico, vibración de fondo y velocidad) queda como evento, con severidad y confianza.',
+   et: 'Eventos detectados', cifra: (e) => e.eventos,
+   det: (e) => { const u = e.ultimos_eventos.slice(-1)[0]; return u ? 'Último: ' + u.p2p_g + ' g a ' + u.vel_kmh + ' km/h · severidad ' + (u.severidad || '—') : 'Esperando el primer evento…'; }},
+  {t: '3 · Mapa', x: 'Los eventos cercanos (≤ 10 m) se agrupan en un hueco y se ubican en su calle, sin internet.',
+   et: 'Huecos en el mapa', cifra: () => H.length, det: () => RES ? RES.detectado + ' detectados · ' + RES.verificado + ' verificados · ' + RES.reparado + ' reparados' : '', mapa: true},
+  {t: '4 · Reporte', x: 'La Alcaldía ve qué atender primero, cambia el estado de cada hueco y exporta el informe.',
+   et: 'Abiertos por atender', cifra: () => RES ? RES.detectado + RES.verificado : '—', det: () => 'Prioridad = severidad × tránsito × reincidencia.',
+   acciones: '<a class="boton primario" href="/tablero">Abrir el tablero</a><a class="boton" href="/api/exportar/top10.pdf">PDF top-10</a><a class="boton" href="/api/exportar/tablero.xlsx">Excel</a>'},
+];
+const DUR = 30000;
+let paso = 0, pausa = false, E = null, H = [], RES = null, mapa = null, t0 = Date.now();
+
+function senal() {
+  const cv = $('senal'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !E) return;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const s = E.serie; if (s.length < 2) return;
+  const tf = s[s.length - 1][0], y = (v) => h / 2 - Math.max(-1.5, Math.min(1.5, v)) / 1.5 * (h / 2 - 10), x = (t) => (t - (tf - 30)) / 30 * w;
+  g.strokeStyle = VV.color('--borde'); g.setLineDash([5, 5]);
+  for (const v of [0.3, -0.3]) { g.beginPath(); g.moveTo(0, y(v)); g.lineTo(w, y(v)); g.stroke(); }
+  g.setLineDash([]);
+  if (paso >= 1) for (const e of E.ultimos_eventos) if (e.t_s > tf - 30) { g.fillStyle = VV.color('--acento'); g.globalAlpha = .25; g.fillRect(x(e.t_s) - 8, 0, 16, h); g.globalAlpha = 1; }
+  g.strokeStyle = VV.color('--texto'); g.lineWidth = 2; g.beginPath();
+  s.forEach(([t, v], k) => k ? g.lineTo(x(t), y(v)) : g.moveTo(x(t), y(v))); g.stroke();
+}
+
+function pintar() {
+  const p = PASOS[paso];
+  $('paso').textContent = p.t; $('texto').textContent = p.x; $('et-cifra').textContent = p.et;
+  $('acciones').innerHTML = p.acciones || '';
+  $('puntos').innerHTML = PASOS.map((_, k) => '<i class="' + (k <= paso ? 'on' : '') + '"></i>').join('');
+  $('senal').classList.toggle('oculto', !!p.mapa); $('mapa').classList.toggle('oculto', !p.mapa);
+  if (p.mapa && mapa) { mapa.redimensionar(); if (E && E.gps.fix) mapa.centrar(E.gps.lat, E.gps.lon, 15); }
+  valores();
+}
+function valores() {
+  const p = PASOS[paso]; if (!E) return;
+  $('cifra').textContent = p.cifra(E); $('detalle').textContent = p.det(E);
+  $('origen').textContent = E.origen === 'simulado' ? 'Reproducción de una salida real' : E.conectado ? 'En vivo' : 'Sin conexión';
+  $('origen').className = 'pill ' + (E.conectado ? 'ok' : 'mal');
+  $('pie').textContent = E.origen === 'simulado' ? 'Datos reproducidos de una grabación; los huecos de la reproducción van marcados como simulados.' : '';
+  senal();
+  if (mapa) {
+    mapa.lineas('recorrido', [{puntos: E.trayecto, color: VV.color('--acento'), grosor: 4}]);
+    mapa.puntos('huecos', H.map(h => ({lat: h.lat, lon: h.lon, color: VV.color(VV.COLOR_ESTADO[h.estado]), radio: 6})));
+  }
+}
+function ir(k) { paso = (k + PASOS.length) % PASOS.length; t0 = Date.now(); pintar(); }
+async function datos() {
+  try { E = await VV.json('/api/estado'); } catch (e) { return; }
+  if (paso >= 2 || !RES) try { const r = await VV.json('/api/tablero/huecos'); H = r.huecos; RES = r.resumen; } catch (e) {}
+  valores();
+  if (!pausa && Date.now() - t0 > DUR && paso < PASOS.length - 1) ir(paso + 1);
+}
+$('b-sig').onclick = () => ir(paso + 1); $('b-ant').onclick = () => ir(paso - 1);
+$('b-pausa').onclick = () => { pausa = !pausa; $('b-pausa').textContent = pausa ? 'Continuar' : 'Pausar'; t0 = Date.now(); };
+$('b-pantalla').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch?.(() => {});
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') ir(paso + 1); else if (e.key === 'ArrowLeft') ir(paso - 1); });
+window.addEventListener('resize', senal);
+(async () => { mapa = await VV.crearMapa($('mapa')); pintar(); datos(); setInterval(datos, 700); })();
+</script>
+</body>
+</html>

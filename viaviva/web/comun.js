@@ -170,3 +170,16 @@ VV.usuario = async (contenedor) => {  // muestra quién está y el botón Salir
   }
   return r;
 };
+
+// Navegación común (un solo sistema): se pone después de la marca en la barra superior.
+VV.nav = (actual, rol) => {
+  const barra = document.querySelector('.barra .marca');
+  if (!barra) return;
+  const paginas = [['campo', 'Campo', '/captura', 'editor'], ['sesiones', 'Sesiones', '/sesiones', 'editor'],
+                   ['dataset', 'Dataset', '/dataset', 'editor'], ['tablero', 'Tablero', '/tablero', ''],
+                   ['demo', 'Demo', '/demo', 'editor']];
+  const n = document.createElement('nav'); n.className = 'nav';
+  n.innerHTML = paginas.filter(p => !p[3] || rol === p[3]).map(([id, t, h]) =>
+    '<a href="' + h + '"' + (id === actual ? ' class="on" aria-current="page"' : '') + '>' + t + '</a>').join('');
+  barra.after(n);
+};

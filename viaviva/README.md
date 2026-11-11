@@ -34,6 +34,10 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 | `/captura` | equipo (editor) | Grabar, marcar (1–7, U), señal, GPS, sensores, PIN para el celular, apagar (Pi) |
 | `/marcar` | celular del copiloto (PIN de la consola) | Botones grandes 1–7 y deshacer, sin zoom |
 | `/sync` | quien filma | Reloj UTC grande y destello de 3 s (queda guardado en la sesión) |
+| `/sesiones` | equipo | Salidas con resumen, calidad, recorrido, video y avance de revisión |
+| `/revision?s=<sesión>` | equipo | Importar el video (se sincroniza solo), línea de tiempo con señal + video, confirmar / corregir / descartar |
+| `/dataset` | equipo | Construir el dataset, ver balance y cobertura, evaluar umbrales y clasificador |
+| `/demo` | equipo (proyector) | Recorrido guiado de 2 min: captura → detección → mapa → reporte |
 | `/tablero` | editor, Alcaldía, docentes | Huecos por estado y riesgo por tramo, prioridad, exportar PDF/CSV/Excel, importar reparaciones |
 
 ## Pines (Raspberry Pi 4, BCM, manual v3)

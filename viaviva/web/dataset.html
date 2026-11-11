@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es" class="tema-a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Dataset</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <span class="espacio"></span><div class="cuenta" id="cuenta"></div>
+</header>
+<main class="pagina">
+  <div class="titulo"><h1>Dataset</h1><span class="sub" id="sub">Ventanas de 2 s de todas las sesiones, con sus etiquetas revisadas.</span>
+    <span class="espacio"></span><button id="b-construir" class="primario">Construir dataset y evaluar umbrales</button></div>
+  <p id="alertas" class="aviso oculto"></p>
+  <div id="vacio" class="tarjeta vacio oculto"><b>Todavía no se ha construido</b>Revise al menos una sesión en
+    <a href="/sesiones">Sesiones</a> y toque «Construir dataset». Tarda unos segundos por salida.</div>
+  <div id="contenido" class="oculto" style="display:grid;gap:14px">
+    <div class="cifras" id="cifras"></div>
+    <div class="rev">
+      <section class="tarjeta"><h2>Balance de clases <span class="sub" id="desb"></span></h2><div id="clases"></div></section>
+      <section class="tarjeta"><h2>Detector por umbrales <span class="sub" id="ver-det"></span></h2>
+        <div class="envoltura-tabla"><table class="tabla" id="t-det"></table></div>
+        <p class="ayuda" id="nota-det"></p></section>
+    </div>
+    <div class="rev">
+      <section class="tarjeta"><h2>Calibración dejando una salida afuera</h2><div class="envoltura-tabla"><table class="tabla" id="t-cal"></table></div>
+        <p class="ayuda" id="nota-cal"></p></section>
+      <section class="tarjeta"><h2>Clasificador de ventanas <span class="sub">bosque, por salida completa</span></h2>
+        <div class="envoltura-tabla"><table class="tabla" id="t-cla"></table></div><p class="ayuda" id="nota-cla"></p></section>
+    </div>
+  </div>
+</main>
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const pct = (v) => v == null ? '—' : Math.round(v * 100) + ' %';
+function pintar(e) {
+  const u = e.ultimo, corriendo = e.estado === 'corriendo';
+  $('b-construir').disabled = corriendo;
+  $('b-construir').textContent = corriendo ? 'Construyendo…' : 'Construir dataset y evaluar umbrales';
+  const av = [e.estado === 'error' ? 'No se pudo construir: ' + e.mensaje : '', ...((u && u.avisos) || [])].filter(Boolean);
+  $('alertas').textContent = av.join(' '); $('alertas').classList.toggle('oculto', !av.length);
+  $('vacio').classList.toggle('oculto', !!u); $('contenido').classList.toggle('oculto', !u);
+  if (!u) return;
+  $('sub').textContent = 'Generado ' + u.generado.replace('T', ' ').slice(0, 16) + ' · ' + u.sesiones + ' sesiones';
+  $('cifras').innerHTML = [['Ventanas', u.ventanas], ['Válidas', u.validas], ['Con marca', u.con_marca], ['Cobertura', u.cobertura_pct + ' %']]
+    .map(([k, v]) => '<div class="cifra"><span class="et">' + k + '</span><span class="valor">' + v + '</span></div>').join('');
+  const max = Math.max(1, ...Object.values(u.por_clase));
+  $('clases').innerHTML = Object.entries(u.por_clase).map(([c, n]) => '<div style="display:grid;grid-template-columns:110px 1fr 46px;gap:10px;' +
+    'align-items:center;padding:5px 0"><span>' + VV.escapar(c) + '</span><div class="barra-h"><i style="width:' + (100 * n / max) + '%"></i></div>' +
+    '<span class="num">' + n + '</span></div>').join('') || '<p class="sub">Ninguna ventana tiene marca todavía.</p>';
+  $('desb').textContent = u.desbalance ? '· desbalance ' + u.desbalance + (u.desbalance > 5 ? ' (alto)' : '') : '';
+  const g = u.detector.global;
+  $('ver-det').textContent = '· ' + u.version_detector;
+  $('t-det').innerHTML = '<thead><tr><th>Clase</th><th class="num">Marcas</th><th class="num">Detectadas</th><th class="num">Exhaustividad</th></tr></thead><tbody>' +
+    Object.entries(u.detector.por_clase).map(([c, d]) => '<tr><td>' + VV.escapar(c) + '</td><td class="num">' + d.marcas + '</td><td class="num">' +
+      d.detectadas + '</td><td class="num">' + pct(d.exhaustividad) + '</td></tr>').join('') + '</tbody>';
+  $('nota-det').textContent = 'Global: precisión ' + pct(g.precision) + ' · exhaustividad ' + pct(g.exhaustividad) + ' · F1 ' + pct(g.f1) +
+    ' (' + g.tp + ' aciertos, ' + g.fp + ' falsas alarmas, ' + g.fn + ' no detectados).';
+  const c = u.calibracion;
+  $('t-cal').innerHTML = c.error ? '' : '<thead><tr><th>Salida de prueba</th><th class="num">P</th><th class="num">R</th><th class="num">F1</th></tr></thead><tbody>' +
+    c.pliegues.map(x => '<tr><td>' + VV.escapar(x.prueba.replace('sesion_', '')) + '</td><td class="num">' + pct(x.prueba_precision) + '</td><td class="num">' +
+      pct(x.prueba_exhaustividad) + '</td><td class="num">' + pct(x.prueba_f1) + '</td></tr>').join('') + '</tbody>';
+  $('nota-cal').textContent = c.error || ('En conjunto: F1 ' + pct(c.global_prueba.f1) + '. Para fijar estos umbrales: viaviva detector calibrar.');
+  const k = u.clasificador;
+  $('t-cla').innerHTML = k.error ? '' : '<thead><tr><th>Clase</th><th class="num">P</th><th class="num">R</th><th class="num">F1</th><th class="num">n</th></tr></thead><tbody>' +
+    Object.entries(k.por_clase).map(([c, d]) => '<tr><td>' + VV.escapar(c) + '</td><td class="num">' + pct(d.precision) + '</td><td class="num">' +
+      pct(d.exhaustividad) + '</td><td class="num">' + pct(d.f1) + '</td><td class="num">' + d.soporte + '</td></tr>').join('') + '</tbody>';
+  $('nota-cla').textContent = k.error || (k.n + ' ventanas de ' + k.salidas.length + ' salidas. El modelo TFLite para el nodo es la etapa siguiente.');
+}
+async function refrescar() { const e = await VV.json('/api/dataset'); pintar(e); if (e.estado === 'corriendo') setTimeout(refrescar, 1500); }
+$('b-construir').onclick = async () => { try { await VV.post('/api/dataset/construir'); refrescar(); } catch (e) { VV.aviso(e.message, 'mal'); } };
+(async () => { const r = await VV.usuario($('cuenta')); VV.nav('dataset', r.usuario && r.usuario.rol); refrescar(); })();
+</script>
+</body>
+</html>

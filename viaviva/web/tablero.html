@@ -11,7 +11,6 @@
   <div class="marca"><span class="logo"></span><div>VÍA VIVA<small>Tablero de huecos y riesgo vial · Tunja</small></div></div>
   <span class="vivo"><span class="punto"></span><span id="t-vivo">en vivo</span></span>
   <span class="espacio"></span>
-  <a href="/" id="a-captura" class="oculto">Captura</a>
   <div class="cuenta" id="cuenta"></div>
 </header>
 
@@ -319,7 +318,8 @@ async function latido() {
 (async () => {
   const r = await VV.usuario($('cuenta'));
   yo = r.usuario;
-  if (esEditor()) { $('b-importar').classList.remove('oculto'); $('a-captura').classList.remove('oculto'); }
+  VV.nav('tablero', yo && yo.rol);
+  if (esEditor()) { $('b-importar').classList.remove('oculto'); }
   mapa = await VV.crearMapa($('mapa'));
   enlaces();
   try { await cargarRiesgo(); } catch (e) { $('info-corrida').textContent = 'Error: ' + e.message; }

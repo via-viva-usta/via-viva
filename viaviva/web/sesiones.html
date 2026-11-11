@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es" class="tema-a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Sesiones</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <span class="espacio"></span><div class="cuenta" id="cuenta"></div>
+</header>
+<main class="pagina">
+  <div class="titulo"><h1>Sesiones</h1><span class="sub" id="sub">Cargando…</span></div>
+  <div id="lista" class="rejilla-ses"></div>
+</main>
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const mmss = (s) => Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s';
+function mini(tray) {                       // recorrido en miniatura (SVG, sin teselas: funciona sin internet)
+  if (!tray || tray.length < 2) return '';
+  const la = tray.map(p => p[0]), lo = tray.map(p => p[1]);
+  const a = Math.min(...la), b = Math.max(...la), c = Math.min(...lo), d = Math.max(...lo), k = Math.cos(a * Math.PI / 180);
+  const e = Math.min(280 / Math.max((d - c) * k, 1e-5), 70 / Math.max(b - a, 1e-5));
+  return '<svg viewBox="0 0 300 90" style="width:100%;height:90px"><polyline fill="none" stroke="var(--acento)" stroke-width="2.5" ' +
+    'stroke-linejoin="round" points="' + tray.map(p => (10 + (p[1] - c) * k * e).toFixed(1) + ',' + (80 - (p[0] - a) * e).toFixed(1)).join(' ') + '"/></svg>';
+}
+async function cargar() {
+  const r = await VV.json('/api/sesiones');
+  $('sub').textContent = r.sesiones.length + ' salidas · ' + r.carpeta;
+  if (!r.sesiones.length) {
+    $('lista').innerHTML = '<div class="tarjeta vacio" style="grid-column:1/-1"><b>Aún no hay salidas</b>Abra <a href="/captura">Campo</a>, ' +
+      'inicie la grabación y vuelva aquí al terminar. Para practicar sin carro: <code>viaviva capture --replay &lt;export&gt;</code>.</div>';
+    return;
+  }
+  $('lista').innerHTML = r.sesiones.map(s => s.grabando ?
+    '<a class="tarjeta ses" href="/captura"><h3>' + VV.escapar(s.nombre) + '</h3><span class="pill mal">● Grabando ahora</span></a>' :
+    s.error ? '<div class="tarjeta ses"><h3>' + VV.escapar(s.nombre) + '</h3><span class="pill mal">' + VV.escapar(s.error) + '</span></div>' :
+    '<a class="tarjeta ses" href="/revision?s=' + encodeURIComponent(s.nombre) + '"><h3>' + VV.escapar(s.nombre.replace('sesion_', '')) + '</h3>' +
+    '<div id="m-' + VV.escapar(s.nombre) + '"></div>' +
+    '<div class="datos"><div><b>' + mmss(s.duracion_s || 0) + '</b><span>duración</span></div><div><b>' + (s.km ?? '—') + '</b><span>km</span></div>' +
+    '<div><b>' + (s.eventos_detectados ?? 0) + '</b><span>eventos</span></div><div><b>' + (s.marcas ?? 0) + '</b><span>marcas</span></div></div>' +
+    '<div class="fila-flex">' + (s.video ? '<span class="pill ok">Video · ' + VV.escapar(s.sincronia || '') + '</span>' : '<span class="pill">Sin video</span>') +
+    (s.revisados ? '<span class="pill ac">' + s.revisados + ' revisados</span>' : '') +
+    ((s.avisos || []).length ? '<span class="pill mal" title="' + VV.escapar(s.avisos.join(' · ')) + '">' + s.avisos.length + ' avisos</span>' :
+      '<span class="pill ok">Calidad OK</span>') + '</div></a>').join('');
+  for (const s of r.sesiones.filter(x => !x.grabando && !x.error).slice(0, 12))   // miniaturas de las más recientes
+    VV.json('/api/sesiones/' + encodeURIComponent(s.nombre)).then(d => {
+      const el = document.getElementById('m-' + s.nombre); if (el) el.innerHTML = mini(d.trayecto);
+    }).catch(() => {});
+}
+(async () => {
+  const r = await VV.usuario($('cuenta')); VV.nav('sesiones', r.usuario && r.usuario.rol);
+  cargar().catch(e => { $('sub').textContent = 'Error: ' + e.message; });
+})();
+</script>
+</body>
+</html>

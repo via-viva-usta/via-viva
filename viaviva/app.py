@@ -11,16 +11,19 @@ import hmac
 import platform
 import secrets
 import subprocess
+import tempfile
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import Body, FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from viaviva import almacen, config, exportar
+from viaviva import almacen, config, exportar, sesiones
 from viaviva.nucleo import Nucleo
 from viaviva.sincronizacion import Sincronizador
 from viaviva.sistema import Sistema
@@ -433,6 +436,104 @@ def crear_app(ctx: Contexto) -> FastAPI:
         if res["aplicado"]:
             ctx.cambio()
         return JSONResponse(res, status_code=200 if not res["errores"] else 422)
+
+    # ------------------------------------------------------------ sesiones, video, revisión, dataset, demo
+    def base_sesiones() -> Path:
+        return ctx.n.dir_grabaciones
+
+    for ruta_pag, archivo, roles in (("/sesiones", "sesiones.html", ("editor",)), ("/revision", "revision.html", ("editor",)),
+                                     ("/dataset", "dataset.html", ("editor",)), ("/demo", "demo.html", ("editor",))):
+        def _pagina(request: Request, archivo=archivo, roles=roles):
+            exigir(request, roles, pagina=True)
+            return pagina(archivo)
+        app.add_api_route(ruta_pag, _pagina, methods=["GET"])
+
+    @app.get("/api/sesiones")
+    def api_sesiones(request: Request):
+        exigir(request, ("editor",))
+        actual = ctx.n.sesion.carpeta.name if ctx.n.sesion else None
+        return {"carpeta": str(base_sesiones()), "sesiones": sesiones.listar(base_sesiones(), actual)}
+
+    @app.get("/api/sesiones/{nombre}")
+    def api_sesion(request: Request, nombre: str):
+        exigir(request, ("editor",))
+        return sesiones.detalle(sesiones.carpeta(base_sesiones(), nombre))
+
+    @app.post("/api/sesiones/{nombre}/video")
+    async def api_subir_video(request: Request, nombre: str, archivo: str = "video.mov"):
+        exigir(request, ("editor",))
+        c = sesiones.carpeta(base_sesiones(), nombre)
+        ext = Path(archivo).suffix.lower()
+        if ext not in sesiones.VIDEOS:
+            return JSONResponse({"error": "el video debe ser .mov o .mp4"}, status_code=400)
+        limite = sesiones.MAX_VIDEO_BYTES
+        try:
+            tam_declarado = int(request.headers.get("content-length", "0"))
+        except ValueError:
+            return JSONResponse({"error": "Content-Length inválido"}, status_code=400)
+        if tam_declarado > limite:
+            return JSONResponse({"error": f"video demasiado grande (máximo {limite // 1024**2} MB)"}, status_code=413)
+
+        temporal = None
+        tamano = 0
+        excedido = False
+        try:
+            with tempfile.NamedTemporaryFile(mode="wb", prefix=".video-carga-", suffix=ext + ".tmp", dir=c,
+                                             delete=False) as f:
+                temporal = Path(f.name)
+                async for parte in request.stream():
+                    tamano += len(parte)
+                    if tamano > limite:
+                        excedido = True
+                        break
+                    f.write(parte)
+                if not excedido:
+                    f.flush()
+            if excedido:
+                temporal.unlink(missing_ok=True)
+                return JSONResponse({"error": f"video demasiado grande (máximo {limite // 1024**2} MB)"},
+                                    status_code=413)
+            if tamano < 1000:
+                temporal.unlink(missing_ok=True)
+                return JSONResponse({"error": "el archivo llegó vacío"}, status_code=400)
+            sello = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
+            destino = c / f"video_{sello}_{uuid4().hex[:8]}{ext}"
+            temporal.replace(destino)  # cambio atómico; cada intento conserva el video anterior
+        except Exception:
+            if temporal is not None:
+                temporal.unlink(missing_ok=True)
+            raise
+        return await run_in_threadpool(sesiones.sincronizar_video, c, destino)
+
+    @app.get("/api/sesiones/{nombre}/video")
+    def api_video(request: Request, nombre: str):
+        exigir(request, ("editor",))
+        v = sesiones.ruta_video(sesiones.carpeta(base_sesiones(), nombre))
+        if v is None:
+            return JSONResponse({"error": "la sesión no tiene video"}, status_code=404)
+        tipo = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime"}[v.suffix.lower()]
+        return FileResponse(v, media_type=tipo)
+
+    @app.post("/api/sesiones/{nombre}/desfase")
+    def api_desfase(request: Request, nombre: str, datos: dict = Body(default={})):
+        exigir(request, ("editor",))
+        return sesiones.ajustar_desfase(sesiones.carpeta(base_sesiones(), nombre), float(datos["desfase_s"]))
+
+    @app.post("/api/sesiones/{nombre}/revision")
+    def api_revisar(request: Request, nombre: str, datos: dict = Body(default={})):
+        u = exigir(request, ("editor",))
+        return sesiones.revisar(sesiones.carpeta(base_sesiones(), nombre), float(datos["t_s"]), datos["decision"],
+                                datos.get("clase"), u["usuario"])
+
+    @app.get("/api/dataset")
+    def api_dataset(request: Request):
+        exigir(request, ("editor",))
+        return sesiones.estado_dataset()
+
+    @app.post("/api/dataset/construir")
+    def api_dataset_construir(request: Request):
+        exigir(request, ("editor",))
+        return sesiones.lanzar_dataset(base_sesiones())
 
     return app
 
