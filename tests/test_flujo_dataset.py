@@ -1,6 +1,8 @@
 """Flujo único del dataset por la API: grabar → sesiones → importar video (sincronía por destello) → revisar → dataset."""
 import json
+import subprocess
 import time
+from pathlib import Path
 
 import pytest
 
@@ -58,6 +60,27 @@ def test_flujo_sesion_video_revision_dataset(tmp_path, monkeypatch):
     assert c.get(f"/api/sesiones/{nombre}/video").status_code == 200
     assert c.post(f"/api/sesiones/{nombre}/video?archivo=x.txt", content=b"hola").status_code == 400
     assert c.post(f"/api/sesiones/{nombre}/desfase", json={"desfase_s": 1.5}).json()["metodo"] == "manual"
+    assert r["codec"] in ("mp4v", "fmp4") and not any("HEVC" in a for a in r["avisos"])
+    # Conversión a H.264 (ffmpeg simulado): conserva el original y el desfase
+    monkeypatch.setattr(sesiones, "ffmpeg", lambda: None)
+    assert c.post(f"/api/sesiones/{nombre}/video/convertir").status_code == 400
+
+    def ffmpeg_falso(cmd, **kw):
+        Path(cmd[-1]).write_bytes(b"0" * 2000)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+    monkeypatch.setattr(sesiones, "ffmpeg", lambda: "ffmpeg")
+    monkeypatch.setattr(sesiones.subprocess, "run", ffmpeg_falso)
+    assert c.post(f"/api/sesiones/{nombre}/video/convertir").json()["conversion"]["estado"] == "en_curso"
+    for _ in range(50):
+        info = c.get(f"/api/sesiones/{nombre}/video/info").json()
+        if info["conversion"]["estado"] != "en_curso":
+            break
+        time.sleep(0.1)
+    assert info["conversion"]["estado"] == "lista" and info["archivo"] == actual.stem + "_h264.mp4"
+    assert info["original"] == actual.name and info["desfase_s"] == 1.5 and actual.exists()
+    monkeypatch.undo()
+    monkeypatch.setattr(sesiones, "SALIDA_DATASET", tmp_path / "ds")
+    monkeypatch.setattr("viaviva.ventanas.SALIDAS", tmp_path / "ds")
     # Revisión: confirmar, corregir y descartar quedan en la base de la sesión y en las etiquetas
     ev = det["eventos"]
     rev = f"/api/sesiones/{nombre}/revision"

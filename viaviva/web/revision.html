@@ -34,6 +34,7 @@
           <span class="pill ok" id="p-sinc"></span>
           <label class="sub">Desfase <input id="desfase" type="number" step="0.1" style="width:90px;min-height:32px;padding:4px 8px"> s</label>
           <button id="b-desfase">Guardar</button>
+          <button id="b-convertir" class="oculto">Convertir a H.264</button>
           <button id="b-otro" class="enlace">Cambiar video</button>
         </div>
         <p class="ayuda" id="nota-video"></p>
@@ -135,13 +136,33 @@ function mostrarVideo() {
   const v = D.video;
   $('sin-video').classList.toggle('oculto', !!v); $('con-video').classList.toggle('oculto', !v);
   if (!v) return;
-  $('video').src = api + '/video';
+  const src = api + '/video?v=' + encodeURIComponent(v.archivo || '');
+  if ($('video').getAttribute('src') !== src) { noSeVe = false; $('video').src = src; }
   $('desfase').value = v.desfase_s;
   $('p-sinc').textContent = {destello: 'Sincronizado por destello', fecha_del_archivo: 'Por fecha del archivo (± 1–2 s)', manual: 'Desfase manual'}[v.metodo] || v.metodo;
   $('p-sinc').className = 'pill ' + (v.metodo === 'destello' ? 'ok' : 'ac');
-  $('nota-video').textContent = [(v.cobertura_pct != null ? 'Cubre el ' + v.cobertura_pct + ' % de la sesión.' : ''), ...(v.avisos || []),
-    'Si el video no se ve (HEVC en Windows), grabe en «Más compatible» (Ajustes › Cámara › Formatos) o ábralo en Safari.'].join(' ');
+  const conv = v.conversion || {};
+  const hevc = ['hvc1', 'hev1', 'hevc', 'h265', 'x265'].includes(v.codec);
+  $('b-convertir').classList.toggle('oculto', !(D.ffmpeg && (hevc || noSeVe) && conv.estado !== 'en_curso'));
+  const avisaCobertura = (v.avisos || []).some(a => a.includes('cubre solo'));
+  $('nota-video').textContent = [(v.cobertura_pct != null && !avisaCobertura ? 'Cubre el ' + v.cobertura_pct + ' % de la sesión.' : ''), ...(v.avisos || []),
+    noSeVe ? 'Este navegador no puede reproducir el video' + (v.codec ? ' (' + v.codec + ')' : '') + '. ' +
+      (D.ffmpeg ? 'Use «Convertir a H.264».' : 'Instale ffmpeg en este equipo para convertirlo, ábralo en Safari o grabe en «Más compatible» (Ajustes › Cámara › Formatos).') : '',
+    conv.estado === 'en_curso' ? 'Convirtiendo a H.264… (el original se conserva)' : '',
+    conv.estado === 'lista' && v.original ? 'Convertido a H.264; el original (' + v.original + ') sigue en la carpeta de la sesión.' : '',
+    conv.estado === 'error' ? 'No se pudo convertir: ' + (conv.mensaje || '') : ''].filter(Boolean).join(' ');
+  if (conv.estado === 'en_curso') setTimeout(async () => {
+    try { D.video = await VV.json(api + '/video/info'); } catch (e) { /* reintenta en el próximo ciclo */ }
+    mostrarVideo();
+  }, 3000);
 }
+let noSeVe = false;
+const sinImagen = () => { if (!D || !D.video || noSeVe) return; noSeVe = true; mostrarVideo(); };
+$('video').addEventListener('error', sinImagen);
+$('video').addEventListener('loadedmetadata', () => { if (!$('video').videoWidth) sinImagen(); });
+$('b-convertir').onclick = async () => {
+  try { D.video = await VV.post(api + '/video/convertir', {}); mostrarVideo(); } catch (e) { VV.aviso(e.message, 'mal'); }
+};
 
 function subir(archivo) {
   if (!archivo) return;

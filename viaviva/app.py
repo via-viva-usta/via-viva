@@ -514,6 +514,16 @@ def crear_app(ctx: Contexto) -> FastAPI:
         tipo = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime"}[v.suffix.lower()]
         return FileResponse(v, media_type=tipo)
 
+    @app.get("/api/sesiones/{nombre}/video/info")
+    def api_video_info(request: Request, nombre: str):
+        exigir(request, ("editor",))
+        return sesiones.video_info(sesiones.carpeta(base_sesiones(), nombre)) or {}
+
+    @app.post("/api/sesiones/{nombre}/video/convertir")
+    def api_convertir_video(request: Request, nombre: str):
+        exigir(request, ("editor",))
+        return sesiones.convertir_video(sesiones.carpeta(base_sesiones(), nombre))
+
     @app.post("/api/sesiones/{nombre}/desfase")
     def api_desfase(request: Request, nombre: str, datos: dict = Body(default={})):
         exigir(request, ("editor",))

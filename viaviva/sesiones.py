@@ -16,8 +16,10 @@ import csv
 import json
 import math
 import re
+import shutil
 import sqlite3
 import struct
+import subprocess
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,7 +32,9 @@ VIDEOS = (".mov", ".mp4", ".m4v")
 MAX_VIDEO_BYTES = 8 * 1024**3  # admite videos largos; el límite también se aplica al cuerpo transmitido
 CLASES = [c for _, c, _ in config.ETIQUETAS]
 SALIDA_DATASET = config.RAIZ / "data" / "procesado" / "dataset_ventanas"
+HEVC = ("hvc1", "hev1", "hevc", "h265", "x265")
 _tarea = {"estado": "inactivo", "mensaje": ""}
+_candado_video = threading.Lock()
 
 
 def carpeta(base: Path, nombre: str) -> Path:
@@ -107,7 +111,7 @@ def detalle(c: Path) -> dict:
     destellos = [f[0] for f in _leer_tabla(c, "destellos.csv")]
     return {"nombre": c.name, "resumen": _resumen(c), "duracion_s": round(float(s.t[-1]), 1), "envolvente": env,
             "trayecto": tray, "eventos": eventos, "marcas": marcas, "destellos": destellos, "video": video_info(c),
-            "clases": CLASES, "revisados": len(rev)}
+            "clases": CLASES, "revisados": len(rev), "ffmpeg": ffmpeg() is not None}
 
 
 # ------------------------------------------------------------------------------------------------ video
@@ -153,8 +157,10 @@ def _destellos_en_video(ruta: Path, tramos_s: float = 240.0) -> tuple[list[float
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
     dur = total / fps if total else 0.0
+    cc = int(cap.get(cv2.CAP_PROP_FOURCC) or 0)
+    codec = "".join(chr((cc >> 8 * k) & 0xFF) for k in range(4)).strip("\x00 ").lower() if cc else ""
     info = {"fps": round(fps, 2), "duracion_s": round(dur, 1), "ancho": int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            "alto": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}
+            "alto": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), "codec": codec}
     rangos = [(0.0, dur)] if dur <= 2 * tramos_s else [(0.0, tramos_s), (dur - tramos_s, dur)]
     inicios = []
     for a, b in rangos:                                   # los destellos van al inicio y al final de la toma
@@ -203,6 +209,10 @@ def sincronizar_video(c: Path, ruta: Path) -> dict:
         else:
             r.update(metodo="manual", desfase_s=0.0, error_s=None)
             r["avisos"].append("Sin destellos ni fecha en el archivo: ajuste el desfase a mano en la revisión.")
+    if r.get("codec") in HEVC:
+        r["avisos"].append("Video HEVC (formato «Alta eficiencia» del iPhone): Chrome o Edge en Windows pueden no "
+                           "reproducirlo. " + ("Use «Convertir a H.264»." if ffmpeg() else
+                                               "Instale ffmpeg para convertirlo o grabe en «Más compatible»."))
     dur_ses = _resumen(c).get("duracion_s") or 0
     dur_vid = r.get("duracion_s") or 0
     if dur_vid:
@@ -219,13 +229,60 @@ def ruta_video(c: Path) -> Path | None:
     return (c / v["archivo"]) if v and (c / v["archivo"]).exists() else None
 
 
+def ffmpeg() -> str | None:
+    """Ruta de ffmpeg si está instalado (opcional: solo hace falta para convertir videos HEVC)."""
+    return shutil.which("ffmpeg")
+
+
+def _guardar_video_info(c: Path, **cambios) -> dict:
+    with _candado_video:
+        v = video_info(c) or {}
+        v.update(cambios)
+        (c / "video.json").write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
+        return v
+
+
+def _convertir(c: Path, origen: Path, destino: Path, exe: str) -> None:
+    cmd = [exe, "-y", "-v", "error", "-i", str(origen), "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264",
+           "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart",
+           str(destino)]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=6 * 3600)
+        ok = p.returncode == 0 and destino.exists() and destino.stat().st_size > 1000
+        error = "" if ok else (p.stderr or "ffmpeg terminó con error").strip().splitlines()[-1][:300]
+    except (OSError, subprocess.TimeoutExpired) as e:
+        ok, error = False, str(e)[:300]
+    if ok:  # misma línea de tiempo: el desfase y la sincronía siguen valiendo; el original se conserva
+        _guardar_video_info(c, archivo=destino.name, original=origen.name, codec="h264",
+                            conversion={"estado": "lista", "fin": datetime.now(UTC).isoformat(timespec="seconds")})
+    else:
+        destino.unlink(missing_ok=True)
+        _guardar_video_info(c, conversion={"estado": "error", "mensaje": error})
+
+
+def convertir_video(c: Path) -> dict:
+    """Convierte el video de la sesión a H.264/MP4 con ffmpeg, en segundo plano. No borra el original."""
+    origen = ruta_video(c)
+    if origen is None:
+        raise ValueError("la sesión no tiene video")
+    exe = ffmpeg()
+    if exe is None:
+        raise ValueError("ffmpeg no está instalado en este equipo")
+    v = video_info(c) or {}
+    if (v.get("conversion") or {}).get("estado") == "en_curso":
+        return v
+    destino = c / f"{origen.stem}_h264.mp4"
+    v = _guardar_video_info(c, conversion={"estado": "en_curso",
+                                           "inicio": datetime.now(UTC).isoformat(timespec="seconds")})
+    threading.Thread(target=_convertir, args=(c, origen, destino, exe), daemon=True).start()
+    return v
+
+
 def ajustar_desfase(c: Path, desfase_s: float) -> dict:
     v = video_info(c)
     if not v:
         raise ValueError("la sesión no tiene video")
-    v.update(desfase_s=round(float(desfase_s), 3), metodo="manual")
-    (c / "video.json").write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
-    return v
+    return _guardar_video_info(c, desfase_s=round(float(desfase_s), 3), metodo="manual")
 
 
 # ------------------------------------------------------------------------------------------------ revisión
