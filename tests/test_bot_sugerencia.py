@@ -1,5 +1,4 @@
 """El bot guarda la sugerencia de la CNN junto al reporte (columnas nuevas migradas solas). Base temporal."""
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -8,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "futuro" / "bot"
 
 def test_guardar_reporte_con_sugerencia(tmp_path):
     import reportes
+
     from db.acceso import conectar
     con = conectar(f"sqlite:///{(tmp_path / 'prueba.db').as_posix()}")
     s = {"clase": "hueco", "confianza": 0.87, "version": "20261105-0752-SINTETICO", "sintetico": True}
@@ -21,6 +21,7 @@ def test_guardar_reporte_con_sugerencia(tmp_path):
 
 def test_version_sintetica_queda_marcada(tmp_path):
     import reportes
+
     from db.acceso import conectar
     con = conectar(f"sqlite:///{(tmp_path / 'p.db').as_posix()}")
     n = reportes.guardar_reporte("h", "hueco", 5.5353, -73.3678, con=con,

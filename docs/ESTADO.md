@@ -35,6 +35,19 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
+## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 81 pytest, ruff limpio, cobertura 78 %)
+
+| Fase | Terminado | Parcial / pendiente (por qué) |
+|---|---|---|
+| **A** captura PC + phyphox | `viaviva doctor`, `capture` con reconexión sin pérdida, sesión + RESUMEN, marcas 1–7/U con retardo, `/marcar` con PIN, `/sync` con destello, `--replay` (directo y por HTTP), `SALIDA_DE_CAMPO.cmd`, `README_SALIDA.md`. Probado de punta a punta con el simulador y los 3 exports reales | Falta la prueba con el iPhone real y el Firewall de Windows (lo acepta AC la primera vez) |
+| **B** detector y dataset | Detector YAML (orientación libre), evaluación y calibración por salida, dataset de ventanas, esqueleto TFLite | **No hay marcas reales**: nada calibrado ni evaluado con datos reales. Los 3 recorridos dan 4 / 11 / 28 disparos sin calibrar |
+| **C** Raspberry Pi | Pines del manual v3, sensores opcionales, gpio-shutdown, instalador y servicio | **Sin probar en hardware** (pruebas con controladores falsos) |
+| **D** tablero en línea | Esquema Supabase con RLS por rol, sincronización de huecos y cambios en línea, sitio estático probado en modo DEMO | **Sin desplegar**: falta que AC cree el proyecto de Supabase e inicie sesión en Netlify (`docs/NUBE.md`) |
+| **E** R7, calidad, docs | R7 en el PC (n = 200), ruff + cobertura en la CI, scraping revisado, docs nuevas | R7 en la Pi y consumo con el tester: pendientes |
+
+Hallazgo con datos reales: en el recorrido 02 el GPS marca 3–5 km/h durante el "minuto quieto" (el acelerómetro está
+quieto); el RESUMEN nuevo lo cuenta como NO quieto. El 7-nov `validar_campo` lo daba por bueno (solo miraba el acelerómetro).
+
 ## Hecho el 7-nov (noche): Raspberry Pi 4 = nodo central y aplicativo
 
 Decisión del 7-nov: el docente de Arquitectura consideró insuficiente el ESP32; la Pi pasa a nodo central y el ESP32 a

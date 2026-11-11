@@ -1,13 +1,14 @@
 ﻿# VÍA VIVA — todo en un comando en el PC (PowerShell, desde la carpeta via-viva). En la Raspberry Pi lo arranca
-# systemd (pi/instalar.sh); este script es para la demo y el desarrollo en Windows.
+# systemd (viaviva/instalar.sh); este script es para la demo y el desarrollo en Windows.
 #
 #   .\iniciar.ps1                       base real (o DEMO si no tiene datos) + servidor de la Pi + mapa + clasificador
 #   .\iniciar.ps1 -Demo                 fuerza la base DEMO (data\via_viva_demo.db, datos marcados DEMO)
-#   .\iniciar.ps1 -Reproducir data\raw\phyphox\2026-11-07_03_pipe.zip   el servidor de la Pi REPRODUCE una grabación
+#   .\iniciar.ps1 -Reproducir ..\..\06_CAMPO\phyphox\2026-11-07\<export>.zip   la captura REPRODUCE una grabación
 #   .\iniciar.ps1 -Phyphox http://172.20.10.1:8080                       + captura en vivo desde el iPhone (phyphox)
 #   .\iniciar.ps1 -ConTablero -SinCelular
 #
-# Levanta en orden: (1) base, (2) servidor de la Pi (captura + tablero de la Alcaldía) en http://localhost:8081,
+# Para la SALIDA DE CAMPO usar SALIDA_DE_CAMPO.cmd (doctor + captura con phyphox). Este script es para la demo.
+# Levanta en orden: (1) base, (2) viaviva (captura + tablero) en http://localhost:8000,
 # (3) mapa web estático, (4) tablero Java (solo con -ConTablero), (5) clasificador para el celular, (6) captura de
 # phyphox (si se pide). El bot de Telegram quedó pospuesto en futuro\bot (7-nov). Guion: docs\demo.md.
 param([switch]$Demo, [switch]$ConTablero, [switch]$SinCelular, [string]$Reproducir = "", [string]$Phyphox = "")
@@ -39,19 +40,21 @@ if ($Demo -or [int]$hayDatos -eq 0) {
 # 2. Servidor de la Pi (el mismo código que corre en la Raspberry). En el PC no hay sensores: sin -Reproducir
 #    queda solo el tablero; con -Reproducir la página de captura muestra la grabación como si fuera el carro.
 Paso "2/6 Servidor VÍA VIVA (captura + tablero de la Alcaldía)"
-$argsPi = @("-m", "pi.servidor", "--puerto", "8081", "--sin-sync")
-if ($Reproducir) { $argsPi += @("--fuente", "reproducir", "--archivo", "`"$Reproducir`"", "--bucle") }
-Start-Process $dat -ArgumentList $argsPi
+$vv = Join-Path $raiz "viaviva\.venv\Scripts\python.exe"
+if (-not (Test-Path $vv)) { $vv = $dat }
+if ($Reproducir) { $argsPi = @("-m", "viaviva", "capture", "--replay", "`"$Reproducir`"", "--bucle", "--sin-sync") }
+else { $argsPi = @("-m", "viaviva", "serve", "--sin-sync") }
+Start-Process $vv -ArgumentList $argsPi
 Start-Sleep -Seconds 3
-Start-Process "http://localhost:8081/tablero"
-if ($Reproducir) { Start-Process "http://localhost:8081/" }
+Start-Process "http://localhost:8000/tablero"
+if ($Reproducir) { Start-Process "http://localhost:8000/captura" }
 
 # 3. Mapa web (estático, ciudadanía): http://localhost:8080
 Paso "3/6 Mapa web"
 & $etl web\exportar.py
 Start-Process $etl -ArgumentList "-m", "http.server", "8080", "--directory", "web"
 
-# 4. Tablero Java (Estructuras de Datos; las mismas estructuras están en pi\estructuras.py)
+# 4. Tablero Java (Estructuras de Datos; las mismas estructuras están en viaviva\estructuras.py)
 if ($ConTablero) {
     Paso "4/6 Tablero Java"
     $jar = Join-Path $raiz "dashboard-java\dist\TableroViaViva.jar"
@@ -80,4 +83,4 @@ if ($Phyphox) {
     Start-Process "http://127.0.0.1:8090/"
     Write-Host "Etiquetas con H R G T O I P en la ventana de la captura (o con los botones de la vista en vivo)."
 }
-Paso "Listo. Base: $base · tablero http://localhost:8081/tablero · mapa http://localhost:8080"
+Paso "Listo. Base: $base · tablero http://localhost:8000/tablero · mapa http://localhost:8080"

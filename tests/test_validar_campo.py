@@ -47,6 +47,7 @@ def test_phyphox_columnas_desconocidas(tmp_path):
 
 def test_fotos_sin_gps_y_pequenas(tmp_path):
     from PIL import Image
+
     from dataset.sintetico import guardar_con_exif
     c = tmp_path / "2026-11-06_juandiego"
     c.mkdir()

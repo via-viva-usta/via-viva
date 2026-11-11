@@ -38,7 +38,9 @@ FUENTES = [
         "tipo": "rss",
         "url": "https://boyaca7dias.com.co/feed/",
         "habilitada": False,
-        "nota": "robots.txt permite todo (26-oct). Medio privado: falta revisar sus términos de uso.",
+        "nota": "robots.txt permite todo (26-oct y 10-nov). Sin página de términos; el pie dice «prohibida su "
+                "reproducción total o parcial sin autorización»: se deja apagada hasta que el equipo decida "
+                "(si se habilita, guardar solo titular, enlace y fecha). Ver docs/SCRAPING.md.",
     },
     {
         # Ejemplo de fuente HTML. Este sitio no publica robots.txt (devuelve su página),
@@ -51,7 +53,7 @@ FUENTES = [
         "selector_enlace": "a",
         "selector_resumen": "p",
         "habilitada": False,
-        "nota": "Página hecha en JavaScript; mejor pedir los datos por oficio.",
+        "nota": "Página hecha en JavaScript y con hCaptcha (10-nov): no se raspa; pedir los datos por oficio.",
     },
 ]
 

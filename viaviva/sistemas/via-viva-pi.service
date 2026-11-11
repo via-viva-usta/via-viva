@@ -1,0 +1,23 @@
+[Unit]
+Description=VÍA VIVA - captura con los sensores de la Pi + tablero local + sincronización
+After=network.target
+# Arranca aunque no haya internet: todo es local primero.
+
+[Service]
+Type=simple
+User=__USUARIO__
+WorkingDirectory=__RAIZ__
+Environment=PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1
+# Graba desde el arranque (sesión nueva cada vez); el pulsador (gpio-shutdown) apaga y systemd manda SIGTERM:
+# la captura cierra la sesión con fsync y escribe el RESUMEN antes de que se corte la corriente.
+ExecStart=__RAIZ__/viaviva/.venv/bin/python -m viaviva capture --source pi --puerto 80 --permitir-apagado
+# Puerto 80 sin ser root, y prioridad de tiempo real para el hilo que vacía la FIFO del ADXL345
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_SYS_NICE
+SupplementaryGroups=gpio i2c spi dialout
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

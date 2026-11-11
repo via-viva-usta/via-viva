@@ -38,3 +38,11 @@ los venvs.
 - `docs/03_VIA_VIVA_desarrollo.md`: diseño vigente con las notas de los cambios del 2 y 3-nov.
 - `report/`: base del informe (el texto nuevo va en `docs/cambios_informe.md` para Overleaf).
 - `firmware/`, `dataset/` y `tests/`: no se tocaron.
+
+## Movido el 10-nov (cierre del software)
+
+| Antes | Ahora | Por qué |
+|---|---|---|
+| `pi/` (toda la carpeta) | `viaviva/` | Una sola aplicación para PC con phyphox, Pi o reproducción |
+| `viaviva/servidor.py` (biblioteca estándar) | `docs/archivo/servidor_stdlib_2026-11-07.py` | Reemplazado por `viaviva/app.py` (FastAPI, decisión del 9-nov) |
+| `viaviva/r7/tabla_r7.py` (Pi vs. ESP32) | `docs/archivo/tabla_r7_con_esp32_2026-11-07.py` | La ESP32 salió del proyecto; R7 nuevo en `viaviva/r7/medir.py` |

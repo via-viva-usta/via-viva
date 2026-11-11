@@ -1,0 +1,30 @@
+# Detector por umbrales de VÍA VIVA (viaviva/detector.py). Eje vertical = proyección sobre la gravedad estimada.
+# SIN CALIBRAR: estos valores son el punto de partida. `viaviva detector calibrar <sesiones>` busca los mejores con
+# las sesiones etiquetadas (validación dejando una salida completa afuera) y escribe config/detector_calibrado.yaml.
+version: v2-sin-calibrar
+fs_hz: 100
+
+# Ventanas
+ventana_pico_s: 0.2        # pico |a_v| y jerk máximo alrededor de cada muestra
+ventana_rms_s: 0.75        # RMS local (0,5–1 s, pedido del equipo)
+tau_fondo_s: 2.0           # vibración de fondo: promedio exponencial de a_v² (valor ANTERIOR, como el nodo)
+
+# Umbrales (un candidato debe pasar los tres)
+umbral_pico_g: 0.35        # pico de |a_v| normalizado por velocidad (g)
+umbral_rel_fondo: 4.0      # pico / RMS de fondo
+umbral_jerk_g_s: 12.0      # máximo |d a_v / dt| (g/s)
+
+# Normalización por velocidad: amplitud_norm = pico / (max(v, v_min) / v_ref) ** exponente
+v_min_kmh: 5               # por debajo no se detecta (parqueo, semáforo)
+v_ref_kmh: 20
+exponente_velocidad: 0.5
+
+refractario_s: 1.0         # un golpe = un evento
+
+# Severidad sobre la amplitud normalizada (g)
+severidad_media_g: 0.6
+severidad_alta_g: 1.0
+
+# Evaluación
+tolerancia_s: 1.5          # una marca y un evento a ± 1,5 s se consideran el mismo
+clases_positivas: [hueco, resalto, grieta, parche, tapa, obstaculo]   # vía buena = negativa

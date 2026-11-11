@@ -1,13 +1,14 @@
-# Pruebas de Python (pytest). Solo corre si cambian esas carpetas; caché de pip; cancela corridas viejas de la misma rama.
+# Pruebas de Python (pytest + cobertura de viaviva) y estilo (ruff). Solo corre si cambian esas carpetas; caché de pip;
+# cancela corridas viejas de la misma rama.
 name: python
 on:
   push:
-    branches: [main]
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "pi/**", "futuro/bot/**", "db/**", "tests/**",
-            "pytest.ini", ".github/workflows/python.yml"]
+    branches: [main, "ac/**"]
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "futuro/bot/**", "db/**",
+            "tests/**", "config/**", "pytest.ini", "pyproject.toml", ".github/workflows/python.yml"]
   pull_request:
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "pi/**", "futuro/bot/**", "db/**", "tests/**",
-            "pytest.ini", ".github/workflows/python.yml"]
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "futuro/bot/**", "db/**",
+            "tests/**", "config/**", "pytest.ini", "pyproject.toml", ".github/workflows/python.yml"]
 concurrency:
   group: python-${{ github.ref }}
   cancel-in-progress: true
@@ -23,4 +24,15 @@ jobs:
           cache: pip
           cache-dependency-path: tests/requirements.txt
       - run: pip install -r tests/requirements.txt
-      - run: pytest
+      - name: Estilo (ruff, solo viaviva/ y tests/)
+        run: ruff check
+      - name: Pruebas y cobertura
+        run: pytest --cov --cov-report=term --cov-report=xml
+      - name: Cobertura en el resumen de la corrida
+        if: always()
+        run: |
+          python - <<'FIN' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          r = ET.parse("coverage.xml").getroot()
+          print(f"### Cobertura de viaviva: {float(r.get('line-rate')) * 100:.0f} %")
+          FIN

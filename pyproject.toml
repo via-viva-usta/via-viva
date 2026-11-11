@@ -1,0 +1,19 @@
+# Configuración de herramientas (no es un paquete instalable). Python 3.11.
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+include = ["viaviva/**/*.py", "tests/**/*.py"]
+extend-exclude = ["viaviva/.venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# E741: se usa `l` para listas de líneas · B905: zip sin strict (listas del mismo largo por construcción)
+# E731: lambdas cortas con nombre · B008: Body() por defecto es el patrón de FastAPI
+ignore = ["E741", "B905", "E731", "B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["viaviva", "db", "analysis", "herramientas", "etl", "dataset", "risk_model"]
+
+[tool.coverage.run]
+source = ["viaviva"]
+omit = ["viaviva/r7/*", "viaviva/.venv/*"]

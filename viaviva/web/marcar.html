@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6feb">
+<title>VÍA VIVA · Marcar</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body class="pantalla-marcar">
+<header class="barra">
+  <div class="marca"><span class="logo"></span><div>MARCAR<small id="sub">VÍA VIVA</small></div></div>
+  <span id="insignia" class="rol">—</span>
+  <span class="espacio"></span>
+  <a href="/sync">Sincronía</a>
+</header>
+
+<main id="principal" class="marcar oculto">
+  <div class="tira">
+    <span><span class="et">Grabación</span><b id="d-tiempo">—</b></span>
+    <span><span class="et">km/h</span><b id="d-vel">—</b></span>
+    <span><span class="et">GPS</span><b id="d-gps">—</b></span>
+    <span><span class="et">Marcas</span><b id="d-n">0</b></span>
+  </div>
+  <div class="botones-marcar" id="botones"></div>
+  <div class="fila-marcar">
+    <button id="b-deshacer" class="grande-sec">↶ Deshacer la última <kbd>U</kbd></button>
+  </div>
+  <p class="ayuda" id="ayuda"></p>
+  <ul id="ultimas" class="historial"></ul>
+</main>
+
+<main id="pin" class="entrar oculto">
+  <section class="tarjeta">
+    <h2 style="font-size:18px">PIN de la captura</h2>
+    <p class="ayuda">Está en la pantalla del PC (o de la Pi) que está grabando.</p>
+    <form id="f-pin" style="display:grid;gap:12px;margin-top:14px">
+      <input id="v-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code"
+             style="font-size:28px;text-align:center;letter-spacing:.3em" required>
+      <button class="primario" type="submit">Entrar</button>
+      <p id="e-pin" class="aviso rojo oculto"></p>
+    </form>
+  </section>
+</main>
+
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let etiquetas = [], ultimo = null;
+const mmss = (s) => { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+async function marcar(clase, nombre, boton) {
+  boton && boton.classList.add('pulsado'); setTimeout(() => boton && boton.classList.remove('pulsado'), 300);
+  if (navigator.vibrate) navigator.vibrate(60);
+  try {
+    const r = await VV.post('/api/etiqueta', {clase});
+    VV.aviso(nombre + ' ✓' + (r.etiqueta.vel_kmh ? '  ' + Math.round(r.etiqueta.vel_kmh) + ' km/h' : ''), 'ok');
+    actualizar();
+  } catch (e) { VV.aviso('NO se guardó: ' + e.message, 'mal'); }
+}
+
+async function deshacer() {
+  try {
+    const r = await VV.post('/api/deshacer');
+    VV.aviso(r.ok ? 'Deshecha: ' + r.deshecha.clase : 'No hay marcas para deshacer', r.ok ? '' : 'mal');
+    actualizar();
+  } catch (e) { VV.aviso(e.message, 'mal'); }
+}
+
+async function actualizar() {
+  let e;
+  try { e = await VV.json('/api/marcar/estado'); } catch (err) {
+    if (err.codigo === 401 || err.codigo === 403) return mostrarPin();
+    $('insignia').textContent = 'Sin conexión'; $('insignia').style.color = 'var(--mal)'; return;
+  }
+  ultimo = e;
+  $('principal').classList.remove('oculto'); $('pin').classList.add('oculto');
+  $('insignia').textContent = !e.conectado ? 'phyphox sin conexión' : e.grabando ? '● Grabando' : 'Sin grabar';
+  $('insignia').style.color = !e.conectado || !e.grabando ? 'var(--mal)' : 'var(--ok)';
+  $('d-tiempo').textContent = e.grabando ? mmss(e.t_grabacion_s) : '—';
+  $('d-vel').textContent = Math.round(e.vel_kmh);
+  $('d-gps').textContent = e.gps_fix ? 'OK' : 'NO';
+  $('d-n').textContent = e.n_etiquetas;
+  $('ayuda').textContent = 'Toque cuando la llanta pase por el daño. Retardo de reacción: ' + e.retardo_s + ' s.' +
+    (e.grabando ? '' : ' Ojo: la captura NO está grabando (las marcas no quedan en una sesión).');
+  $('ultimas').innerHTML = e.etiquetas.slice().reverse().map(x => '<li' + (x.anulada || x.anula_id ? ' style="text-decoration:line-through"' : '') +
+    '>' + VV.escapar(x.hora_local.slice(11, 19)) + ' · ' + VV.escapar(x.clase) + ' · ' + VV.escapar(x.origen) + '</li>').join('');
+}
+
+function mostrarPin() {
+  $('principal').classList.add('oculto'); $('pin').classList.remove('oculto'); $('v-pin').focus();
+}
+$('f-pin').onsubmit = async (ev) => {
+  ev.preventDefault();
+  try { await VV.post('/api/pin', {pin: $('v-pin').value}); $('e-pin').classList.add('oculto'); actualizar(); }
+  catch (e) { $('e-pin').textContent = e.message; $('e-pin').classList.remove('oculto'); $('v-pin').value = ''; }
+};
+$('b-deshacer').onclick = deshacer;
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.tagName === 'INPUT' || ev.repeat) return;
+  const x = etiquetas.find(([tecla]) => tecla === ev.key);
+  if (x) { ev.preventDefault(); marcar(x[1], x[2], document.querySelector('[data-c="' + x[1] + '"]')); }
+  else if (ev.key.toLowerCase() === 'u') { ev.preventDefault(); deshacer(); }
+});
+
+(async () => {
+  etiquetas = (await VV.json('/api/etiquetas')).etiquetas;
+  $('botones').innerHTML = etiquetas.map(([tecla, clase, nombre]) => '<button class="b-marcar" data-c="' + clase +
+    '" data-n="' + VV.escapar(nombre) + '"><kbd>' + tecla + '</kbd>' + VV.escapar(nombre) + '</button>').join('');
+  for (const b of document.querySelectorAll('.b-marcar')) b.onclick = () => marcar(b.dataset.c, b.dataset.n, b);
+  actualizar(); setInterval(actualizar, 1000);
+})();
+</script>
+</body>
+</html>

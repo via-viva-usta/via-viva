@@ -121,3 +121,7 @@ docs/archivo/local_sin_git/
 
 # Leaflet local de la Pi (lo descarga pi/instalar.sh)
 pi/web/vendor/
+
+# Tablero en línea: se generan con 'viaviva nube preparar'
+web/en_linea/config.js
+web/en_linea/datos/

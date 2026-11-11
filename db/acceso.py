@@ -27,7 +27,9 @@ COLUMNAS_NUEVAS = [("riesgo", "fuente_etiquetas", "TEXT"),
                    ("reportes", "clase_sugerida", "TEXT"), ("reportes", "confianza_sugerida", "REAL"),
                    ("reportes", "modelo_sugerencia", "TEXT"),
                    # 7-nov: cada detección pertenece a un hueco físico (tabla huecos, con su estado)
-                   ("eventos", "id_hueco", "INTEGER REFERENCES huecos (id_hueco)")]
+                   ("eventos", "id_hueco", "INTEGER REFERENCES huecos (id_hueco)"),
+                   # 10-nov: severidad del hueco = la mayor de sus detecciones (baja/media/alta)
+                   ("huecos", "severidad", "TEXT")]
 ESQUEMA_SQL = Path(__file__).resolve().parent / "schema.sql"
 
 try:                                               # python-dotenv es opcional para esta capa
@@ -86,7 +88,13 @@ def conectar(url: str | None = None, solo_lectura: bool = False, aplicar_esquema
 
 
 def migrar(con) -> None:
-    """ALTER TABLE ... ADD COLUMN para las columnas que una base vieja todavía no tiene."""
+    """ALTER TABLE ... ADD COLUMN para las columnas que una base vieja todavía no tiene, y la cola de envío
+    del 7-nov (solo eventos y riesgo) se rehace para aceptar también huecos (10-nov)."""
+    sql = con.execute("SELECT sql FROM sqlite_master WHERE name = 'cola_envio'").fetchone()
+    if sql and "'huecos'" not in sql[0]:
+        con.executescript("ALTER TABLE cola_envio RENAME TO cola_envio_vieja;"
+                          + ESQUEMA_SQL.read_text(encoding='utf-8')
+                          + "INSERT INTO cola_envio SELECT * FROM cola_envio_vieja; DROP TABLE cola_envio_vieja;")
     for tabla, columna, tipo in COLUMNAS_NUEVAS:
         existentes = {r[1] for r in con.execute(f"PRAGMA table_info({tabla})")}
         if columna not in existentes:
