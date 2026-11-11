@@ -19,7 +19,7 @@ let sb = null, yo = null, mapa = null, tramos = null, huecos = [], riesgo = [], 
 
 // ------------------------------------------------------------------ tema y pantalla fija
 const temaGuardado = (() => { try { return localStorage.getItem('vv_tema'); } catch (e) { return null; } })();
-document.documentElement.dataset.theme = temaGuardado || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = temaGuardado === 'dark' ? 'dark' : 'light';
 $('b-tema').onclick = () => {
   const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = t;
