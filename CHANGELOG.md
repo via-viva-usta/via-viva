@@ -1,5 +1,12 @@
 # Cambios
 
+## 2026-11-11 — video HEVC y documentación al día
+
+- **Importar video:** se guarda el códec; si es HEVC o el navegador no puede reproducirlo, la revisión lo dice y ofrece
+  «Convertir a H.264» con ffmpeg (opcional, en segundo plano; conserva el original y el desfase). Sin ffmpeg explica qué hacer.
+- Documentación: rutas `pi/` → `viaviva/`, ESP32 como historia, phyphox en el puerto 80, resumen vigente en `docs/ESTADO.md`.
+- Suite: 86 pasaron, 1 omitida (TensorFlow); Ruff limpio.
+
 ## 2026-11-11 — integración con `main` (portada y tablero en línea de Dany)
 
 - `main` ya traía la portada y el tablero en línea reorganizados (PR #30: `index.html` = portada,

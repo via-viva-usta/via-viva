@@ -17,7 +17,7 @@ en `data/*.db`, los derivados en `data/procesado/`. Solo el código y las muestr
 | `destellos.csv` | t_s, utc, hora_local, origen, nota | Instantes de sincronía con el video |
 | `bitacora.jsonl` | utc, tipo, … | inicio, corte, reconexion, perdida, etiqueta, deshacer, destello, aviso, fin (con latencias) |
 | `sesion.sqlite` | etiquetas, eventos, destellos | Confirmadas al instante (a prueba de cierres bruscos) |
-| `video_<AAAAMMDD_hhmmss>_<id>.mov/.mp4/.m4v`, `video.json` | archivo, metodo (destello / fecha_del_archivo / manual), desfase_s, cobertura_pct, avisos | Video del iPhone B importado desde la app (cada carga conserva las anteriores; `video.json` apunta a la vigente; máx. 8 GiB); `desfase_s` = segundo de la sesión en que empieza el video |
+| `video_<AAAAMMDD_hhmmss>_<id>.mov/.mp4/.m4v` (+ `…_h264.mp4` si se convirtió), `video.json` | archivo, metodo (destello / fecha_del_archivo / manual), desfase_s, cobertura_pct, codec, avisos, conversion, original | Video del iPhone B importado desde la app (cada carga conserva las anteriores; `video.json` apunta a la vigente; máx. 8 GiB); `desfase_s` = segundo de la sesión en que empieza el video. La conversión a H.264 (ffmpeg) deja el original al lado |
 | `sesion.sqlite` · tabla `revision` | t_s, decision (confirmar / corregir / descartar), clase, usuario, utc | Decisiones de la pantalla Revisión; descartar = `via_buena` |
 | `RESUMEN.md`, `resumen.json` | | Al cerrar: duración, muestras, pérdidas, km, velocidad máx., minuto quieto, marcas por clase |
 | `Accelerometer_mpu6050.csv`, `Accelerometer_adxl2.csv`, `Distancia_vl53l0x.csv`, `Ambiente.csv` | | Solo en la Pi |

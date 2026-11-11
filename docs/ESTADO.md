@@ -1,9 +1,19 @@
 # Estado de VÍA VIVA
 
-Última actualización: **10-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **11-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
-## Resumen
+## Resumen al 11-nov (lo vigente)
+
+- **Nodo:** Raspberry Pi 4 (la ESP32 salió el 9-nov; `firmware/` queda como historia). Fase 1 = umbrales; fase 2 =
+  TFLite solo cuando haya marcas reales suficientes.
+- **Software:** una sola app (`viaviva/`): Campo → Sesiones → Importar video → Revisión → Dataset → Demo, más el tablero
+  local y el sitio en línea (portada + `tablero.html`). Funciona **en el PC**, probado con el **simulador** de phyphox,
+  reproducciones de los 3 recorridos reales y datos SINTÉTICOS.
+- **Sin probar en su entorno real:** phyphox con el iPhone real, video real del iPhone B, la Pi (instalación, sensores,
+  servicio, R7), Supabase/Netlify en producción y marcas reales para calibrar.
+
+## Resumen histórico (7-nov; lo de la ESP32 ya no aplica)
 
 0. **7-nov — primeros datos REALES:** 3 recorridos de phyphox del iPhone de Pipe (01: 5,2 min · 02: 7,2 min · 03: 13,6 min),
    copiados a `data/raw/phyphox/2026-11-07_0N_pipe.zip` (ignorada por Git). Pasan el validador: **100 Hz, 0 cortes de
@@ -35,13 +45,20 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
+## Hecho el 11-nov: video del iPhone y revisión de pantallas (86 pruebas pasaron, 1 omitida; Ruff limpio)
+
+| Qué | Estado |
+|---|---|
+| Importar video: detecta el códec; si es HEVC o el navegador no lo reproduce, lo avisa y ofrece «Convertir a H.264» con ffmpeg (opcional, en segundo plano, conserva el original y el desfase) | pytest con ffmpeg simulado + navegador con un video sintético que Chrome no reproduce. **ffmpeg no está instalado en el PC**; falta un .mov HEVC real |
+| Navegación de la app (Campo, Sesiones, Revisión, Dataset, Tablero, Demo, Entrar, `/marcar`, `/sync`) | Cada ruta abre su pantalla (PC, datos SINTÉTICOS); Campo y Revisión sin desbordes a 375 px |
+
 ## Hecho el 10-nov: un solo sistema (MVP para la presentación)
 
 | Qué | Estado |
 |---|---|
 | Conexión phyphox (puerto 80/8080, buffers desde `/config`, URL en `.env`, minuto quieto con 5 km/h) | Probado con el simulador; **falta el iPhone real** |
-| Campo, Sesiones, Importar video, Revisión, Dataset, Demo, Tablero con los temas A/B | 85 pruebas pasaron, 1 omitida; Ruff limpio. Las rutas responden en las pruebas; revisión visual de Sesiones y Revisión sigue pendiente |
-| Sincronía de video por destello | Probada con un video sintético; **falta un video real del iPhone B** (si es HEVC, Chrome/Edge en Windows puede no reproducirlo: grabar en «Más compatible») |
+| Campo, Sesiones, Importar video, Revisión, Dataset, Demo, Tablero con los temas A/B | 85 pruebas pasaron, 1 omitida; Ruff limpio. Revisión visual hecha el 11-nov (arriba) |
+| Sincronía de video por destello | Probada con un video sintético; **falta un video real del iPhone B** (HEVC: ver 11-nov) |
 | Dataset y umbrales desde la app | Funciona; **sin marcas reales aún**, así que las cifras no son resultados |
 | Tablero en línea | Portada + `tablero.html` de `main` (PR #30); el tema B de la página anterior quedó archivado; falta despliegue y la evidencia de video por evento |
 
@@ -59,6 +76,8 @@ Hallazgo con datos reales: en el recorrido 02 el GPS marca 3–5 km/h durante el
 quieto); el RESUMEN nuevo lo cuenta como NO quieto. El 7-nov `validar_campo` lo daba por bueno (solo miraba el acelerómetro).
 
 ## Hecho el 7-nov (noche): Raspberry Pi 4 = nodo central y aplicativo
+
+> Registro histórico: las rutas `pi/…` de esta sección hoy están en `viaviva/` (10-nov) y la ESP32 salió el 9-nov.
 
 Decisión del 7-nov: el docente de Arquitectura consideró insuficiente el ESP32; la Pi pasa a nodo central y el ESP32 a
 línea base de R7. Todo se probó **en el PC** (68 pytest y reproduciendo el recorrido 03 de Pipe); **nada en la Pi todavía**.
