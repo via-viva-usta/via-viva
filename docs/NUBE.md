@@ -45,8 +45,11 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
 - Sin internet la cola espera (reintentos a 30 s, 1 min, 2 min… hasta 1 h) y no se duplica nada (`id_origen`).
 - Un **editor** cambia el estado de un bache en línea → `cambios_remotos` → la Pi lo aplica en SQLite (con historial,
   usuario `nube:<correo>`) y lo vuelve a subir. Si el bache no existe, queda `rechazado`.
-- `?kiosco=1` = pantalla fija para la Alcaldía (sin controles, se refresca cada minuto, pantalla siempre encendida).
-- `?demo=1` = datos inventados en el navegador para mostrar el diseño sin cuenta (con aviso rojo).
+- La raíz (`index.html`) es la **portada** (qué es, cómo leer el mapa, la base); el tablero está en `tablero.html`.
+  Los enlaces viejos con `?demo=1` o `?kiosco=1` en la raíz se redirigen solos al tablero.
+- `tablero.html?kiosco=1` = pantalla fija para la Alcaldía (sin controles, se refresca cada minuto, pantalla siempre encendida).
+- `tablero.html?demo=1` = datos inventados en el navegador para mostrar el diseño sin cuenta (con franja amarilla);
+  `&rol=editor` muestra también la edición (en DEMO no se envía nada). `#riesgo` y `#tendencia` abren esa pestaña.
 - El plan gratuito de Supabase **pausa** el proyecto tras una semana sin actividad; la sincronización diaria suele
   evitarlo (sin garantía). Se restaura desde el panel.
 

@@ -1,111 +1,218 @@
 <!doctype html>
-<html lang="es" data-theme="light">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>VÍA VIVA · Tablero</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f6e5c'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="estilo.css">
-<script src="config.js"></script>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0a0a">
+<title>VÍA VIVA · Huecos y riesgo vial de Tunja</title>
+<meta name="description" content="VÍA VIVA detecta, mapea y predice los huecos de las vías de Tunja con un sensor a bordo del carro. Tablero para la Alcaldía, el equipo y los docentes.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0a'/%3E%3Crect x='14' y='4' width='4' height='7' fill='%23ffd60a'/%3E%3Crect x='14' y='14' width='4' height='7' fill='%23ffd60a'/%3E%3Ccircle cx='16' cy='26' r='3.5' fill='%23ff3b30'/%3E%3C/svg%3E">
+<link rel="preload" href="fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="marca.css">
+<link rel="stylesheet" href="inicio.css">
+<script src="inicio.js" defer></script>
 </head>
 <body>
-<header class="barra">
-  <div class="marca"><span class="logo" aria-hidden="true"></span><div><strong>VÍA VIVA</strong><small>Huecos y riesgo vial · Tunja</small></div></div>
-  <span class="vivo" id="vivo"><span class="punto" aria-hidden="true"></span><span id="t-vivo">—</span></span>
-  <span class="espacio"></span>
-  <button class="secondary outline chico" id="b-tema" aria-label="Cambiar entre modo claro y oscuro">◐</button>
-  <button class="secondary outline chico" id="b-kiosco" title="Pantalla fija para la Alcaldía">Pantalla fija</button>
-  <span id="cuenta" class="cuenta"></span>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="cabecera">
+  <a class="logo-texto" href="#" aria-label="VÍA VIVA, inicio">Vía<i>·</i>Viva</a>
+  <nav aria-label="Secciones">
+    <a href="#como">Cómo funciona</a>
+    <a href="#tablero">El tablero</a>
+    <a href="#leer">Cómo leerlo</a>
+    <a href="#base">La base</a>
+  </nav>
+  <a class="b-marca chico" href="tablero.html">Ver el tablero <span class="flecha" aria-hidden="true">→</span></a>
 </header>
 
-<main id="entrar" class="entrar oculto">
-  <article>
-    <h2>Entrar</h2>
-    <p class="sub">Equipo, Alcaldía y docentes. Las cuentas las crea el equipo (no hay registro abierto).</p>
-    <form id="f-entrar">
-      <label>Correo <input id="correo" type="email" autocomplete="username" required></label>
-      <label>Contraseña <input id="clave" type="password" autocomplete="current-password" required></label>
-      <button type="submit">Entrar</button>
-      <p id="e-entrar" class="error oculto" role="alert"></p>
-    </form>
-    <p class="sub"><a href="?demo=1">Ver con datos de DEMOSTRACIÓN</a> (inventados, sin entrar)</p>
-  </article>
+<main id="contenido">
+  <!-- ============================================================ portada -->
+  <section class="heroe" aria-labelledby="h-heroe">
+    <div class="heroe-dentro">
+      <p class="heroe-datos t-etiqueta aparece" style="--i:0">
+        <span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11s4-3.6 4-6.5A4 4 0 0 0 2 4.5C2 7.4 6 11 6 11Z" fill="none" stroke="currentColor"/><circle cx="6" cy="4.6" r="1.3" fill="currentColor"/></svg>Tunja, Boyacá</span>
+        <span><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor"/><path d="M6 3.5V6l1.8 1.2" fill="none" stroke="currentColor"/></svg><span id="hora">--:--</span></span>
+        <span><i class="cuadro" aria-hidden="true"></i>Proyecto Integrador 2026-2</span>
+      </p>
+      <h1 class="t-titulo heroe-titulo" id="h-heroe">
+        <span class="linea aparece" style="--i:1">Detecta.</span>
+        <span class="linea acento aparece" style="--i:2">Mapea.</span>
+        <span class="linea aparece" style="--i:3">Predice.</span>
+      </h1>
+      <div class="heroe-pie aparece" style="--i:4">
+        <p class="heroe-texto">Un sensor a bordo del carro siente cada golpe de la vía. VÍA VIVA lo convierte en un
+          <b>mapa de huecos</b> con su estado y en un <b>pronóstico</b> de qué tramos de calle pueden dañarse.</p>
+        <div class="heroe-botones">
+          <a class="b-marca lleno" href="tablero.html">Ver el tablero <span class="flecha" aria-hidden="true">→</span></a>
+          <a class="enlace-marca" href="#como">Cómo funciona <span class="flecha" aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+    </div>
+    <svg class="heroe-via" viewBox="0 0 400 560" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="via-fondo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1c1c1c" stop-opacity="0"/><stop offset=".55" stop-color="#1c1c1c" stop-opacity=".9"/>
+          <stop offset="1" stop-color="#202020"/></linearGradient>
+      </defs>
+      <polygon points="182,0 218,0 400,560 0,560" fill="url(#via-fondo)"/>
+      <path d="M182 0 0 560M218 0 400 560" stroke="#fff" stroke-opacity=".55" stroke-width="2"/>
+      <g fill="#ffd60a">
+        <polygon points="199,18 201,18 201.6,40 198.4,40"/><polygon points="198.1,62 201.9,62 202.8,98 197.2,98"/>
+        <polygon points="196.9,130 203.1,130 204.4,182 195.6,182"/><polygon points="195.2,226 204.8,226 206.8,300 193.2,300"/>
+        <polygon points="192.6,362 207.4,362 210.4,466 189.6,466"/></g>
+      <g class="bache">
+        <ellipse class="onda o3" cx="282" cy="430" rx="40" ry="13" fill="none" stroke="#ff3b30"/>
+        <ellipse class="onda o2" cx="282" cy="430" rx="40" ry="13" fill="none" stroke="#ff3b30"/>
+        <ellipse class="onda o1" cx="282" cy="430" rx="40" ry="13" fill="none" stroke="#ff3b30"/>
+        <ellipse cx="282" cy="430" rx="40" ry="13" fill="#050505" stroke="#ff3b30" stroke-width="2"/>
+        <ellipse cx="282" cy="433" rx="26" ry="6" fill="#000"/>
+      </g>
+    </svg>
+  </section>
+
+  <!-- ============================================================ cómo funciona -->
+  <section class="pasos" id="como" aria-labelledby="h-como">
+    <h2 class="oculto-visual" id="h-como">Cómo funciona</h2>
+    <article class="paso aparece">
+      <div class="paso-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 26h8l4-12 6 22 6-30 5 20 3-6h8" fill="none" stroke="#ffd60a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <p class="t-etiqueta paso-num">01</p>
+      <h3 class="t-titulo">Detectar</h3>
+      <p>El acelerómetro y el GPS van en el carro. Cuando la vía da un golpe fuerte (a más de 5 km/h), queda registrado con
+        su lugar y su hora.</p>
+    </article>
+    <article class="paso aparece" style="--i:1">
+      <div class="paso-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 43s13-11.5 13-21a13 13 0 0 0-26 0c0 9.5 13 21 13 21Z" fill="none" stroke="#ff3b30" stroke-width="2.5"/><circle cx="20" cy="21" r="2.6" fill="#ff3b30"/><circle cx="28" cy="19" r="2.6" fill="#ff3b30"/><circle cx="25" cy="26" r="2.6" fill="#ff3b30"/></svg></div>
+      <p class="t-etiqueta paso-num">02</p>
+      <h3 class="t-titulo">Mapear</h3>
+      <p>Las detecciones a menos de 10 m se juntan en un solo hueco. El equipo lo verifica en sitio y se registra cuando lo
+        reparan.</p>
+    </article>
+    <article class="paso aparece" style="--i:2">
+      <div class="paso-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 40h36" stroke="#fff" stroke-width="2.5"/><rect x="9" y="30" width="6" height="10" fill="#6b6b6b"/><rect x="19" y="23" width="6" height="17" fill="#f08c2e"/><rect x="29" y="15" width="6" height="25" fill="#ff6b35"/><path d="M8 26 20 18l8 3 12-13" fill="none" stroke="#ffd60a" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <p class="t-etiqueta paso-num">03</p>
+      <h3 class="t-titulo">Predecir</h3>
+      <p>Un modelo estima, para cada tramo de calle, la probabilidad de que tenga un hueco que nadie ha reportado. Así se
+        sabe por dónde revisar primero.</p>
+    </article>
+  </section>
+
+  <!-- ============================================================ el tablero -->
+  <section class="tablero-sec" id="tablero" aria-labelledby="h-tablero">
+    <header class="sec-cabeza aparece">
+      <h2 class="t-titulo" id="h-tablero">El tablero</h2>
+      <p class="t-etiqueta">Tres preguntas, una pantalla</p>
+    </header>
+
+    <article class="caso aparece">
+      <figure class="caso-img"><img src="img/tablero-atender.webp" width="1200" height="800" loading="lazy" decoding="async"
+        alt="Tablero con el mapa de Tunja y la lista de huecos ordenados por prioridad">
+        <figcaption class="sello">Datos de demostración</figcaption></figure>
+      <div class="caso-texto">
+        <p class="t-etiqueta rojo">Para atender</p>
+        <h3 class="t-titulo">¿Qué hueco se arregla primero?</h3>
+        <p>Una lista corta, ordenada por prioridad: qué tan fuerte es el golpe, qué tan transitada es la vía y cuántos huecos
+          hay en la misma cuadra. Cada uno dice cuántos días lleva abierto y cómo llegar.</p>
+        <a class="enlace-marca" href="tablero.html#atender">Ver la lista <span class="flecha" aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="caso invertido aparece">
+      <figure class="caso-img"><img src="img/tablero-riesgo.webp" width="1200" height="800" loading="lazy" decoding="async"
+        alt="Mapa de Tunja con las calles coloreadas según su riesgo de tener un hueco">
+        <figcaption class="sello">Datos de demostración</figcaption></figure>
+      <div class="caso-texto">
+        <p class="t-etiqueta ambar">Riesgo por tramo</p>
+        <h3 class="t-titulo">¿Dónde se va a dañar la vía?</h3>
+        <p>Cada cuadra con la probabilidad estimada de tener un hueco que nadie ha reportado. Es una guía para salir a
+          revisar, no una certeza.</p>
+        <a class="enlace-marca" href="tablero.html#riesgo">Ver el riesgo <span class="flecha" aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="caso aparece">
+      <figure class="caso-img"><img src="img/tablero-tendencia.webp" width="1200" height="800" loading="lazy" decoding="async"
+        alt="Gráfico de barras con los huecos nuevos y los reparados de cada semana">
+        <figcaption class="sello">Datos de demostración</figcaption></figure>
+      <div class="caso-texto">
+        <p class="t-etiqueta verde">Tendencia</p>
+        <h3 class="t-titulo">¿Vamos ganando o perdiendo?</h3>
+        <p>Huecos nuevos contra reparados, semana a semana. Si las barras naranjas superan a las verdes, aparecen más huecos
+          de los que se reparan.</p>
+        <a class="enlace-marca" href="tablero.html#tendencia">Ver la tendencia <span class="flecha" aria-hidden="true">→</span></a>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============================================================ cómo leerlo -->
+  <section class="leer" id="leer" aria-labelledby="h-leer">
+    <header class="sec-cabeza aparece">
+      <h2 class="t-titulo" id="h-leer">Cómo leer el mapa</h2>
+      <p class="t-etiqueta">Cuatro reglas y listo</p>
+    </header>
+    <ul class="reglas">
+      <li class="aparece"><span class="glifo"><i class="pt" style="--c:#ffa94d"></i><i class="pt" style="--c:#ff6b6b"></i></span>
+        <h3 class="t-etiqueta">Lleno = abierto</h3><p><b>Detectado</b> (naranja): lo sintió el sensor. <b>Verificado</b> (rojo):
+          alguien lo confirmó en sitio.</p></li>
+      <li class="aparece" style="--i:1"><span class="glifo"><i class="pt anillo" style="--c:#51cf66"></i><i class="pt anillo" style="--c:#adb5bd"></i></span>
+        <h3 class="t-etiqueta">Anillo = cerrado</h3><p><b>Reparado</b> (verde) o <b>descartado</b> (gris): no era un hueco.</p></li>
+      <li class="aparece" style="--i:2"><span class="glifo"><i class="pt t1"></i><i class="pt t2"></i><i class="pt t3"></i></span>
+        <h3 class="t-etiqueta">Tamaño = severidad</h3><p>Qué tan fuerte fue el golpe más fuerte que se midió ahí.</p></li>
+      <li class="aparece" style="--i:3"><span class="glifo lineas"><i style="background:#3b424b"></i><i style="background:#d9b44a"></i><i style="background:#f08c2e"></i><i style="background:#ff6b35"></i><i style="background:#ff3b3b"></i></span>
+        <h3 class="t-etiqueta">Color de la calle = riesgo</h3><p>En el modo «Riesgo», de gris (muy bajo) a rojo (muy alto).</p></li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ la base -->
+  <section class="base" id="base" aria-labelledby="h-base">
+    <header class="sec-cabeza aparece">
+      <h2 class="t-titulo" id="h-base">La base</h2>
+      <p class="t-etiqueta">Las calles sobre las que se mide</p>
+    </header>
+    <dl class="cifras-base">
+      <div class="aparece"><dt class="t-etiqueta">Tramos de calle</dt><dd class="t-titulo" data-contar="5775">5 775</dd></div>
+      <div class="aparece" style="--i:1"><dt class="t-etiqueta">Kilómetros de vías</dt><dd class="t-titulo" data-contar="537.6" data-dec="1">537,6</dd></div>
+      <div class="aparece" style="--i:2"><dt class="t-etiqueta">Cruces y finales de calle</dt><dd class="t-titulo" data-contar="4054">4 054</dd></div>
+      <div class="aparece" style="--i:3"><dt class="t-etiqueta">Barrios y veredas</dt><dd class="t-titulo" data-contar="154">154</dd></div>
+    </dl>
+    <p class="fuente">Calles: OpenStreetMap (ODbL). Barrios: datos abiertos de la Alcaldía de Tunja (CC BY-SA 4.0). Lluvia: IDEAM
+      (CC BY-SA 4.0). Son la base del mapa, no resultados: los huecos y el riesgo están en el tablero.</p>
+  </section>
+
+  <!-- ============================================================ privacidad -->
+  <section class="privacidad" aria-labelledby="h-priv">
+    <h2 class="t-titulo aparece" id="h-priv">Sin multas.<br>Sin placas.</h2>
+    <p class="aparece" style="--i:1">VÍA VIVA reporta el estado de la vía, no a las personas. A internet solo salen huecos y riesgo
+      por tramo: ni trayectorias, ni fotos, ni datos de quien conduce (Ley 1581 de 2012).</p>
+  </section>
+
+  <!-- ============================================================ cierre -->
+  <section class="cierre" aria-labelledby="h-cierre">
+    <h2 class="t-titulo aparece" id="h-cierre">¿Cómo está<br>su calle?</h2>
+    <div class="cierre-botones aparece" style="--i:1">
+      <a class="b-marca lleno grande" href="tablero.html">Ver el tablero <span class="flecha" aria-hidden="true">→</span></a>
+      <a class="enlace-marca" href="tablero.html?demo=1">o la demostración, sin cuenta <span class="flecha" aria-hidden="true">→</span></a>
+    </div>
+    <p class="cierre-nota">El equipo, la Alcaldía y los docentes entran con su cuenta.</p>
+  </section>
 </main>
 
-<div id="app" class="oculto">
-  <p id="aviso" class="aviso oculto" role="status"></p>
-  <section class="filtros" aria-label="Filtros">
-    <fieldset role="group" class="capas">
-      <label><input type="checkbox" role="switch" id="c-huecos" checked> Baches</label>
-      <label><input type="checkbox" role="switch" id="c-riesgo" checked> Riesgo por tramo</label>
-    </fieldset>
-    <select id="f-estado" aria-label="Estado">
-      <option value="">Todos los estados</option><option value="detectado">Detectado</option>
-      <option value="verificado">Verificado</option><option value="reparado">Reparado</option>
-      <option value="abiertos" selected>Abiertos (detectado + verificado)</option>
-    </select>
-    <select id="f-clase" aria-label="Clase"><option value="">Todas las clases</option></select>
-    <select id="f-sev" aria-label="Severidad"><option value="">Toda severidad</option><option>baja</option>
-      <option>media</option><option>alta</option></select>
-    <label class="fecha">Desde <input type="date" id="f-desde"></label>
-    <label class="fecha">Hasta <input type="date" id="f-hasta"></label>
-    <span class="espacio"></span>
-    <details class="dropdown menu-exportar">
-      <summary role="button" class="secondary outline">Exportar</summary>
-      <ul>
-        <li><a href="#" id="x-csv">CSV de baches</a></li>
-        <li><a href="#" id="x-xlsx">Excel (3 hojas)</a></li>
-        <li><a href="#" id="x-pdf">PDF (imprimir)</a></li>
-      </ul>
-    </details>
-    <button class="secondary outline oculto" id="b-importar">Importar reparaciones</button>
-  </section>
-
-  <section class="cifras" aria-label="Indicadores">
-    <article><span class="et">Baches abiertos</span><b id="k-abiertos">—</b><small id="k-abiertos-s"></small></article>
-    <article><span class="et">Verificados</span><b id="k-verif">—</b><small>pendientes de reparar</small></article>
-    <article><span class="et">Reparados (30 días)</span><b id="k-rep">—</b><small id="k-rep-s"></small></article>
-    <article><span class="et">Tramos críticos</span><b id="k-crit">—</b><small>riesgo ≥ 60 %</small></article>
-  </section>
-
-  <div class="rejilla">
-    <section class="tarjeta mapa-tarjeta">
-      <div id="mapa" role="region" aria-label="Mapa de baches y riesgo por tramo"></div>
-      <div class="leyenda" id="leyenda"></div>
-    </section>
-    <aside class="lateral">
-      <section class="tarjeta">
-        <h3>Tramos críticos <small class="sub" id="corrida"></small></h3>
-        <table class="tabla"><thead><tr><th>#</th><th>Calle</th><th class="num">Riesgo</th><th class="num">Abiertos</th></tr></thead>
-          <tbody id="top"></tbody></table>
-      </section>
-      <section class="tarjeta"><h3>Baches por clase</h3><canvas id="g-clase" height="170" role="img" aria-label="Baches por clase"></canvas></section>
-      <section class="tarjeta"><h3>Detecciones por semana</h3><canvas id="g-semana" height="170" role="img" aria-label="Tendencia semanal"></canvas></section>
-    </aside>
+<footer class="pie-marca">
+  <div class="pie-arriba">
+    <div class="pie-marca-texto">
+      <a class="logo-texto" href="#">Vía<i>·</i>Viva</a>
+      <p>Detecta, mapea y predice los huecos de las vías de Tunja. No genera multas ni lee placas.</p>
+    </div>
+    <div><h3 class="t-etiqueta">Proyecto</h3><ul><li>Proyecto Integrador 2026-2</li><li>Ingeniería de Datos e IA</li>
+      <li>Universidad Santo Tomás, Seccional Tunja</li></ul></div>
+    <div><h3 class="t-etiqueta">Datos</h3><ul><li>Calles © OpenStreetMap (ODbL)</li><li>Barrios: Alcaldía de Tunja</li>
+      <li>Lluvia: IDEAM</li></ul></div>
+    <div><h3 class="t-etiqueta">Tablero</h3><ul><li><a href="tablero.html">Entrar</a></li><li><a href="tablero.html?demo=1">Demostración</a></li>
+      <li><a href="tablero.html?kiosco=1">Pantalla fija</a></li></ul></div>
   </div>
-  <p class="pie sub">Calles © OpenStreetMap (ODbL) · mapa base OpenFreeMap · lluvia IDEAM (CC BY-SA 4.0). Datos copiados de la
-    base local de VÍA VIVA; la fuente de verdad es la Raspberry Pi. No genera multas ni lee placas.</p>
-</div>
-
-<dialog id="d-hueco"><article><header><button aria-label="Cerrar" rel="prev" data-cerrar></button><h3 id="h-titulo"></h3></header>
-  <div id="h-cuerpo"></div></article></dialog>
-
-<dialog id="d-importar"><article>
-  <header><button aria-label="Cerrar" rel="prev" data-cerrar></button><h3>Importar reparaciones (CSV)</h3></header>
-  <p class="sub">Columnas: <b>id_hueco</b> (el número del bache), <b>estado</b> (reparado si está vacío), <b>fecha</b>
-    (AAAA-MM-DD, obligatoria si es reparado) y <b>nota</b>. Se revisa todo; solo se envía si no hay errores. La Pi aplica los
-    cambios en su base al sincronizar.</p>
-  <input type="file" id="archivo" accept=".csv,text/csv">
-  <div id="vista"></div>
-  <footer><button id="b-enviar" disabled>Enviar cambios</button></footer>
-</article></dialog>
-
-<script type="module" src="app.js"></script>
+  <div class="pie-abajo"><span>© <span id="anio">2026</span> VÍA VIVA</span><span>Mapa base: OpenFreeMap · Fuentes: Archivo Black e Inter (OFL)</span></div>
+</footer>
 </body>
 </html>

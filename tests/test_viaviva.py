@@ -288,9 +288,28 @@ def test_marcador_con_pin_solo_marca(tmp_path):
         ctx.fuente.cerrar()
 
 
-def _evento(con, nodo, ts, lat, lon, clase="impacto_fuerte", origen="nodo"):
-    con.execute("INSERT INTO eventos (id_nodo, ts_utc, lat, lon, clase, origen, ts_carga, id_tramo) "
-                "VALUES (?,?,?,?,?,?,'x',1)", (nodo, ts, lat, lon, clase, origen))
+def _evento(con, nodo, ts, lat, lon, clase="impacto_fuerte", origen="nodo", severidad=None):
+    con.execute("INSERT INTO eventos (id_nodo, ts_utc, lat, lon, clase, origen, ts_carga, id_tramo, severidad) "
+                "VALUES (?,?,?,?,?,?,'x',1,?)", (nodo, ts, lat, lon, clase, origen, severidad))
+
+
+def test_prioridad_de_atencion_usa_la_severidad_medida_del_hueco(tmp_path):
+    """Antes peligros() ponía severidad=None a todos los huecos y la prioridad salía solo de la clase (3 para todos)."""
+    url = _base_con_calle(tmp_path)
+    con = almacen.conectar(url)
+    _evento(con, "pi-01", "2026-11-06T10:00:00.000Z", 5.53500, -73.36500, severidad=0.2)   # baja
+    _evento(con, "pi-01", "2026-11-06T10:05:00.000Z", 5.53500, -73.36300, severidad=0.9)   # alta, ~220 m: otro hueco
+    con.commit()
+    almacen.agrupar_huecos(con)
+    calles = almacen.Calles().cargar(url)
+    assert {h["severidad"] for h in almacen.huecos(con, calles)} == {"baja", "alta"}
+    p ={x["id"]: x for x in almacen.peligros(con, calles)["top"] if x["tipo_fila"] == "hueco"}
+    por_sev = {h["severidad"]: p[h["id_hueco"]] for h in almacen.huecos(con, calles)}
+    assert por_sev["baja"]["nivel_severidad"] == 1 and por_sev["alta"]["nivel_severidad"] == 3
+    # misma vía (primary = 3) y mismo tramo (2 huecos + el reporte de _base_con_calle = 3 abiertos): solo la
+    # severidad los separa
+    assert por_sev["alta"]["prioridad"] == 3 * 3 * 3 and por_sev["baja"]["prioridad"] == 1 * 3 * 3
+    con.close()
 
 
 def test_huecos_agrupan_reabren_e_importan(tmp_path):

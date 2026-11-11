@@ -46,3 +46,9 @@ los venvs.
 | `pi/` (toda la carpeta) | `viaviva/` | Una sola aplicación para PC con phyphox, Pi o reproducción |
 | `viaviva/servidor.py` (biblioteca estándar) | `docs/archivo/servidor_stdlib_2026-11-07.py` | Reemplazado por `viaviva/app.py` (FastAPI, decisión del 9-nov) |
 | `viaviva/r7/tabla_r7.py` (Pi vs. ESP32) | `docs/archivo/tabla_r7_con_esp32_2026-11-07.py` | La ESP32 salió del proyecto; R7 nuevo en `viaviva/r7/medir.py` |
+
+## Archivado el 11-nov (integración con `main`)
+
+| Antes | Ahora | Por qué |
+|---|---|---|
+| `web/en_linea/{index.html, app.js, estilo.css}` con el tema B · Cartografía (página única) | `docs/archivo/en_linea_tema_b_codex_2026-11-11/` | `main` reorganizó el sitio (portada + `tablero.html`, PR #30); se conserva la versión con el tema B por si el equipo decide llevarlo a la estructura nueva |

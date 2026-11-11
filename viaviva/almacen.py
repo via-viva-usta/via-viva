@@ -270,8 +270,11 @@ def peligros(con, calles: Calles, k: int = 20) -> dict:
     Lo real va antes que lo DEMO/simulado aunque tenga menos prioridad."""
     lista = []
     for h in huecos(con, calles):
+        # huecos.severidad es texto (baja/media/alta, la mayor de sus detecciones); nivel_severidad espera 0–1.
+        # Sin severidad medida (bases viejas) queda None y se usa la clase, como antes.
         lista.append({"tipo_fila": "hueco", "id": h["id_hueco"], "ts_utc": h["ultima_ts"], "lat": h["lat"],
-                      "lon": h["lon"], "clase": h["clase"], "severidad": None, "estado": h["estado"],
+                      "lon": h["lon"], "clase": h["clase"], "severidad": SEVERIDAD_NUM.get(h.get("severidad")),
+                      "estado": h["estado"],
                       "id_tramo": h["id_tramo"], "demo": h["simulado"], "n_detecciones": h["n_detecciones"],
                       "cerrado": h["estado"] in ("reparado", "descartado")})
     for i, ts, lat, lon, tipo, desc, estado, t, hu in con.execute(
