@@ -1,0 +1,23 @@
+# Pruebas de Node del tablero en línea (web/en_linea/reglas.js): sin dependencias ni npm install, solo `node --test`.
+# Solo corre si cambian el tablero o sus pruebas; cancela corridas viejas de la misma rama.
+name: web
+on:
+  push:
+    branches: [main]
+    paths: ["web/en_linea/**", "tests/web/**", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/en_linea/**", "tests/web/**", ".github/workflows/web.yml"]
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Pruebas de reglas.js (tendencia de las cifras)
+        run: node --test tests/web/*.test.mjs
