@@ -1,5 +1,16 @@
 # Cambios
 
+## 2026-11-11 — captura en el PC de otra persona
+
+- Instalación limpia probada en Windows (clon nuevo, sin `.env` ni datos): `instalar_pc.ps1` → `doctor` →
+  `SALIDA_DE_CAMPO.cmd` → `capture --replay … --por-http` y `capture --source phyphox` (sin iPhone: arranca y reintenta).
+- `--replay ejemplo` / `doctor --simulado ejemplo`: recorrido SINTÉTICO para practicar sin datos de campo.
+- `instalar_pc.ps1` acepta Python 3.11–3.13 y avisa si falta ffmpeg; `SALIDA_DE_CAMPO.cmd` llama a `viaviva.cmd` por su ruta.
+- `VIAVIVA_PIN`, `VIAVIVA_IP_PC`, `VIAVIVA_IPS_EDITOR` (opcionales, sin claves). Una sesión copiada en zip rehace sus
+  etiquetas desde `sesion.sqlite`.
+- **Mac** (`viaviva.sh`, `viaviva/instalar_mac.sh`) y **Docker** (`Dockerfile`, `docker-compose.yml`, `.dockerignore`,
+  solo captura del PC): **sin probar** (no hay Mac ni Docker en el PC de AC). Pasos en `README_SALIDA.md`.
+
 ## 2026-11-11 — video HEVC y documentación al día
 
 - **Importar video:** se guarda el códec; si es HEVC o el navegador no puede reproducirlo, la revisión lo dice y ofrece
