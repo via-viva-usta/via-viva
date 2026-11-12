@@ -179,7 +179,8 @@ def tabla() -> str:
          "(5 de calentamiento no cuentan).", ""]
     if not eq:
         return "\n".join(l + ["[PENDIENTE: correr `viaviva r7 medir` en el PC y en la Pi]", ""])
-    l += ["| Etapa | " + " | ".join(eq) + " |", "|---|" + "---|" * len(eq)]
+    rotulo = [q if "Raspberry" in q else f"{q} — **provisional, PC**" for q in eq]   # R7 se mide en la Pi
+    l += ["| Etapa | " + " | ".join(rotulo) + " |", "|---|" + "---|" * len(eq)]
     for e in etapas:
         celdas = []
         for q in eq:

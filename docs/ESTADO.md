@@ -1,9 +1,19 @@
 # Estado de VÍA VIVA
 
-Última actualización: **7-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **11-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
-## Resumen
+## Resumen al 11-nov (lo vigente)
+
+- **Nodo:** Raspberry Pi 4 (la ESP32 salió el 9-nov; `firmware/` queda como historia). Fase 1 = umbrales; fase 2 =
+  TFLite solo cuando haya marcas reales suficientes.
+- **Software:** una sola app (`viaviva/`): Campo → Sesiones → Importar video → Revisión → Dataset → Demo, más el tablero
+  local y el sitio en línea (portada + `tablero.html`). Funciona **en el PC**, probado con el **simulador** de phyphox,
+  reproducciones de los 3 recorridos reales y datos SINTÉTICOS.
+- **Sin probar en su entorno real:** phyphox con el iPhone real, video real del iPhone B, la Pi (instalación, sensores,
+  servicio, R7), Supabase/Netlify en producción y marcas reales para calibrar.
+
+## Resumen histórico (7-nov; lo de la ESP32 ya no aplica)
 
 0. **7-nov — primeros datos REALES:** 3 recorridos de phyphox del iPhone de Pipe (01: 5,2 min · 02: 7,2 min · 03: 13,6 min),
    copiados a `data/raw/phyphox/2026-11-07_0N_pipe.zip` (ignorada por Git). Pasan el validador: **100 Hz, 0 cortes de
@@ -28,14 +38,31 @@ Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBU
 |---|---|---|---|
 | 1 | Repositorio, datos y modelado | 26–30 oct | ✅ Hecha |
 | 2 | Firmware sin hardware, bot, mapa web, tablero | 28 oct – 2 nov | ✅ Hecha |
-| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–9 nov | 🟡 Software listo; **hardware por llegar; 0 recorridos** |
+| 3 | Hardware y recorridos (montaje, pruebas por sensor, phyphox, E1–E4) | 2–9 nov | 🟡 3 recorridos de phyphox recibidos, sin etiquetas; hardware por llegar |
 | 3b | Salidas de fotos (≥ 500) + planilla + validación | 5–9 nov | 🟡 Todo listo; **0 fotos** |
 | 4 | Detector int8 y modelo de riesgo con datos reales | 6–9 nov | 🟡 Cadenas listas (sintéticos); faltan datos |
 | 4b | Etiquetado, escala validada, modelo de fotos (int8), clasificador en el iPhone | 8–11 nov | 🟡 Cadena completa con sintéticos; faltan fotos |
 | 5 | Validación en campo (top-10 vs. azar); **9-nov = fecha límite del plan B** | 8–10 nov | ⬜ Depende de 3 y 4 |
 | 6 | Entrega: datos reales en tablero y mapa, informe (Overleaf), póster, video, pitch | 9–13 nov | 🟡 Demo y texto del informe listos con [PENDIENTE] |
 
-## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 81 pytest, ruff limpio, cobertura 78 %)
+## Hecho el 11-nov: video del iPhone y revisión de pantallas (86 pruebas pasaron, 1 omitida; Ruff limpio)
+
+| Qué | Estado |
+|---|---|
+| Importar video: detecta el códec; si es HEVC o el navegador no lo reproduce, lo avisa y ofrece «Convertir a H.264» con ffmpeg (opcional, en segundo plano, conserva el original y el desfase) | pytest con ffmpeg simulado + navegador con un video sintético que Chrome no reproduce. **ffmpeg no está instalado en el PC**; falta un .mov HEVC real |
+| Navegación de la app (Campo, Sesiones, Revisión, Dataset, Tablero, Demo, Entrar, `/marcar`, `/sync`) | Cada ruta abre su pantalla (PC, datos SINTÉTICOS); Campo y Revisión sin desbordes a 375 px |
+
+## Hecho el 10-nov: un solo sistema (MVP para la presentación)
+
+| Qué | Estado |
+|---|---|
+| Conexión phyphox (puerto 80/8080, buffers desde `/config`, URL en `.env`, minuto quieto con 5 km/h) | Probado con el simulador; **falta el iPhone real** |
+| Campo, Sesiones, Importar video, Revisión, Dataset, Demo, Tablero con los temas A/B | 85 pruebas pasaron, 1 omitida; Ruff limpio. Revisión visual hecha el 11-nov (arriba) |
+| Sincronía de video por destello | Probada con un video sintético; **falta un video real del iPhone B** (HEVC: ver 11-nov) |
+| Dataset y umbrales desde la app | Funciona; **sin marcas reales aún**, así que las cifras no son resultados |
+| Tablero en línea | Portada + `tablero.html` de `main` (PR #30) con la marca de Dany (decisión del 11-nov; el tema B queda para el tablero local y los reportes); falta despliegue y la evidencia de video por evento |
+
+## Hecho el 10-nov: cierre del software (rama `ac/cierre-software`, 85 pruebas pasaron, 1 omitida, Ruff limpio)
 
 | Fase | Terminado | Parcial / pendiente (por qué) |
 |---|---|---|
@@ -49,6 +76,8 @@ Hallazgo con datos reales: en el recorrido 02 el GPS marca 3–5 km/h durante el
 quieto); el RESUMEN nuevo lo cuenta como NO quieto. El 7-nov `validar_campo` lo daba por bueno (solo miraba el acelerómetro).
 
 ## Hecho el 7-nov (noche): Raspberry Pi 4 = nodo central y aplicativo
+
+> Registro histórico: las rutas `pi/…` de esta sección hoy están en `viaviva/` (10-nov) y la ESP32 salió el 9-nov.
 
 Decisión del 7-nov: el docente de Arquitectura consideró insuficiente el ESP32; la Pi pasa a nodo central y el ESP32 a
 línea base de R7. Todo se probó **en el PC** (68 pytest y reproduciendo el recorrido 03 de Pipe); **nada en la Pi todavía**.

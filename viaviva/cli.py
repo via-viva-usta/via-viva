@@ -27,12 +27,19 @@ def _doctor(a) -> int:
     url = a.url
     sim = None
     if a.simulado:                        # prueba del doctor sin iPhone: simulador con un export
+        from viaviva.ejemplo import resolver
         from viaviva.simulador_phyphox import SimuladorPhyphox
-        sim = SimuladorPhyphox(Path(a.simulado))
+        sim = SimuladorPhyphox(Path(resolver(a.simulado)))
         url = sim.url
     inf = doctor.correr(fuente, url, a.puerto, segundos=a.segundos, con_internet=not a.sin_internet)
     if sim:
         sim.cerrar()
+    elif fuente == "phyphox" and inf.url_phyphox and not a.no_guardar and inf.url_phyphox != config.PHYPHOX_URL:
+        try:
+            config.guardar_env("VIAVIVA_PHYPHOX_URL", inf.url_phyphox)
+            print(f"URL de phyphox guardada en .env: {inf.url_phyphox}")
+        except OSError:                    # p. ej. en Docker (/app es de solo lectura para el usuario)
+            print(f"phyphox respondió en {inf.url_phyphox}: úsela con VIAVIVA_PHYPHOX_URL={inf.url_phyphox}")
     if a.json:
         import json
         print(json.dumps(inf.dict(), ensure_ascii=False, indent=1))
@@ -91,10 +98,13 @@ def _servir(ctx, a, grabar: bool) -> int:
     if grabar:
         print(f" Grabando: {ctx.n.sesion.carpeta.name if ctx.n.sesion else '—'}")
     print(f" Captura: {url_local}/captura    Tablero: {url_local}/tablero    Sincronía: {url_local}/sync")
-    if ctx.ip:
-        print(f" Celular del copiloto: http://{ctx.ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
-    print(" Teclas aquí: 1 hueco · 2 resalto · 3 grieta · 4 parche · 5 tapa · 6 obstáculo · 7 vía buena ·")
-    print("              U deshacer · S marca de sincronía · Q terminar (o Ctrl+C)")
+    ip = ctx.ip or "<IP de este PC>"          # en Docker la IP del contenedor no sirve al celular
+    print(f" Celular extra (opcional): http://{ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
+    if sys.platform == "win32":
+        print(" Teclas aquí: 1 hueco · 2 resalto · 3 grieta · 4 parche · 5 tapa · 6 obstáculo · 7 vía buena ·")
+        print("              U deshacer · S marca de sincronía · Q terminar (o Ctrl+C)")
+    else:                                     # Mac, Linux y Docker: las teclas de la consola son solo de Windows
+        print(" Marcar: teclas 1–7 y U en la página /captura (o un celular en /marcar). Terminar: Ctrl+C")
     print("═" * 64, flush=True)
     if getattr(a, "abrir", False):
         threading.Timer(1.5, lambda: webbrowser.open(f"{url_local}/captura")).start()
@@ -124,6 +134,8 @@ def _servir(ctx, a, grabar: bool) -> int:
 
 def _capture(a) -> int:
     from viaviva.app import construir
+    from viaviva.ejemplo import resolver
+    a.replay = resolver(a.replay)          # «ejemplo» = export SINTÉTICO de práctica (cualquier PC)
     fuente = a.source
     if a.replay:
         fuente = "replay-http" if a.por_http else "replay"
@@ -169,6 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--segundos", type=float, default=5.0)
     d.add_argument("--sin-internet", action="store_true", help="no comparar la hora con internet")
     d.add_argument("--simulado", metavar="EXPORT", help="probar contra un simulador de phyphox con este export")
+    d.add_argument("--no-guardar", action="store_true", help="no dejar en .env la URL de phyphox detectada")
     d.add_argument("--json", action="store_true")
     c = sub.add_parser("capture", help="captura + tablero local")
     c.add_argument("--source", choices=["phyphox", "pi", "replay"], default="phyphox")

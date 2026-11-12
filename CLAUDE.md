@@ -4,7 +4,7 @@ Lee este archivo completo antes de trabajar. Es la fuente de verdad técnica del
 **Para continuar el trabajo, lee después `docs/ESTADO.md`** (qué está hecho, qué está probado y qué falta por persona)
 y los issues abiertos de GitHub. Con esos dos archivos un chat nuevo puede seguir sin más contexto.
 
-Última actualización: **10-nov-2026**. Informes: **13-nov-2026**. Prototipo funcionando: **26-nov-2026** o antes.
+Última actualización: **11-nov-2026**. Informes: **13-nov-2026**. Prototipo funcionando: **26-nov-2026** o antes.
 **Primero lee `CHANGELOG.md` (10-nov), `docs/ARQUITECTURA.md` y `viaviva/README.md`**: la sección 7b manda sobre las
 secciones 6–7 (ESP32), que quedan como historia.
 
@@ -14,9 +14,9 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 
 - **Nodo central en el carro (desde el 7-nov): Raspberry Pi 4 Model B** (`viaviva/`, guía en `viaviva/README.md`): los sensores van
   directo a la Pi; detector por umbrales; SQLite local (fuente de verdad); servidor web propio (captura para celular o tablet
-  fija y tablero de la Alcaldía) en su WiFi `VIA-VIVA`; sincronización opcional a Supabase. El ESP32 de abajo queda como
-  **línea base de R7** y argumento de Arquitectura (`pi/justificacion.md`).
-- **Nodo ESP32 (línea base; era el nodo principal hasta el 7-nov):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
+  fija y tablero de la Alcaldía) en su WiFi `VIA-VIVA`; sincronización opcional a Supabase. La ESP32 de abajo **salió del
+  proyecto el 9-nov** (se conserva `firmware/` como historia; argumento de Arquitectura en `viaviva/justificacion.md`).
+- **Nodo ESP32 (HISTÓRICO: nodo principal hasta el 7-nov, fuera del proyecto desde el 9-nov):** ESP32 normal (WROOM-32) + acelerómetro ADXL345 (SPI) + MPU-6050 (I2C) +
   láser VL53L0X (I2C) + GPS NEO-6M (UART) + microSD (SPI) + pulsador + **DHT22 y BH1750** (ambiente; el código también acepta un BME280). Detector por
   umbrales + clasificador int8 en el nodo; maniobras con el giroscopio; página web propia (punto de acceso Wi-Fi) para etiquetar.
 - **Celular = dispositivo de borde para imágenes (desde el 3-nov):** dataset propio de ≥ 500 fotos de 9 clases con fecha,
@@ -51,7 +51,7 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 3-nov | Modelo de fotos: MobileNetV3-Small, división **por sitio** (nunca por foto), TFLite int8. TensorFlow en `%USERPROFILE%\.venvs\vv-modelo` (rutas largas) |
 | 3-nov | Presupuesto **268.900 COP** (nuevo por comprar: DHT22 + BH1750 = 30.000) |
 | **3-nov** | **Sensor de temperatura y humedad: DHT22 de Ferretrónica** (GPIO 25). No se pide el BME280 a Bogotá (no hay en Ferretrónica). El firmware sigue aceptando un BME280 si aparece |
-| **5-nov** | Fotos del dataset con el **iPhone 15 de Juan Diego**; phyphox en el **iPhone 17 de Pipe (~100 Hz)**; el copiloto etiqueta con el **cronómetro del iPhone por vueltas** (`analysis/vueltas_a_etiquetas.py`) |
+| **5-nov** | Fotos del dataset con el **iPhone 15 de Juan Diego**; ~~phyphox en el iPhone 17 de Pipe (~100 Hz)~~ → 11-nov: phyphox en el iPhone A de Anzola (abajo); ~~el copiloto etiqueta con el cronómetro del iPhone por vueltas~~ → plan A desde el 7-nov: marcas en vivo |
 | 5-nov | Drive del equipo: `VIA_VIVA/02_DATOS/fotos/AAAA-MM-DD_nombre/` y `VIA_VIVA/02_DATOS/phyphox/`; Andrés baja a `data/raw/`. **Planilla de campo** (Google Sheets → CSV en `data/raw/planilla/`) |
 | 5-nov | `tipo_via` sale solo de OSM; **`superficie`** (asfalto/concreto/adoquín/destapada) de la planilla o el etiquetador |
 | 5-nov | Hugging Face `Duranishhh/baches-carreteras` **no se usa** (licencia no documentada); Kaggle `andrewmvd/pothole-detection` sí (DbCL), falta descargarlo |
@@ -65,6 +65,8 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | 7-nov | **Aplicativo web servido por la Pi**, local primero (la Pi es punto de acceso `VIA-VIVA`, 192.168.4.1): captura para celular o tablet fija (botones grandes) y tablero en vivo para la Alcaldía (capas de huecos por estado y de riesgo por tramo). **Hueco** = detecciones a ≤ 10 m; estado detectado → verificado → reparado (o descartado), con historial. **Roles:** 4 editores (equipo), Alcaldía y docentes de solo lectura. Exportar PDF (top-10 con mapa), CSV y Excel (3 hojas); importar reparaciones por CSV con validación. Prioridad: captura → tablero → exportables → sincronización |
 | **9-nov** | **La ESP32 sale del proyecto** (alternativa descartada por recursos; `firmware/` se conserva sin tocar). Raspberry Pi 4 = único nodo, Pi OS Lite 64, systemd, sin Docker. Interfaz local con **FastAPI** y botón grande MARCAR. Tablero en línea estático (Netlify) que lee de Supabase. Fase 1 umbrales; Fase 2 TFLite solo con datos suficientes. R7 sin ESP32 (PC vs. Pi; umbrales vs. TFLite) |
 | **10-nov** | Una sola aplicación `viaviva/` (antes `pi/`), fuente `phyphox \| pi \| replay`. Salida de prueba: iPhone 1 con phyphox + hotspot, PC con `viaviva capture`, marcas 1–7 + U (retardo −1 s) en el PC o en `/marcar` (PIN), video con destellos en `/sync`. Sesiones en `02_VIA_VIVA/06_CAMPO/sesiones/` (nunca en Git). Pines de la Pi = manual v3 (pulsador por `gpio-shutdown`). Nube: huecos además de eventos y riesgo; los editores cambian estados en línea y la Pi los aplica. Rama `ac/cierre-software` |
+| **11-nov** | **Roles de la salida de campo** (`README_SALIDA.md`, mandan sobre lo anterior): **iPhone A = Anzola** (phyphox «VÍA VIVA 2.0» + punto de acceso, fijo en el carro; experimento en `config/phyphox/`); **PC de captura = Lenovo de Anzola** (Windows), que marca con el teclado (1–7, U, S, Q); **iPhone B = Pipe, solo video** (filma el destello de `/sync` en la pantalla del Lenovo al inicio y al final de cada toma; no se conecta al programa); `/marcar` solo si va un tercero con celular; el conductor solo conduce. Mac de Dani opcional y Docker plan B, ambos sin probar |
+| 11-nov | Diseño (`docs/DISENO.md`): tema **A · Asfalto** en Campo, Sesiones, Revisión, Dataset y Demo; tema **B · Cartografía** en el tablero local, la entrada y los PDF. El **sitio en línea conserva la marca de Dany** (PR #30); el tema B archivado no se restaura |
 | 7-nov | **Nube opcional:** solo eventos y riesgo a **Supabase** (cola con reintentos, lista blanca de columnas, nada de fotos, video, trazas ni datos de la Alcaldía); SQLite local = fuente de verdad; claves solo en `.env`. Alimentación: 12 V del carro → USB-C 5 V / 3 A; **apagado seguro** con el pulsador (3 s). La cámara no va en la Pi (fotos con el celular). **Bot de Telegram pospuesto** (`futuro/bot/`). Estructuras de datos en Python (`pi/estructuras.py`), justificadas con Big-O |
 
 Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota del cambio de placa), `docs/archivo/propuesta_ESP32-S3/`
@@ -76,8 +78,8 @@ Documentos de referencia: `docs/03_VIA_VIVA_desarrollo.md` (diseño; con nota de
 | Materia | Qué debe quedar demostrable | Dónde está |
 |---|---|---|
 | Sistemas de Adquisición (SADP) | Muestreo justificado (espectro/Nyquist), filtros, sincronía GPS, características, métricas de detección | `analysis/`, `firmware/.../caracteristicas.h` |
-| Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4); Pi 4 vs. ESP32 (R7) | `pi/` (FIFO + interrupción en Linux, `pi/r7/`), `firmware/nodo-sensores/` (línea base), `docs/experimentos.md` |
-| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `pi/estructuras.py` (servidor de la Pi, tabla de Big-O en `pi/README.md`), `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
+| Arquitectura del Computador | SPI/I2C/UART, FIFO + interrupción + DMA ping-pong, doble núcleo FreeRTOS, RAM/flash, latencia, consumo (E1–E4); R7: PC vs. Pi 4 (sin ESP32) | `viaviva/` (FIFO + interrupción en Linux, `viaviva/r7/`), `firmware/nodo-sensores/` (línea base), `docs/experimentos.md` |
+| Estructuras de Datos | Búfer circular y colas (nodo), tabla hash + geohash, grafo con BFS, heap, análisis de complejidad | `viaviva/estructuras.py` (servidor de la Pi, tabla de Big-O en `viaviva/README.md`), `dashboard-java/`, `firmware/nodo-sensores/include/bufer_circular.h`, `etl/geohash.py` |
 | Requisitos extra | ETL, web scraping, IA ligera, demo | `etl/`, `analysis/`, `dataset/`, `docs/demo.md` |
 
 Pendiente del diseño original de Estructuras: bitácora por fechas con `TreeMap`. Los "peligros" agrupados ya existen: tabla `huecos` (7-nov).
@@ -101,7 +103,7 @@ via-viva/
 ├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html), validar_campo.py, programar_scraping.ps1, buscar_secretos.py
 ├── iniciar.ps1      demo en el PC (viaviva en :8000, mapa, clasificador); salida de campo: SALIDA_DE_CAMPO.cmd
 ├── demo/            datos_demo.py (base DEMO aparte)
-├── tests/           pytest (81 pruebas; ruff y cobertura en la CI)
+├── tests/           pytest (ruff y cobertura en la CI; el número vigente está en docs/ESTADO.md)
 ├── entornos/        pip freeze exacto de cada venv (reproducibilidad) · .github/workflows/ (pytest y PlatformIO)
 ├── dataset/         fotos: comun, tarjeta_aruco, ingesta, planilla, etiquetador, escala, modelo, clasificar, externos, sintetico
 ├── futuro/          trabajo futuro: bot/ (Telegram, pospuesto el 7-nov), nodo-camara (ESP32-CAM), láser, OBD2
@@ -182,7 +184,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 
 ## 7b. Aplicación `viaviva/` (desde el 10-nov; antes `pi/`) — guía en `viaviva/README.md`
 - **Comandos:** `viaviva.cmd doctor | capture [--replay X --por-http] | serve | resumen | detector | dataset | modelo |
-  usuarios | sync | nube | r7`. Venv del PC: `viaviva\.venv` (`viaviva\instalar_pc.ps1`); pruebas con `dataset\.venv`
+  usuarios | sync | nube | r7` (Mac/Linux: `./viaviva.sh`; práctica sin datos: `--replay ejemplo`). Venv del PC: `viaviva\.venv` (`viaviva\instalar_pc.ps1`); pruebas con `dataset\.venv`
   (tiene fastapi, httpx, pyyaml, pytest-cov, ruff); TensorFlow y matplotlib solo en `%USERPROFILE%\.venvs\vv-modelo`.
 - **Captura:** `fuente_phyphox.py` (HTTP cada 0,25 s, reconexión; phyphox guarda durante el corte → sin pérdida),
   `simulador_phyphox.py` (pruebas), `fuentes.py` (Pi y reproducción), `nucleo.py` (sesión, marcas, destellos, bitácora),
@@ -192,7 +194,8 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 - **Fase B:** `senal.py` (eje vertical por gravedad), `detector.py` + `config/detector.yaml`, `ventanas.py`,
   `modelo_ventanas.py`. Sin marcas reales todavía: todo lo calibrado/evaluado es SINTÉTICO hasta etiquetar.
 - **Nube:** `sincronizacion.py` (eventos, huecos, riesgo; trae `cambios_remotos`), `supabase_esquema.sql`, `nube.py`,
-  `web/en_linea/` (MapLibre + Chart.js + Pico; `?demo=1`, `?kiosco=1`), `docs/NUBE.md`.
+  `web/en_linea/` (portada `index.html` + `tablero.html` con MapLibre + Chart.js + Pico; `tablero.html?demo=1`,
+  `?kiosco=1`), `docs/NUBE.md`. Video: si es HEVC, la revisión avisa y convierte a H.264 con ffmpeg (opcional).
 - **Trampas:** `.cmd` con CRLF (`.gitattributes`); en Windows el manejador de `GetCurrentProcess` es de 64 bits
   (`restype = c_void_p`); la caché de características del detector se limpia para medir R7; uvicorn atiende SIGTERM y
   la captura cierra la sesión en `finally`.
@@ -218,7 +221,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   SRTM 30 m vía OpenTopoData (pendiente de 4 659 tramos), lluvia IDEAM (5 estaciones ≤ 15 km). Licencias en `docs/ESTADO.md`.
 - **Recorridos** (`etl/recorridos.py`): phyphox + `_etiquetas.csv` → detector por umbrales (pre-etiquetas) → map-matching al
   tramo más cercano (≤ 25 m) → `data/campo/tramos_revisados.csv` (cobertura ≥ 50 % o tramo < 30 m) y eventos
-  `origen='phyphox'`. Protocolo para Pipe en `analysis/README.md`.
+  `origen='phyphox'`. Salida de campo vigente: `README_SALIDA.md` (el protocolo de `analysis/README.md` es del 7-nov).
 
 ## 10. Modelo de riesgo (plan B incluido)
 - Variables por tramo (`risk_model/variables.py`): tipo de vía, superficie, longitud, pendiente, lluvia 30 días y máxima (IDW),
@@ -256,13 +259,13 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   se mezcla ni se reporta. Prueba del 5-nov: V3 int8 cae (0,90 → 0,57–0,70, núcleos de referencia ~100 ms); V2 int8 PTQ 0,93.
 - **phyphox iOS:** `Accelerometer.csv` = `"Time (s)","X (m/s^2)",…`, `Gyroscope.csv` = `"X (rad/s)"`, `Location.csv` con
   `"Vertical Accuracy (°)"`. Buffers del experimento "VÍA VIVA 2.0": accX/Y/Z + acc_time, gyroX/Y/Z + gyro_time,
-  gpsLat/Lon/Z/V/Dir/Accuracy/ZAccuracy + gps_time. Acceso remoto con el iPhone de punto de acceso: `http://172.20.10.1:8080`.
+  gpsLat/Lon/Z/V/Dir/Accuracy/ZAccuracy + gps_time. Acceso remoto con el iPhone de punto de acceso: `http://172.20.10.1` (iOS usa el **puerto 80**; `doctor` prueba 80 y 8080).
 - **Validar campo:** `dataset\.venv\Scripts\python -m herramientas.validar_campo` antes de la ingesta y de `etl.recorridos`.
 
 ## 11. Entorno de desarrollo (PC de Andrés, Windows 11)
 | Herramienta | Dónde / cómo |
 |---|---|
-| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (torch CPU, emlearn), `futuro\bot\.venv` (+ LiteRT; el bot está pospuesto) y en la Pi `pi/.venv` (`pi/instalar.sh`), `dataset\.venv` (OpenCV **< 5**, scipy, pytest) y **`%USERPROFILE%\.venvs\vv-modelo`** (TensorFlow **2.20**, tf_keras, tfmot: no cabe en la ruta del repo sin rutas largas). Versiones fijadas el 5-nov (pandas 3.0.0, scikit-learn 1.7.2, TF 2.20.0) porque Smart App Control bloqueaba las nuevas; Andrés lo desactivó, pero las fijadas son las probadas |
+| Python 3.11 | `py -3.11`. Venvs: `etl\.venv` (ETL **y** `risk_model`), `analysis\.venv` (torch CPU, emlearn), `futuro\bot\.venv` (+ LiteRT; el bot está pospuesto) y en la Pi `viaviva/.venv` (`viaviva/instalar.sh`), `dataset\.venv` (OpenCV **< 5**, scipy, pytest) y **`%USERPROFILE%\.venvs\vv-modelo`** (TensorFlow **2.20**, tf_keras, tfmot: no cabe en la ruta del repo sin rutas largas). Versiones fijadas el 5-nov (pandas 3.0.0, scikit-learn 1.7.2, TF 2.20.0) porque Smart App Control bloqueaba las nuevas; Andrés lo desactivó, pero las fijadas son las probadas |
 | Pruebas | `dataset\.venv\Scripts\python -m pytest` (desde `via-viva/`) |
 | PlatformIO | `%USERPROFILE%\.platformio\penv\Scripts\pio.exe` (no está en el PATH) |
 | MiKTeX 25.12 | Instalado por usuario con winget; `pdflatex main`, `bibtex main`, `pdflatex main` ×2 en `report/`. Incluye `pdftoppm` |
@@ -291,8 +294,8 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 |---|---|---|---|
 | Andrés Cárdenas | `andresscardens` (admin de la organización) | C. Datos y plataforma · D. Gestión y documento | B |
 | Dany Cipamocha | `dany286-ri` (member; **read** en el repo: issue #17) | A. Hardware y firmware | C |
-| Juan Felipe García ("Pipe") | `juanfelipegarciacarvajal444-rgb` (owner) | B. Señales e IA; phyphox (iPhone 17) | — |
-| Juan Diego Anzola | `Juandi-1` (owner) | Fotos (iPhone 15), informe en Overleaf, póster, video, pitch | A, D |
+| Juan Felipe García ("Pipe") | `juanfelipegarciacarvajal444-rgb` (owner) | B. Señales e IA; en campo: **iPhone B, solo video** (desde el 11-nov) | — |
+| Juan Diego Anzola | `Juandi-1` (owner) | Fotos (iPhone 15), informe en Overleaf, póster, video, pitch; en campo: **iPhone A (phyphox + hotspot) y Lenovo de captura, marca con el teclado** (desde el 11-nov) | A, D |
 
 Roles recomendados (auditoría del 5-nov, `docs/ESTADO.md`): un solo owner (Andrés) y los demás Member con Write.
 

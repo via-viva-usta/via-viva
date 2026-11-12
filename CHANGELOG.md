@@ -1,5 +1,67 @@
 # Cambios
 
+## 2026-11-11 — roles definitivos de la salida de campo
+
+- iPhone A = Anzola (phyphox + punto de acceso); PC de captura = su Lenovo, marca con el teclado; iPhone B = Pipe, solo
+  video; `/marcar` solo para un tercero; el conductor solo conduce. Tabla «Rol por persona» en `README_SALIDA.md`;
+  `CLAUDE.md`, `ARQUITECTURA.md`, `viaviva/README.md` y `analysis/README.md` (histórico) al día.
+- `config/phyphox/VIA_VIVA_2.0.phyphox`: el experimento del 7-nov **sin datos ni horas**, para instalar en el iPhone A
+  (o crearlo como «Experimento simple»). Sin probar todavía en ese iPhone.
+
+## 2026-11-11 — captura en el PC de otra persona
+
+- Instalación limpia probada en Windows (clon nuevo, sin `.env` ni datos): `instalar_pc.ps1` → `doctor` →
+  `SALIDA_DE_CAMPO.cmd` → `capture --replay … --por-http` y `capture --source phyphox` (sin iPhone: arranca y reintenta).
+- `--replay ejemplo` / `doctor --simulado ejemplo`: recorrido SINTÉTICO para practicar sin datos de campo.
+- `instalar_pc.ps1` acepta Python 3.11–3.13 y avisa si falta ffmpeg; `SALIDA_DE_CAMPO.cmd` llama a `viaviva.cmd` por su ruta.
+- `VIAVIVA_PIN`, `VIAVIVA_IP_PC`, `VIAVIVA_IPS_EDITOR` (opcionales, sin claves). Una sesión copiada en zip rehace sus
+  etiquetas desde `sesion.sqlite`.
+- **Mac** (`viaviva.sh`, `viaviva/instalar_mac.sh`) y **Docker** (`Dockerfile`, `docker-compose.yml`, `.dockerignore`,
+  solo captura del PC): **sin probar** (no hay Mac ni Docker en el PC de AC). Pasos en `README_SALIDA.md`.
+
+## 2026-11-11 — video HEVC y documentación al día
+
+- **Importar video:** se guarda el códec; si es HEVC o el navegador no puede reproducirlo, la revisión lo dice y ofrece
+  «Convertir a H.264» con ffmpeg (opcional, en segundo plano; conserva el original y el desfase). Sin ffmpeg explica qué hacer.
+- Documentación: rutas `pi/` → `viaviva/`, ESP32 como historia, phyphox en el puerto 80, resumen vigente en `docs/ESTADO.md`.
+- **Decisión de diseño:** el sitio en línea conserva la marca de Dany; el tema B queda para el tablero local y los
+  reportes (`docs/DISENO.md`). El tema B de la página anterior sigue archivado, sin restaurar.
+- Suite: 86 pasaron, 1 omitida (TensorFlow); Ruff limpio.
+
+## 2026-11-11 — integración con `main` (portada y tablero en línea de Dany)
+
+- `main` ya traía la portada y el tablero en línea reorganizados (PR #30: `index.html` = portada,
+  `tablero.html` = tablero, marca propia). Al fusionar, **en `web/en_linea/` quedó la versión de `main`**.
+- El tema B · Cartografía que se había aplicado a la página anterior (una sola página) no se perdió: está en
+  `docs/archivo/en_linea_tema_b_codex_2026-11-11/` y en el commit d8f9264. Llevarlo a la estructura nueva es una
+  decisión de diseño pendiente del equipo.
+
+## 2026-11-10 — un solo sistema: campo → sesiones → video → revisión → dataset → demo
+
+- **Diseño:** dos temas con los mismos componentes (`docs/diseno/`): A · Asfalto (oscuro) en Campo, Sesiones,
+  Revisión, Dataset y Demo; B · Cartografía (claro) en el Tablero, la entrada y los reportes. Navegación común.
+- **Sesiones** (`/sesiones`): cada salida con resumen, calidad, recorrido, video y avance de la revisión.
+- **Importar video** (dentro de la revisión): se arrastra el .mov/.mp4 del iPhone B y la app lo sincroniza sola con
+  los destellos de `/sync`; si no los ve, usa la fecha del archivo (± 1–2 s) y deja ajustar el desfase.
+- **Revisión** (`/revision?s=…`): línea de tiempo con señal, eventos, marcas y video; confirmar (1–7 / Enter),
+  corregir o descartar (X). Se guarda en `sesion.sqlite` y rehace las etiquetas que usan detector y dataset.
+- **Carga de video:** límite de 8 GiB aplicado mientras se recibe; cada intento se guarda con nombre único y no pisa
+  el video anterior. `.m4v` se sirve con su tipo MIME reproducible.
+- **Dataset** (`/dataset`): un botón construye las ventanas y muestra balance, cobertura, umbrales por clase,
+  calibración por salida y clasificador.
+- **Demo** (`/demo`): 4 pasos de 30 s (captura → detección → mapa → reporte) con datos en vivo o `--replay`.
+- **Tablero en línea:** aplicado el tema B · Cartografía, con paleta cálida, titulares Instrument Serif, tarjetas, filtros
+  adaptables y el tema claro como predeterminado; se conserva la opción oscura.
+- R7 del PC rotulado «provisional, PC»; suite: 85 pasaron, 1 omitida; Ruff limpio.
+
+## 2026-11-10 — conexión con phyphox
+
+- phyphox en iOS responde en el **puerto 80** (no 8080): la URL por defecto es `http://172.20.10.1` y `doctor` y
+  `capture` **autodetectan 80/8080**; si la captura pierde la conexión, vuelve a probar los dos puertos.
+- Los nombres de los buffers (aceleración, ubicación, giroscopio) se leen de `/config` (`inputs`); si el experimento no
+  los declara, se usan los de «VÍA VIVA 2.0». `doctor` muestra el mapeo y verifica muestras y GPS.
+- `viaviva doctor [--url …]` deja la URL que respondió en `.env` (`VIAVIVA_PHYPHOX_URL`; `--no-guardar` para evitarlo).
+- Minuto quieto: tolerancia de **5 km/h** (antes 2): el GPS del iPhone marca 3–5 km/h con el carro detenido.
 ## 2026-11-10 — tablero en línea reorganizado (rama `web/interfaz-dany`)
 
 - **Portada** (`web/en_linea/index.html`) y tablero en `tablero.html` (los enlaces viejos con `?demo`/`?kiosco` se

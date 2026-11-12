@@ -7,7 +7,7 @@ Una sola aplicación, `viaviva/`, con la fuente de datos intercambiable: **phyph
 ```mermaid
 flowchart LR
   subgraph Fuentes
-    PH[iPhone 1: phyphox\nacceso remoto HTTP 100 Hz] -->|WiFi del hotspot| FP[FuentePhyphox\nreconexión sin pérdida]
+    PH[iPhone A de Anzola: phyphox\nacceso remoto HTTP 100 Hz] -->|WiFi del hotspot| FP[FuentePhyphox\nreconexión sin pérdida]
     SN[Pi 4: ADXL345 SPI FIFO+INT1\nMPU-6050 · VL53L0X · BH1750 I2C\nGPS UART · DHT22] --> FS[FuenteSensores\ncada sensor opcional]
     EX[Export de phyphox\no sesión grabada] --> FR[FuenteReproduccion\no simulador HTTP]
   end
@@ -19,7 +19,7 @@ flowchart LR
   SES --> VEN[dataset de ventanas\nmanifest · calidad]
   VEN --> TFL[TFLite int8\netapa siguiente]
   DB --> APP[FastAPI :8000\n/captura /marcar /sync /tablero]
-  APP --> CEL[Celular del copiloto\n/marcar con PIN]
+  APP --> CEL[Teclado del Lenovo o\ncelular extra en /marcar con PIN]
   APP --> ALC[Tablero local\nAlcaldía · docentes]
   DB -->|cola con reintentos\nsolo eventos, huecos, riesgo| SB[(Supabase\nRLS por rol)]
   SB --> NET[Netlify: web/en_linea\nMapLibre + Chart.js]
@@ -40,6 +40,7 @@ flowchart LR
 | `senal.py`, `detector.py` | Eje vertical por gravedad, detector calibrable (`config/detector.yaml`) y evaluación por salida |
 | `ventanas.py`, `modelo_ventanas.py` | Dataset de ventanas de 2 s y esqueleto TFLite |
 | `almacen.py`, `estructuras.py` | SQLite (huecos, prioridad, riesgo) y estructuras de datos propias |
+| `sesiones.py` | Flujo único del dataset: lista de sesiones, importar y sincronizar video, revisión, construir dataset |
 | `app.py`, `usuarios.py`, `exportar.py` | FastAPI, roles, PDF/CSV/Excel e importación de reparaciones |
 | `sincronizacion.py`, `nube.py`, `supabase_esquema.sql` | Outbox a Supabase, cambios en línea y preparación del sitio |
 | `sistema.py`, `r7/medir.py` | Salud del equipo y R7 |

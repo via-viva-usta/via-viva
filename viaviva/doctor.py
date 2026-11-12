@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import email.utils
 import math
+import os
 import platform
 import shutil
 import socket
@@ -20,7 +21,7 @@ import urllib.request
 from pathlib import Path
 
 from viaviva import config
-from viaviva.fuente_phyphox import ClientePhyphox, buffers_faltantes, filas_de
+from viaviva.fuente_phyphox import ClientePhyphox, buffers_faltantes, candidatos, filas_de
 
 OK, AVISO, FALTA = "OK", "AVISO", "FALTA"
 
@@ -28,6 +29,7 @@ OK, AVISO, FALTA = "OK", "AVISO", "FALTA"
 class Informe:
     def __init__(self):
         self.filas: list[tuple[str, str, str]] = []
+        self.url_phyphox: str | None = None       # la que respondió (para dejarla en .env)
 
     def agregar(self, estado: str, que: str, detalle: str) -> None:
         self.filas.append((estado, que, detalle))
@@ -58,6 +60,10 @@ def puerta_de_enlace() -> str | None:
                                 "Sort-Object RouteMetric | Select-Object -First 1).NextHop"],
                                capture_output=True, text=True, timeout=8)
             return r.stdout.strip() or None
+        if platform.system() == "Darwin":            # macOS (sin probar en Mac)
+            r = subprocess.run(["route", "-n", "get", "default"], capture_output=True, text=True, timeout=3)
+            linea = next((x for x in r.stdout.splitlines() if x.strip().startswith("gateway:")), "")
+            return linea.split(":", 1)[1].strip() or None if linea else None
         r = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True, timeout=3)
         partes = r.stdout.split()
         return partes[partes.index("via") + 1] if "via" in partes else None
@@ -66,6 +72,13 @@ def puerta_de_enlace() -> str | None:
 
 
 def ip_local() -> str | None:
+    """IP de este equipo en la red del iPhone (la que abre el celular). En Docker la del contenedor no sirve: se usa
+    VIAVIVA_IP_PC si está, o ninguna."""
+    fija = os.getenv("VIAVIVA_IP_PC", "").strip()
+    if fija:
+        return fija
+    if os.getenv("VIAVIVA_EN_DOCKER"):
+        return None
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("172.20.10.1", 80))      # no envía nada: solo elige la interfaz de salida
@@ -125,16 +138,21 @@ def puerto_libre(puerto: int) -> bool:
 # ---------------------------------------------------------------- chequeos
 def chequear_phyphox(inf: Informe, url: str, segundos: float = 5.0) -> None:
     cli = ClientePhyphox(url, timeout=3.0)
-    try:
-        cfg = cli.config()
-    except Exception as err:
-        inf.agregar(FALTA, "Alcance a phyphox", f"{url} no responde ({type(err).__name__}). ¿PC conectado al punto de "
-                    "acceso del iPhone? ¿Acceso remoto activado en phyphox? Ver README_SALIDA.md")
+    cfg = cli.conectar()
+    if cfg is None:
+        inf.agregar(FALTA, "Alcance a phyphox", f"no responde en {' ni '.join(candidatos(url))}. ¿PC conectado al punto "
+                    "de acceso del iPhone? ¿Acceso remoto activado en phyphox? Ver README_SALIDA.md")
         return
-    inf.agregar(OK, "Alcance a phyphox", f"{url} · experimento «{cfg.get('title', '?')}»")
-    falta = buffers_faltantes(cfg)
+    inf.url_phyphox = cli.url
+    inf.agregar(OK, "Alcance a phyphox", f"{cli.url} · experimento «{cfg.get('title', '?')}»"
+                + ("" if cli.url == url.rstrip("/") else f" (detectado; se pidió {url})"))
+    g = cli.grupos
+    falta = buffers_faltantes(cfg, g)
     if falta:
         inf.agregar(FALTA, "Experimento", f"faltan buffers {', '.join(falta)}: abrir «VÍA VIVA 2.0» (06_CAMPO)")
+    else:
+        inf.agregar(OK, "Buffers", f"aceleración {'/'.join(g['acc'][1])} · ubicación {g['gps'][1][0]}/{g['gps'][1][1]} · "
+                    f"giroscopio {'/'.join(v for v in g['giro'][1] if v)}")
     desde = {"acc": -1.0, "giro": -1.0, "gps": -1.0}
     try:
         primera = cli.nuevos(desde)
@@ -142,7 +160,7 @@ def chequear_phyphox(inf: Informe, url: str, segundos: float = 5.0) -> None:
         inf.agregar(FALTA, "Flujo de datos", f"error al leer: {err}")
         return
     for g in desde:
-        f = filas_de(primera, g)
+        f = filas_de(primera, g, cli.grupos)
         if f:
             desde[g] = f[-1][0]
     if not (primera.get("status") or {}).get("measuring"):
@@ -156,7 +174,7 @@ def chequear_phyphox(inf: Informe, url: str, segundos: float = 5.0) -> None:
         except Exception:
             continue
         latencias.append((time.perf_counter() - t0) * 1e3)
-        acc, pos = filas_de(r, "acc"), filas_de(r, "gps")
+        acc, pos = filas_de(r, "acc", cli.grupos), filas_de(r, "gps", cli.grupos)
         if acc:
             tiempos += [f[0] for f in acc]
             desde["acc"] = acc[-1][0]
@@ -177,7 +195,7 @@ def chequear_phyphox(inf: Informe, url: str, segundos: float = 5.0) -> None:
     if not fijos:
         inf.agregar(FALTA, "GPS", "sin posición: salir a cielo abierto y esperar 1–2 min")
     else:
-        prec = fijos[-1][6]
+        prec = fijos[-1][6] if len(fijos[-1]) > 6 else math.nan
         inf.agregar(OK if (math.isnan(prec) or prec <= 15) else AVISO, "GPS",
                     f"{fijos[-1][1]:.5f}, {fijos[-1][2]:.5f} · precisión {prec:.0f} m")
 
@@ -209,7 +227,9 @@ def chequear_pc(inf: Informe, puerto: int, dir_sesiones: Path, con_internet: boo
                 f"{puerto} libre" if puerto_libre(puerto) else f"{puerto} ocupado: ¿ya hay una captura abierta?")
     ip = ip_local()
     inf.agregar(OK if ip else AVISO, "Celular que marca", f"http://{ip}:{puerto}/marcar (mismo WiFi; aceptar el aviso "
-                "del Firewall de Windows en red PRIVADA)" if ip else "sin IP en la red del iPhone")
+                "del Firewall de Windows en red PRIVADA)" if ip else
+                ("en Docker: http://<IP del PC>:" + str(puerto) + "/marcar (la IP con ipconfig o ifconfig; o "
+                 "VIAVIVA_IP_PC)" if os.getenv("VIAVIVA_EN_DOCKER") else "sin IP en la red del iPhone"))
 
 
 def chequear_pi(inf: Informe) -> None:

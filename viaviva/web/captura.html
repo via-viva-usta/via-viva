@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="tema-a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,7 +13,6 @@
   <span id="insignia" class="rol">—</span>
   <span class="espacio"></span>
   <button id="b-pantalla" class="enlace" title="Pantalla completa (tablet fija)">⛶ Pantalla completa</button>
-  <a href="/tablero">Tablero</a>
   <div class="cuenta" id="cuenta"></div>
 </header>
 
@@ -207,13 +206,13 @@ async function actualizar() {
     '</td><td class="num">' + x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') +
     '</td><td>' + (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
   $('mensajes').innerHTML = e.mensajes.slice().reverse().map(m => '<li>' + VV.escapar(m) + '</li>').join('');
-  if (e.pin) $('pin-info').innerHTML = 'Celular del copiloto: <b>http://' + VV.escapar(e.ip || location.hostname) + ':' +
+  if (e.pin) $('pin-info').innerHTML = 'Celular extra (opcional): <b>http://' + VV.escapar(e.ip || location.hostname) + ':' +
     (location.port || 80) + '/marcar</b> · PIN <b style="font-size:18px;letter-spacing:.15em">' + e.pin + '</b>' +
     ' · retardo ' + e.retardo_s + ' s · ' + e.destellos + ' destellos';
 }
 
 (async () => {
-  VV.usuario($('cuenta')).catch(() => {});
+  VV.usuario($('cuenta')).then(r => VV.nav('campo', r.usuario && r.usuario.rol)).catch(() => {});
   ETIQUETAS = (await VV.json('/api/etiquetas')).etiquetas;
   const COLOR = ['--est-detectado', '--aviso', '--r3', '--est-verificado', '--sub', '--r4', '--ok'];
   ETIQUETAS.forEach(([tecla, c, t], i) => {

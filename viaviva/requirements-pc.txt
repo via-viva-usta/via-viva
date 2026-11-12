@@ -7,3 +7,5 @@ numpy
 python-dotenv
 openpyxl
 reportlab
+opencv-python-headless<5   # ver los destellos en el video del iPhone B
+scikit-learn==1.7.2         # clasificador de ventanas (pantalla Dataset)

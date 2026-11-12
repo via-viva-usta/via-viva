@@ -7,7 +7,7 @@ cd /d "%~dp0"
 title VÍA VIVA - salida de campo
 echo.
 echo  == 1/2  Pre-chequeo (doctor) ==
-call viaviva.cmd doctor
+call "%~dp0viaviva.cmd" doctor
 if errorlevel 1 (
   echo.
   echo  Hay algo en FALTA. Corrija y vuelva a abrir este archivo.
@@ -17,6 +17,6 @@ if errorlevel 1 (
 )
 echo.
 echo  == 2/2  Captura (Q o Ctrl+C para terminar; el RESUMEN sale al final) ==
-call viaviva.cmd capture --abrir
+call "%~dp0viaviva.cmd" capture --abrir
 echo.
 pause

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es" class="tema-a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VÍA VIVA · Revisión</title>
+<link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <span class="espacio"></span><div class="cuenta" id="cuenta"></div>
+</header>
+<main class="pagina">
+  <div class="titulo"><h1 id="titulo">Revisión</h1><span class="sub" id="sub"></span><span class="espacio"></span>
+    <a href="/sesiones" class="boton">← Sesiones</a></div>
+  <p id="alertas" class="aviso oculto"></p>
+
+  <div class="rev">
+    <section class="tarjeta">
+      <div id="sin-video">
+        <h2>Importar el video del iPhone B</h2>
+        <div class="soltar" id="soltar" tabindex="0" role="button">
+          <b style="font-size:16px;color:var(--texto)">Arrastre aquí el video (.mov o .mp4)</b><br>o toque para elegirlo.
+          La app lo sincroniza sola con los destellos de <code>/sync</code>.
+        </div>
+        <input type="file" id="archivo" accept=".mov,.mp4,.m4v,video/*" class="oculto">
+        <div class="progreso" style="margin-top:10px"><i id="barra"></i></div>
+        <p class="ayuda" id="estado-video">Sin video también se puede revisar: la señal y las marcas bastan.</p>
+      </div>
+      <div id="con-video" class="oculto">
+        <video id="video" controls playsinline preload="metadata"></video>
+        <div class="fila-flex" style="margin-top:8px">
+          <span class="pill ok" id="p-sinc"></span>
+          <label class="sub">Desfase <input id="desfase" type="number" step="0.1" style="width:90px;min-height:32px;padding:4px 8px"> s</label>
+          <button id="b-desfase">Guardar</button>
+          <button id="b-convertir" class="oculto">Convertir a H.264</button>
+          <button id="b-otro" class="enlace">Cambiar video</button>
+        </div>
+        <p class="ayuda" id="nota-video"></p>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Evento <span id="n-ev">—</span> <span class="sub" id="d-ev"></span></h2>
+      <div class="clases" id="clases"></div>
+      <div class="fila-flex" style="margin-top:10px">
+        <button id="b-confirmar" class="primario" style="flex:1">Confirmar <kbd>Enter</kbd></button>
+        <button id="b-descartar" style="flex:1">Descartar <kbd>X</kbd></button>
+      </div>
+      <div class="fila-flex" style="margin-top:8px">
+        <button id="b-ant">← Anterior</button><button id="b-sig">Siguiente →</button>
+        <button id="b-rep">▶ Ver 4 s <kbd>Espacio</kbd></button>
+        <span class="espacio"></span><span class="sub" id="avance"></span>
+      </div>
+      <p class="ayuda">Teclas: 1–7 elige la clase y confirma · Enter confirma la sugerida · X descarta (falsa alarma = vía buena) ·
+        ← → cambia de evento. Cada decisión se guarda al instante.</p>
+    </section>
+  </div>
+
+  <section class="tarjeta">
+    <h2>Línea de tiempo <span class="sub">señal vertical (g) · ▮ eventos del detector · ▲ marcas del copiloto · ◆ destellos</span></h2>
+    <canvas id="linea" class="linea"></canvas>
+    <canvas id="zoom" class="linea" style="height:120px;margin-top:8px"></canvas>
+  </section>
+</main>
+<script src="/static/comun.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const S = new URLSearchParams(location.search).get('s');
+const api = '/api/sesiones/' + encodeURIComponent(S);
+let D = null, i = 0, clase = null, ETQ = [];
+const NOMBRE = {};
+const colorDe = (e) => !e.revision ? VV.color('--sub') : e.revision.decision === 'descartar' ? VV.color('--mal') : VV.color('--ok');
+
+function lienzo(cv, t0, t1, alto) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const x = (t) => (t - t0) / (t1 - t0) * w, y = (v) => h - 6 - Math.min(1, v / alto) * (h - 22);
+  g.strokeStyle = VV.color('--sub'); g.lineWidth = 1; g.beginPath();
+  let primero = true;
+  for (const [t, v] of D.envolvente) { if (t < t0 || t > t1) continue; primero ? g.moveTo(x(t), y(v)) : g.lineTo(x(t), y(v)); primero = false; }
+  g.stroke();
+  for (const d of D.destellos) if (d >= t0 && d <= t1) { g.fillStyle = VV.color('--texto'); g.fillRect(x(d) - 1, 0, 2, 10); }
+  for (const m of D.marcas) if (m.t_s >= t0 && m.t_s <= t1) {
+    g.fillStyle = VV.color('--acento'); g.beginPath(); g.moveTo(x(m.t_s), 12); g.lineTo(x(m.t_s) - 5, 2); g.lineTo(x(m.t_s) + 5, 2); g.fill();
+  }
+  D.eventos.forEach((e, k) => { if (e.t_s < t0 || e.t_s > t1) return;
+    g.fillStyle = k === i ? VV.color('--acento') : colorDe(e); g.globalAlpha = k === i ? 1 : .75;
+    g.fillRect(x(e.t_s) - (k === i ? 2 : 1), 14, k === i ? 4 : 2, h - 20); g.globalAlpha = 1; });
+  return {x, w};
+}
+
+function pintar() {
+  const alto = Math.max(0.6, ...D.envolvente.map(p => p[1]));
+  lienzo($('linea'), 0, D.duracion_s, alto);
+  const e = D.eventos[i];
+  if (e) lienzo($('zoom'), Math.max(0, e.t_s - 10), Math.min(D.duracion_s, e.t_s + 10), alto);
+  const hechos = D.eventos.filter(x => x.revision).length;
+  $('avance').textContent = hechos + ' de ' + D.eventos.length + ' revisados';
+  if (!e) { $('n-ev').textContent = '—'; $('d-ev').textContent = 'El detector no encontró eventos en esta sesión.'; return; }
+  const marca = D.marcas.find(m => Math.abs(m.t_s - e.t_s) <= 3);
+  clase = e.revision ? (e.revision.decision === 'descartar' ? null : e.revision.clase) : (marca ? marca.clase : 'hueco');
+  $('n-ev').textContent = (i + 1) + ' de ' + D.eventos.length;
+  $('d-ev').textContent = '· t = ' + e.t_s.toFixed(1) + ' s · ' + e.vel_kmh + ' km/h · severidad ' + e.severidad + ' · confianza ' +
+    Math.round(e.confianza * 100) + ' %' + (marca ? ' · el copiloto marcó «' + (NOMBRE[marca.clase] || marca.clase) + '»' : '') +
+    (e.revision ? ' · ya revisado: ' + (e.revision.decision === 'descartar' ? 'descartado' : NOMBRE[e.revision.clase] || e.revision.clase) : '');
+  for (const b of $('clases').children) b.classList.toggle('sel', b.dataset.c === clase);
+}
+
+function ir(k, reproducir) {
+  if (!D.eventos.length) { pintar(); return; }
+  i = (k + D.eventos.length) % D.eventos.length; pintar();
+  const v = $('video');
+  if (D.video && v.src) { v.currentTime = Math.max(0, D.eventos[i].t_s - D.video.desfase_s - 2); if (reproducir) ver(); }
+}
+function ver() {
+  const v = $('video'); if (!D.video || !v.src) return;
+  const fin = D.eventos[i].t_s - D.video.desfase_s + 2;
+  v.play().catch(() => {});
+  const iv = setInterval(() => { if (v.currentTime >= fin || v.paused) { v.pause(); clearInterval(iv); } }, 100);
+}
+async function decidir(decision, c) {
+  const e = D.eventos[i]; if (!e) return;
+  try {
+    await VV.post(api + '/revision', {t_s: e.t_s, decision, clase: c});
+    e.revision = {decision, clase: decision === 'descartar' ? 'via_buena' : c};
+    VV.aviso(decision === 'descartar' ? 'Descartado' : (NOMBRE[c] || c) + ' ✓', decision === 'descartar' ? '' : 'ok');
+    const sig = D.eventos.findIndex((x, k) => k > i && !x.revision);
+    ir(sig >= 0 ? sig : i + 1, true);
+  } catch (err) { VV.aviso(err.message, 'mal'); }
+}
+
+function mostrarVideo() {
+  const v = D.video;
+  $('sin-video').classList.toggle('oculto', !!v); $('con-video').classList.toggle('oculto', !v);
+  if (!v) return;
+  const src = api + '/video?v=' + encodeURIComponent(v.archivo || '');
+  if ($('video').getAttribute('src') !== src) { noSeVe = false; $('video').src = src; }
+  $('desfase').value = v.desfase_s;
+  $('p-sinc').textContent = {destello: 'Sincronizado por destello', fecha_del_archivo: 'Por fecha del archivo (± 1–2 s)', manual: 'Desfase manual'}[v.metodo] || v.metodo;
+  $('p-sinc').className = 'pill ' + (v.metodo === 'destello' ? 'ok' : 'ac');
+  const conv = v.conversion || {};
+  const hevc = ['hvc1', 'hev1', 'hevc', 'h265', 'x265'].includes(v.codec);
+  $('b-convertir').classList.toggle('oculto', !(D.ffmpeg && (hevc || noSeVe) && conv.estado !== 'en_curso'));
+  const avisaCobertura = (v.avisos || []).some(a => a.includes('cubre solo'));
+  $('nota-video').textContent = [(v.cobertura_pct != null && !avisaCobertura ? 'Cubre el ' + v.cobertura_pct + ' % de la sesión.' : ''), ...(v.avisos || []),
+    noSeVe ? 'Este navegador no puede reproducir el video' + (v.codec ? ' (' + v.codec + ')' : '') + '. ' +
+      (D.ffmpeg ? 'Use «Convertir a H.264».' : 'Instale ffmpeg en este equipo para convertirlo, ábralo en Safari o grabe en «Más compatible» (Ajustes › Cámara › Formatos).') : '',
+    conv.estado === 'en_curso' ? 'Convirtiendo a H.264… (el original se conserva)' : '',
+    conv.estado === 'lista' && v.original ? 'Convertido a H.264; el original (' + v.original + ') sigue en la carpeta de la sesión.' : '',
+    conv.estado === 'error' ? 'No se pudo convertir: ' + (conv.mensaje || '') : ''].filter(Boolean).join(' ');
+  if (conv.estado === 'en_curso') setTimeout(async () => {
+    try { D.video = await VV.json(api + '/video/info'); } catch (e) { /* reintenta en el próximo ciclo */ }
+    mostrarVideo();
+  }, 3000);
+}
+let noSeVe = false;
+const sinImagen = () => { if (!D || !D.video || noSeVe) return; noSeVe = true; mostrarVideo(); };
+$('video').addEventListener('error', sinImagen);
+$('video').addEventListener('loadedmetadata', () => { if (!$('video').videoWidth) sinImagen(); });
+$('b-convertir').onclick = async () => {
+  try { D.video = await VV.post(api + '/video/convertir', {}); mostrarVideo(); } catch (e) { VV.aviso(e.message, 'mal'); }
+};
+
+function subir(archivo) {
+  if (!archivo) return;
+  if (!/\.(mov|mp4|m4v)$/i.test(archivo.name)) { VV.aviso('Debe ser un video .mov o .mp4', 'mal'); return; }
+  const x = new XMLHttpRequest();
+  x.open('POST', api + '/video?archivo=' + encodeURIComponent(archivo.name));
+  x.upload.onprogress = (e) => { $('barra').style.width = (100 * e.loaded / e.total).toFixed(0) + '%';
+    $('estado-video').textContent = e.loaded < e.total ? 'Copiando el video… ' + Math.round(e.loaded / 1e6) + ' de ' + Math.round(e.total / 1e6) + ' MB'
+      : 'Buscando los destellos para sincronizar… (puede tardar un minuto)'; };
+  x.onload = () => {
+    const r = JSON.parse(x.responseText || '{}');
+    if (x.status !== 200) { $('estado-video').textContent = 'No se pudo importar: ' + (r.error || x.status); $('barra').style.width = '0'; return; }
+    D.video = r; mostrarVideo(); VV.aviso('Video importado y sincronizado', 'ok'); ir(i);
+  };
+  x.onerror = () => { $('estado-video').textContent = 'Se cortó la conexión con la app. Vuelva a intentar.'; };
+  x.send(archivo);
+}
+
+const z = $('soltar');
+z.onclick = () => $('archivo').click();
+z.onkeydown = (e) => { if (e.key === 'Enter') $('archivo').click(); };
+$('archivo').onchange = () => subir($('archivo').files[0]);
+z.ondragover = (e) => { e.preventDefault(); z.classList.add('sobre'); };
+z.ondragleave = () => z.classList.remove('sobre');
+z.ondrop = (e) => { e.preventDefault(); z.classList.remove('sobre'); subir(e.dataTransfer.files[0]); };
+$('b-otro').onclick = () => { D.video = null; $('video').removeAttribute('src'); mostrarVideo(); };
+$('b-desfase').onclick = async () => { try { D.video = await VV.post(api + '/desfase', {desfase_s: +$('desfase').value}); mostrarVideo(); ir(i); VV.aviso('Desfase guardado', 'ok'); } catch (e) { VV.aviso(e.message, 'mal'); } };
+$('b-confirmar').onclick = () => clase ? decidir('confirmar', clase) : VV.aviso('Elija una clase', 'mal');
+$('b-descartar').onclick = () => decidir('descartar');
+$('b-ant').onclick = () => ir(i - 1); $('b-sig').onclick = () => ir(i + 1); $('b-rep').onclick = ver;
+$('linea').onclick = (ev) => {
+  const t = ev.offsetX / $('linea').clientWidth * D.duracion_s;
+  let mejor = 0; D.eventos.forEach((e, k) => { if (Math.abs(e.t_s - t) < Math.abs(D.eventos[mejor].t_s - t)) mejor = k; });
+  ir(mejor, true);
+};
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.tagName === 'INPUT') return;
+  const x = ETQ.find(([tecla]) => tecla === ev.key);
+  if (x) decidir(D.eventos[i].revision ? 'corregir' : 'confirmar', x[1]);
+  else if (ev.key === 'Enter') $('b-confirmar').click();
+  else if (ev.key.toLowerCase() === 'x') decidir('descartar');
+  else if (ev.key === 'ArrowLeft') ir(i - 1); else if (ev.key === 'ArrowRight') ir(i + 1);
+  else if (ev.key === ' ') { ev.preventDefault(); ver(); }
+});
+window.addEventListener('resize', () => D && pintar());
+
+(async () => {
+  const r = await VV.usuario($('cuenta')); VV.nav('sesiones', r.usuario && r.usuario.rol);
+  if (!S) { location.href = '/sesiones'; return; }
+  ETQ = (await VV.json('/api/etiquetas')).etiquetas;
+  for (const [tecla, c, n] of ETQ) NOMBRE[c] = n;
+  $('clases').innerHTML = ETQ.map(([tecla, c, n]) => '<button data-c="' + c + '"><kbd>' + tecla + '</kbd> ' + VV.escapar(n) + '</button>').join('');
+  for (const b of $('clases').children) b.onclick = () => decidir(D.eventos[i] && D.eventos[i].revision ? 'corregir' : 'confirmar', b.dataset.c);
+  try { D = await VV.json(api); } catch (e) { $('sub').textContent = 'No se pudo abrir la sesión: ' + e.message; return; }
+  const rs = D.resumen;
+  $('titulo').textContent = S.replace('sesion_', '');
+  $('sub').textContent = Math.round(D.duracion_s / 60) + ' min · ' + (rs.km ?? '—') + ' km · ' + D.eventos.length + ' eventos · ' + D.marcas.length + ' marcas';
+  if ((rs.avisos || []).length) { $('alertas').textContent = rs.avisos.join(' '); $('alertas').classList.remove('oculto'); }
+  mostrarVideo();
+  const pend = D.eventos.findIndex(e => !e.revision); ir(pend >= 0 ? pend : 0);
+})();
+</script>
+</body>
+</html>
