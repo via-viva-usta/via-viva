@@ -99,12 +99,12 @@ def _servir(ctx, a, grabar: bool) -> int:
         print(f" Grabando: {ctx.n.sesion.carpeta.name if ctx.n.sesion else '—'}")
     print(f" Captura: {url_local}/captura    Tablero: {url_local}/tablero    Sincronía: {url_local}/sync")
     ip = ctx.ip or "<IP de este PC>"          # en Docker la IP del contenedor no sirve al celular
-    print(f" Celular del copiloto: http://{ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
+    print(f" Celular extra (opcional): http://{ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
     if sys.platform == "win32":
         print(" Teclas aquí: 1 hueco · 2 resalto · 3 grieta · 4 parche · 5 tapa · 6 obstáculo · 7 vía buena ·")
         print("              U deshacer · S marca de sincronía · Q terminar (o Ctrl+C)")
     else:                                     # Mac, Linux y Docker: las teclas de la consola son solo de Windows
-        print(" Marcar: botones de /captura o el celular (/marcar). Terminar: Ctrl+C")
+        print(" Marcar: teclas 1–7 y U en la página /captura (o un celular en /marcar). Terminar: Ctrl+C")
     print("═" * 64, flush=True)
     if getattr(a, "abrir", False):
         threading.Timer(1.5, lambda: webbrowser.open(f"{url_local}/captura")).start()

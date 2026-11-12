@@ -48,6 +48,23 @@ def test_pin_fijo_por_entorno_y_redes_de_editor_para_docker(tmp_path, monkeypatc
         ctx.fuente.cerrar()
 
 
+def test_experimento_phyphox_del_repo_tiene_los_buffers_y_ningun_dato():
+    """config/phyphox/VIA_VIVA_2.0.phyphox (para instalar en el iPhone A): definición limpia, sin mediciones."""
+    import xml.etree.ElementTree as ET
+
+    from viaviva.fuente_phyphox import GRUPOS
+    raiz = ET.parse(config.RAIZ / "config" / "phyphox" / "VIA_VIVA_2.0.phyphox").getroot()
+    assert raiz.findtext("title") == "VÍA VIVA 2.0"
+    buffers = {c.text for c in raiz.find("data-containers")}
+    for t, ejes in GRUPOS.values():
+        assert {t, *ejes} <= buffers
+    for c in raiz.find("data-containers"):
+        assert c.get("size") == "1" or "init" not in c.attrib       # sin valores medidos
+    assert raiz.find("events") is None and raiz.find("state-title") is None
+    sets = {s.get("name") for s in raiz.find("export")}
+    assert sets == {"Accelerometer", "Location", "Gyroscope"}      # mismo export que lee la app
+
+
 def test_ip_para_el_celular_en_docker(monkeypatch):
     from viaviva import doctor
     monkeypatch.delenv("VIAVIVA_IP_PC", raising=False)

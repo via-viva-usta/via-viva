@@ -206,7 +206,7 @@ async function actualizar() {
     '</td><td class="num">' + x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') +
     '</td><td>' + (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
   $('mensajes').innerHTML = e.mensajes.slice().reverse().map(m => '<li>' + VV.escapar(m) + '</li>').join('');
-  if (e.pin) $('pin-info').innerHTML = 'Celular del copiloto: <b>http://' + VV.escapar(e.ip || location.hostname) + ':' +
+  if (e.pin) $('pin-info').innerHTML = 'Celular extra (opcional): <b>http://' + VV.escapar(e.ip || location.hostname) + ':' +
     (location.port || 80) + '/marcar</b> · PIN <b style="font-size:18px;letter-spacing:.15em">' + e.pin + '</b>' +
     ' · retardo ' + e.retardo_s + ' s · ' + e.destellos + ' destellos';
 }
