@@ -23,7 +23,7 @@ ARCHIVO = {"acc": ("Accelerometer.csv", 4), "giro": ("Gyroscope.csv", 4), "gps":
 
 class SimuladorPhyphox:
     def __init__(self, ruta: Path, velocidad: float = 1.0, puerto: int = 0, host: str = "127.0.0.1",
-                 grupos: dict | None = None):
+                 grupos: dict | None = None, bucle: bool = False):
         self.grupos = grupos or GRUPOS
         self.datos = {}
         for g, (nombre, ancho) in ARCHIVO.items():
@@ -36,6 +36,7 @@ class SimuladorPhyphox:
         self.t0 = time.monotonic()
         self.pausado = False
         self.peticiones = 0
+        self.bucle, self.vuelta = bucle, 0     # bucle: al terminar empieza otra «medición» (como ▶ de nuevo en phyphox)
         sim = self
 
         class Manejador(BaseHTTPRequestHandler):
@@ -78,6 +79,8 @@ class SimuladorPhyphox:
         return (time.monotonic() - self.t0) * self.velocidad
 
     def responder(self, consulta: str) -> dict:
+        if self.bucle and self.ahora() > self.fin + 1.0:
+            self.t0, self.vuelta = time.monotonic(), self.vuelta + 1
         t_ahora = min(self.ahora(), self.fin)
         indice = {}
         for g, (tiempo, valores) in self.grupos.items():
@@ -99,7 +102,8 @@ class SimuladorPhyphox:
             vals = [filas[i][col] if col < len(filas[i]) else math.nan for i in range(i0, i1)]
             salida[nombre] = {"size": 0, "updateMode": "partial",
                               "buffer": [None if (v is None or math.isnan(v)) else v for v in vals]}
-        return {"buffer": salida, "status": {"session": "simulado", "measuring": self.ahora() <= self.fin,
+        return {"buffer": salida, "status": {"session": f"simulado-{self.vuelta}",
+                                            "measuring": self.bucle or self.ahora() <= self.fin,
                                             "timedRun": False, "countDown": 0}}
 
     def cerrar(self) -> None:

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VÍA VIVA · Cámara del celular</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
+</head>
+<body class="pantalla-marcar">
+<header class="barra">
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion">Cámara</span>
+  <span class="espacio"></span><span id="insignia" class="rol">—</span>
+</header>
+
+<main id="principal" class="marcar oculto">
+  <div class="camara-vivo">
+    <video id="video" autoplay muted playsinline></video>
+    <button id="b-cam" class="boton-grabar primario">Encender cámara</button>
+    <button id="b-rec" class="boton-grabar" disabled><span class="punto-rec"></span><span id="t-rec">Grabar con la sesión</span></button>
+    <p id="estado" class="ayuda"></p>
+    <p id="error" class="aviso rojo oculto"></p>
+  </div>
+  <p class="ayuda">El video se guarda en el PC, dentro de la sesión que está grabando, ya sincronizado con la señal
+    (no hace falta destello). Deje la pantalla encendida y el celular enchufado.</p>
+</main>
+
+<main id="pin" class="entrar oculto">
+  <section class="tarjeta">
+    <h2>PIN de la captura</h2>
+    <p class="ayuda">Está en el panel de conexión del PC que está grabando.</p>
+    <form id="f-pin" style="display:grid;gap:12px;margin-top:14px">
+      <input id="v-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code"
+             style="font-size:28px;text-align:center;letter-spacing:.3em" required>
+      <button class="primario" type="submit">Entrar</button>
+      <p id="e-pin" class="aviso rojo oculto"></p>
+    </form>
+  </section>
+</main>
+
+<main id="inseguro" class="marcar oculto">
+  <section class="tarjeta">
+    <h2>Abra la dirección segura</h2>
+    <p id="t-inseguro"></p>
+  </section>
+</main>
+
+<script src="/static/comun.js"></script>
+<script src="/static/camara.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const cam = new CamaraVV($('video'), 'celular');
+let grabandoPC = false;
+
+function pintar() {
+  const rec = cam.grabando();
+  $('b-cam').textContent = cam.flujo ? 'Apagar cámara' : 'Encender cámara';
+  $('b-rec').disabled = !cam.flujo || (!grabandoPC && !rec);
+  $('b-rec').classList.toggle('grabando', rec);
+  $('t-rec').textContent = rec ? 'Detener video' : (grabandoPC ? 'Grabar con la sesión' : 'Esperando a que el PC grabe…');
+  $('estado').textContent = rec ? 'Grabando · ' + (cam.bytes / 1048576).toFixed(1) + ' MB enviados al PC' :
+    cam.flujo ? 'Cámara encendida: el PC ve la imagen en el panel «Cámara en vivo».' : '';
+  $('error').textContent = cam.error || ''; $('error').classList.toggle('oculto', !cam.error);
+}
+cam.alCambiar = pintar;
+
+$('b-cam').onclick = async () => {
+  try {
+    if (cam.flujo) cam.apagar(); else { await cam.encender(null, true); cam.enviarCuadros(700); }
+  } catch (e) { cam.error = 'No se pudo abrir la cámara: ' + e.message; }
+  pintar();
+};
+$('b-rec').onclick = async () => {
+  try { cam.grabando() ? cam.detener() : await cam.grabar(); } catch (e) { cam.error = e.message; }
+  pintar();
+};
+
+async function estado() {
+  try {
+    const e = await VV.json('/api/marcar/estado');
+    grabandoPC = e.grabando;
+    $('insignia').textContent = e.grabando ? '● PC grabando' : 'PC sin grabar';
+    $('insignia').style.color = e.grabando ? 'var(--mal)' : 'var(--sub)';
+    $('principal').classList.remove('oculto'); $('pin').classList.add('oculto');
+    if (!e.grabando && cam.grabando()) cam.detener();
+  } catch (err) {
+    if (err.codigo === 401 || err.codigo === 403) { $('principal').classList.add('oculto'); $('pin').classList.remove('oculto'); }
+  }
+  pintar();
+}
+$('f-pin').onsubmit = async (ev) => {
+  ev.preventDefault();
+  try { await VV.post('/api/pin', {pin: $('v-pin').value}); $('e-pin').classList.add('oculto'); estado(); }
+  catch (e) { $('e-pin').textContent = e.message; $('e-pin').classList.remove('oculto'); }
+};
+
+(async () => {
+  if (!CamaraVV.disponible()) {
+    $('inseguro').classList.remove('oculto');
+    $('t-inseguro').textContent = CamaraVV.motivo() + ' (Dirección actual: ' + location.origin + ')';
+    return;
+  }
+  const pinQr = new URLSearchParams(location.search).get('pin');
+  if (pinQr) { try { await VV.post('/api/pin', {pin: pinQr}); } catch (e) { /* se pide a mano */ }
+               history.replaceState(null, '', '/camara'); }
+  estado(); setInterval(estado, 2000);
+})();
+</script>
+</body>
+</html>
