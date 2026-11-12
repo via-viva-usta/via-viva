@@ -27,8 +27,9 @@ def _doctor(a) -> int:
     url = a.url
     sim = None
     if a.simulado:                        # prueba del doctor sin iPhone: simulador con un export
+        from viaviva.ejemplo import resolver
         from viaviva.simulador_phyphox import SimuladorPhyphox
-        sim = SimuladorPhyphox(Path(a.simulado))
+        sim = SimuladorPhyphox(Path(resolver(a.simulado)))
         url = sim.url
     inf = doctor.correr(fuente, url, a.puerto, segundos=a.segundos, con_internet=not a.sin_internet)
     if sim:
@@ -127,6 +128,8 @@ def _servir(ctx, a, grabar: bool) -> int:
 
 def _capture(a) -> int:
     from viaviva.app import construir
+    from viaviva.ejemplo import resolver
+    a.replay = resolver(a.replay)          # «ejemplo» = export SINTÉTICO de práctica (cualquier PC)
     fuente = a.source
     if a.replay:
         fuente = "replay-http" if a.por_http else "replay"

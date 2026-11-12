@@ -74,6 +74,7 @@ def listar(base: Path, grabando: str | None = None) -> list[dict]:
             r = _resumen(c)
             con = _db(c)
             revisados = con.execute("SELECT COUNT(*) FROM revision").fetchone()[0]
+            _asegurar_etiquetas(c, con)
             con.close()
         except Exception as err:
             salida.append({"nombre": c.name, "error": str(err)})
@@ -304,6 +305,13 @@ def revisar(c: Path, t_s: float, decision: str, clase: str | None, usuario: str)
     return {"ok": True, "etiquetas": n}
 
 
+def _asegurar_etiquetas(c: Path, con: sqlite3.Connection) -> None:
+    """Una sesión copiada de otro PC (zip de la carpeta) llega sin `<carpeta>_etiquetas.csv`, que vive al lado:
+    se rehace con lo que guarda `sesion.sqlite` (marcas vigentes + revisión)."""
+    if not (c.parent / f"{c.name}_etiquetas.csv").exists():
+        escribir_etiquetas(c, con)
+
+
 def escribir_etiquetas(c: Path, con: sqlite3.Connection) -> int:
     """`<carpeta>_etiquetas.csv` = eventos revisados + marcas del copiloto que no estén a ± 1,5 s de uno revisado."""
     rev = con.execute("SELECT t_s, clase FROM revision ORDER BY t_s").fetchall()
@@ -329,6 +337,11 @@ def construir_dataset(base: Path) -> dict:
     rutas = [c for c in sorted(Path(base).glob("sesion_*")) if (c / "Accelerometer.csv").exists()]
     if not rutas:
         raise ValueError("no hay sesiones grabadas")
+    for c in rutas:
+        if (c / "sesion.sqlite").exists():
+            con = _db(c)
+            _asegurar_etiquetas(c, con)
+            con.close()
     salida = ventanas.construir(rutas)
     with open(salida / "manifest.csv", encoding="utf-8") as f:
         filas = list(csv.DictReader(f))

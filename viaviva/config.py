@@ -67,6 +67,11 @@ DIR_GRABACIONES = Path(os.getenv("VIAVIVA_DIR_SESIONES") or os.getenv("PI_DIR_GR
                        (_CAMPO / "sesiones" if _CAMPO.exists() else RAIZ / "data" / "raw" / "sesiones"))
 LOG_R7 = RAIZ / "data" / "logs" / "r7.jsonl"
 RETARDO_REACCION_S = float(os.getenv("VIAVIVA_RETARDO_S", "-1.0"))   # la marca se corre 1 s atrás (reacción humana)
+# PIN fijo para /marcar (opcional; vacío = uno al azar por captura, que se ve en la consola)
+PIN_MARCADOR = os.getenv("VIAVIVA_PIN", "").strip()
+# Redes que entran como editor mientras no haya usuarios creados (además de 127.0.0.1). Solo para Docker, que oculta
+# la IP real: p. ej. "172.16.0.0/12,192.168.65.0/24". Vacío = solo esta máquina.
+IPS_EDITOR = [x.strip() for x in os.getenv("VIAVIVA_IPS_EDITOR", "").split(",") if x.strip()]
 # Teclas del etiquetado (mismas en el PC, el celular y la consola). U = deshacer la última.
 ETIQUETAS = [("1", "hueco", "Hueco"), ("2", "resalto", "Resalto"), ("3", "grieta", "Grieta"), ("4", "parche", "Parche"),
              ("5", "tapa", "Tapa"), ("6", "obstaculo", "Obstáculo"), ("7", "via_buena", "Vía buena")]

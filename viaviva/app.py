@@ -8,6 +8,7 @@ deshace y destella). Sin usuarios creados, la misma máquina (127.0.0.1) entra c
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import platform
 import secrets
 import subprocess
@@ -46,7 +47,7 @@ class Contexto:
         self.sesiones = Sesiones()
         self.permitir_apagado = permitir_apagado
         self.url_db = url_db
-        self.pin = pin or f"{secrets.randbelow(10**6):06d}"     # se muestra en la consola de la captura
+        self.pin = pin or config.PIN_MARCADOR or f"{secrets.randbelow(10**6):06d}"   # se ve en la consola
         self.tokens_marcador: set[str] = set()
         self._intentos_pin: dict[str, list[float]] = {}
         self._cache: dict = {}
@@ -175,8 +176,22 @@ def crear_app(ctx: Contexto) -> FastAPI:
         return JSONResponse({"error": f"falta el parámetro {e}"}, status_code=400)
 
     # ------------------------------------------------------------ sesión y roles
+    redes_editor = []
+    for r in config.IPS_EDITOR:
+        try:
+            redes_editor.append(ipaddress.ip_network(r, strict=False))
+        except ValueError:
+            print(f"VIAVIVA_IPS_EDITOR: «{r}» no es una IP o red válida; se ignora", flush=True)
+
     def local(request: Request) -> bool:
-        return (request.client.host if request.client else "") in ("127.0.0.1", "::1", "testclient")
+        host = request.client.host if request.client else ""
+        if host in ("127.0.0.1", "::1", "testclient"):
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            return False
+        return any(ip in red for red in redes_editor)
 
     def usuario(request: Request) -> dict | None:
         con = ctx.con()
