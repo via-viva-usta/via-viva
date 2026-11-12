@@ -1,6 +1,7 @@
 // VÍA VIVA · tablero en línea (estático, Netlify). Lee de Supabase con la clave pública + sesión (RLS por rol).
-// ?demo=1 → datos INVENTADOS en el navegador para ver el diseño sin cuenta (con aviso).  ?kiosco=1 → pantalla fija.
-// ?demo=1&rol=editor → muestra también los controles de edición (en DEMO no se envía nada).
+// ?publico=1 (o el enlace viejo ?demo=1) → consulta pública del prototipo: datos de PRUEBA generados en el navegador,
+// sin cuenta y con la franja «Prototipo en pruebas».
+// ?publico=1&rol=editor → muestra también los controles de edición (en la consulta pública no se envía nada).
 // Módulos: reglas.js (vocabulario y fórmulas, sin dependencias) · carga.js (Supabase, DEMO, preparación) · mapa.js.
 // Recorrido de la pantalla: cifras (también son atajos) → filtros (lo secundario, plegado) → mapa (modo Huecos o
 // Riesgo) + panel (Para atender · Riesgo · Tendencia). El detalle de un hueco se abre en el panel: el mapa sigue a la
@@ -14,7 +15,7 @@ import * as R from './reglas.js';
 
 const $ = (id) => document.getElementById(id);
 const P = new URLSearchParams(location.search);
-const DEMO = P.has('demo'), KIOSCO = P.has('kiosco');
+const DEMO = P.has('publico') || P.has('demo');      // consulta pública con datos de prueba
 const CFG = window.VIAVIVA || {};
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -30,7 +31,7 @@ let D = preparar([], [], {features: []});
 let vista = {base: [], visibles: [], rango: null};
 let animarDesde = 0;           // filas de la lista que entran con animación (0 = todas; Infinity = ninguna)
 
-// ------------------------------------------------------------------ tema, pantalla fija, diálogos y avisos
+// ------------------------------------------------------------------ tema, diálogos y avisos
 $('b-tema').onclick = () => {
   const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = t;
@@ -39,15 +40,6 @@ $('b-tema').onclick = () => {
   grafico?.destroy(); grafico = null;
   if (mapa) tendencia(vista.base);
 };
-$('b-kiosco').onclick = () => { const u = new URL(location); u.searchParams.set('kiosco', '1'); location = u; };
-if (KIOSCO) {
-  document.body.classList.add('kiosco');
-  document.addEventListener('click', () => document.documentElement.requestFullscreen?.().catch(() => {}), {once: true});
-  navigator.wakeLock?.request('screen').catch(() => {});
-  addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !document.fullscreenElement) { const u = new URL(location); u.searchParams.delete('kiosco'); location = u; }
-  });
-}
 for (const d of document.querySelectorAll('dialog')) d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
 for (const b of document.querySelectorAll('[data-cerrar]')) b.onclick = () => b.closest('dialog').close();
 $('b-ayuda').onclick = () => $('d-ayuda').showModal();
@@ -70,13 +62,13 @@ const vacio = (titulo, texto) => `<li class="vacio"><b>${esc(titulo)}</b>${texto
 async function iniciar() {
   window.VV_ARRANCO = true;                  // las librerías cargaron: vigia.js ya no avisa
   if (DEMO) {
-    const rol = ['editor', 'alcaldia', 'docente'].includes(P.get('rol')) ? P.get('rol') : 'docente';
-    yo = {rol, nombre: 'Demostración'};
+    const rol = ['editor', 'alcaldia'].includes(P.get('rol')) ? P.get('rol') : 'publico';
+    yo = {rol, nombre: ''};
     return mostrarApp();
   }
   if (!CFG.supabaseUrl || !CFG.supabaseClave) {
     $('entrar').classList.remove('oculto');
-    $('e-entrar').textContent = 'Falta config.js (viaviva nube preparar). Mientras tanto, vea la DEMOSTRACIÓN.';
+    $('e-entrar').textContent = 'Falta config.js (viaviva nube preparar). Mientras tanto, abra la consulta pública.';
     $('e-entrar').classList.remove('oculto');
     $('t-frescura').textContent = 'Sin conexión configurada';
     return;
@@ -102,16 +94,16 @@ $('f-entrar').onsubmit = async (ev) => {
 };
 
 async function mostrarApp() {
-  $('entrar').classList.add('oculto'); $('app').classList.remove('oculto'); $('b-kiosco').classList.remove('oculto');
+  $('entrar').classList.add('oculto'); $('app').classList.remove('oculto');
   $('cuenta').innerHTML = esc(yo.nombre || yo.correo || '') + ' <span class="rol">' + esc({editor: 'Editor',
-    alcaldia: 'Alcaldía', docente: 'Docente'}[yo.rol]) + '</span>' + (DEMO ? '' : ' <a href="#" id="b-salir">Salir</a>');
+    alcaldia: 'Alcaldía', docente: 'Docente', publico: 'Consulta pública'}[yo.rol]) + '</span>' + (DEMO ? '' : ' <a href="#" id="b-salir">Salir</a>');
   if ($('b-salir')) $('b-salir').onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
   if (yo.rol === 'editor') $('b-importar').classList.remove('oculto');
-  if (DEMO) $('franja-demo').classList.remove('oculto');      // franja amarilla: imposible de no ver, sin tapar
+  if (DEMO) $('franja-demo').classList.remove('oculto');      // franja «Prototipo en pruebas»: se ve sin tapar
   tramos = await cargarTramos();
   if (!tramos.features.length) ponerAviso('tramos', 'Falta datos/tramos.geojson (viaviva nube preparar): no se pueden mostrar calles ni riesgo.');
   else if (tramos.demo && !DEMO) {
-    ponerAviso('tramos', 'El archivo de calles es de DEMOSTRACIÓN (herramientas/tramos_demo.py): sus números de tramo no '
+    ponerAviso('tramos', 'El archivo de calles es de PRUEBA (herramientas/tramos_demo.py): sus números de tramo no '
       + 'coinciden con la base y el riesgo no se puede ubicar. Publique el de «viaviva nube preparar».');
   }
   mapa = new Mapa($('mapa'), {alTocarHueco: (id) => abrirDetalle(id), htmlTramo, htmlHuecoCorto});
@@ -121,7 +113,7 @@ async function mostrarApp() {
   await recargar();
   entrada();
   irAlDestino();
-  setInterval(recargar, KIOSCO ? 60000 : 120000);
+  setInterval(recargar, 120000);
 }
 
 // ------------------------------------------------------------------ datos y filtros
@@ -133,7 +125,7 @@ async function recargar() {
   } catch (e) {
     ponerAviso('error', 'No se pudieron leer los datos: ' + (e.message || e) + '. Se muestran los últimos que se cargaron.');
   }
-  ponerAviso('corrida', D.corrida?.demo && !DEMO ? 'La corrida de riesgo es DEMO/SINTÉTICA: sirve para probar el tablero, no es un resultado.' : '');
+  ponerAviso('corrida', D.corrida?.demo && !DEMO ? 'La corrida de riesgo es de PRUEBA (sintética): sirve para probar el tablero, no es un resultado.' : '');
   mapa.ponerTramos(D.tramosRiesgo);
   opcionesTipo();
   if (ui.modo === 'riesgo' && !D.riesgo.length) ponerModo('huecos');
@@ -236,7 +228,7 @@ function contexto({visibles, rango: r}) {
 function frescura() {
   const el = $('frescura'), t = $('t-frescura');
   el.classList.remove('al-dia', 'viejo');
-  if (DEMO) { t.textContent = 'Datos de demostración'; return; }
+  if (DEMO) { t.textContent = 'Prototipo · datos de prueba'; return; }
   if (!D.ultimoDato) { t.textContent = 'Sin datos sincronizados todavía'; el.classList.add('viejo'); return; }
   const reciente = Date.now() - D.ultimoDato <= 2 * DIA;
   el.classList.add(reciente ? 'al-dia' : 'viejo');
@@ -369,7 +361,7 @@ function conectarCambio(h) {
     $('b-cambiar').disabled = elegido === h.estado;
   };
   $('b-cambiar').onclick = async () => {
-    if (DEMO) return toast(`DEMOSTRACIÓN: aquí no se envía nada. En la versión real, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
+    if (DEMO) return toast(`Consulta pública del prototipo: aquí no se envía nada. Con cuenta de editor, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
     $('b-cambiar').setAttribute('aria-busy', 'true');
     const {error} = await sb.from('cambios_remotos').insert({id_origen: h.id_origen, instancia: h.instancia, id_local: h.id_local,
       estado: elegido, nota: $('nota').value.trim() || null});
@@ -398,7 +390,7 @@ function tramosTop() {
   const c = D.corrida;
   $('ayuda-tramos').innerHTML = 'Probabilidad estimada de que el tramo tenga un hueco sin reportar: una guía para revisar, no una certeza.'
     + (c ? `<br><span class="chip">${esc(c.modelo)} · ${esc(c.version)} · ${R.fechaDia(c.fecha)}</span>` : '')
-    + (c?.demo ? ' <span class="chip fuerte">DEMO: no es un resultado</span>' : '');
+    + (c?.demo ? ' <span class="chip fuerte">Datos de prueba: no es un resultado</span>' : '');
   if (!D.riesgo.length) {
     $('top').innerHTML = vacio('Aún no hay corridas del modelo de riesgo', 'Aparecen cuando se corre el modelo y la Pi sincroniza.');
     return;
@@ -599,7 +591,7 @@ function descargar(nombre, contenido, tipo) {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 const cerrarMenu = () => { document.querySelector('.menu-exportar').open = false; };
-const sello = () => new Date().toISOString().slice(0, 16).replace(/[:T-]/g, '') + (DEMO ? '_DEMO' : '');
+const sello = () => new Date().toISOString().slice(0, 16).replace(/[:T-]/g, '') + (DEMO ? '_PRUEBA' : '');
 // id_hueco (no id_local): así el CSV descargado sirve de base para «Importar reparaciones»
 const COLUMNAS = [['id_hueco', (h) => h.id_local], ['instancia', (h) => h.instancia], ['estado', (h) => h.estado],
   ['tipo', (h) => h.clase], ['severidad', (h) => h.severidad || ''], ['detecciones', (h) => h.n_detecciones],
@@ -623,7 +615,7 @@ $('x-xlsx').onclick = async (e) => {
     return {id_tramo: r.id_tramo, calle: t ? l.titulo : '', barrio: l.barrio || '', tipo_via: t ? l.via : '',
       probabilidad: r.probabilidad, nivel: R.NIVELES_RIESGO[R.nivelRiesgo(r.probabilidad)], huecos_abiertos: D.abiertosTramo.get(r.id_tramo) || 0};
   })), 'Riesgo por tramo');
-  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', DEMO ? 'DEMOSTRACIÓN: datos inventados' : ''],
+  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', DEMO ? 'PROTOTIPO EN PRUEBAS: datos de prueba, no son mediciones' : ''],
     ['Generado', new Date().toLocaleString('es-CO', {timeZone: 'America/Bogota'})], ['Vista', $('contexto').textContent],
     ['Último dato', D.ultimoDato ? R.fechaHora(D.ultimoDato) : '—'],
     ['Corrida de riesgo', D.corrida ? `${D.corrida.modelo} ${D.corrida.version} (${R.fechaDia(D.corrida.fecha)})` : '—'], [],
@@ -648,7 +640,7 @@ $('archivo').onchange = async () => {
   $('b-enviar').disabled = r.errores.length > 0 || !r.cambios.length;
 };
 $('b-enviar').onclick = async () => {
-  if (DEMO) { $('d-importar').close(); return toast(`DEMOSTRACIÓN: el archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}), pero aquí no se envía nada.`); }
+  if (DEMO) { $('d-importar').close(); return toast(`Consulta pública del prototipo: el archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}), pero aquí no se envía nada.`); }
   const {error} = await sb.from('cambios_remotos').insert(cambiosCSV);
   toast(error ? 'No se envió: ' + error.message : `${plural(cambiosCSV.length, 'cambio enviado', 'cambios enviados')}; se aplican cuando la Pi sincronice.`);
   $('d-importar').close();

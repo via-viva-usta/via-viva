@@ -48,7 +48,7 @@
 body { margin: 0; background: var(--pico-background-color); -webkit-font-smoothing: antialiased; }
 .oculto { display: none !important; }
 .sub { color: var(--pico-muted-color); font-size: .82rem; font-weight: 400; }
-.solo-imprimir, .solo-kiosco { display: none !important; }
+.solo-imprimir { display: none !important; }
 .saltar { position: absolute; left: -999px; top: .5rem; z-index: 100; }
 .saltar:focus { left: 1rem; }
 :where(button, a, summary, select, input):focus-visible { outline: 2px solid var(--pico-primary-hover); outline-offset: 2px; }
@@ -288,14 +288,6 @@ dialog article { max-width: 680px; border: 1px solid var(--vv-borde); }
   padding: .8rem 1.1rem; font-size: .88rem; background: var(--vv-texto); color: var(--pico-background-color);
   box-shadow: 0 10px 30px rgb(0 0 0 / .35); }
 
-/* ---------------------------------------------------------------- pantalla fija (Alcaldía) */
-.kiosco .filtros, .kiosco .contexto, .kiosco #cuenta, .kiosco #b-kiosco, .kiosco #b-tema, .kiosco #b-ayuda,
-.kiosco .pestanas, .kiosco .pie p:first-child, .kiosco .chips { display: none !important; }
-.kiosco .solo-kiosco { display: block !important; }
-.kiosco .cifra { pointer-events: none; }
-.kiosco .cifra b { font-size: 3.4rem; }
-.kiosco { --alto-principal: calc(100dvh - 215px); }
-
 /* ---------------------------------------------------------------- celular y tableta */
 @media (max-width: 960px) {
   :root { --alto-principal: auto; }
@@ -307,7 +299,7 @@ dialog article { max-width: 680px; border: 1px solid var(--vv-borde); }
   .cifra:nth-child(2) { border-right: 0; }
   .cifra:nth-child(n+3) { border-top: 1px solid var(--vv-borde); }
   .cifra b { font-size: 2.1rem; }
-  #b-kiosco, .barra-seccion { display: none; }
+  .barra-seccion { display: none; }
   .barra { position: static; }                 /* en el celular la barra fija se comía pantalla */
   #p-atender, #mapa { scroll-margin-top: 12px; }
 }

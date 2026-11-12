@@ -1,7 +1,7 @@
 // VÍA VIVA · portada. Sin librerías: hora de Tunja, aparición por partes y cifras que cuentan al verse.
 (function () {
-  // Los enlaces viejos (?demo=1, ?kiosco=1 en la raíz) siguen llevando al tablero
-  if (/[?&](demo|kiosco|rol)\b/.test(location.search)) { location.replace('tablero.html' + location.search + location.hash); return; }
+  // Los enlaces viejos (?demo=1, ?publico=1 en la raíz) siguen llevando al tablero
+  if (/[?&](demo|publico|kiosco|rol)\b/.test(location.search)) { location.replace('tablero.html' + location.search + location.hash); return; }
 
   var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 

@@ -46,10 +46,11 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
 - Un **editor** cambia el estado de un bache en línea → `cambios_remotos` → la Pi lo aplica en SQLite (con historial,
   usuario `nube:<correo>`) y lo vuelve a subir. Si el bache no existe, queda `rechazado`.
 - La raíz (`index.html`) es la **portada** (qué es, cómo leer el mapa, la base); el tablero está en `tablero.html`.
-  Los enlaces viejos con `?demo=1` o `?kiosco=1` en la raíz se redirigen solos al tablero.
-- `tablero.html?kiosco=1` = pantalla fija para la Alcaldía (sin controles, se refresca cada minuto, pantalla siempre encendida).
-- `tablero.html?demo=1` = datos inventados en el navegador para mostrar el diseño sin cuenta (con franja amarilla);
-  `&rol=editor` muestra también la edición (en DEMO no se envía nada). `#riesgo` y `#tendencia` abren esa pestaña.
+  Los enlaces viejos con `?demo=1` en la raíz se redirigen solos al tablero.
+- La **pantalla fija** (`?kiosco=1`) se quitó el 12-nov: el parámetro ya no hace nada.
+- `tablero.html?publico=1` (o el viejo `?demo=1`) = **consulta pública del prototipo**, sin cuenta: datos de PRUEBA
+  generados en el navegador, con la franja «Prototipo en pruebas» (nunca se presentan como mediciones de Tunja);
+  `&rol=editor` muestra también la edición (en la consulta pública no se envía nada). `#riesgo` y `#tendencia` abren esa pestaña.
 - El plan gratuito de Supabase **pausa** el proyecto tras una semana sin actividad; la sincronización diaria suele
   evitarlo (sin garantía). Se restaura desde el panel.
 

@@ -194,8 +194,8 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 - **Fase B:** `senal.py` (eje vertical por gravedad), `detector.py` + `config/detector.yaml`, `ventanas.py`,
   `modelo_ventanas.py`. Sin marcas reales todavía: todo lo calibrado/evaluado es SINTÉTICO hasta etiquetar.
 - **Nube:** `sincronizacion.py` (eventos, huecos, riesgo; trae `cambios_remotos`), `supabase_esquema.sql`, `nube.py`,
-  `web/en_linea/` (portada `index.html` + `tablero.html` con MapLibre + Chart.js + Pico; `tablero.html?demo=1`,
-  `?kiosco=1`), `docs/NUBE.md`. Video: si es HEVC, la revisión avisa y convierte a H.264 con ffmpeg (opcional).
+  `web/en_linea/` (portada `index.html` + `tablero.html` con MapLibre + Chart.js + Pico; `tablero.html?publico=1`
+  = consulta pública del prototipo con datos de prueba; la pantalla fija se quitó el 12-nov), `docs/NUBE.md`. Video: si es HEVC, la revisión avisa y convierte a H.264 con ffmpeg (opcional).
 - **Trampas:** `.cmd` con CRLF (`.gitattributes`); en Windows el manejador de `GetCurrentProcess` es de 64 bits
   (`restype = c_void_p`); la caché de características del detector se limpia para medir R7; uvicorn atiende SIGTERM y
   la captura cierra la sesión en `finally`.
