@@ -68,6 +68,7 @@ const vacio = (titulo, texto) => `<li class="vacio"><b>${esc(titulo)}</b>${texto
 
 // ------------------------------------------------------------------ sesión
 async function iniciar() {
+  window.VV_ARRANCO = true;                  // las librerías cargaron: vigia.js ya no avisa
   if (DEMO) {
     const rol = ['editor', 'alcaldia', 'docente'].includes(P.get('rol')) ? P.get('rol') : 'docente';
     yo = {rol, nombre: 'Demostración'};

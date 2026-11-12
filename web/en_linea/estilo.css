@@ -332,3 +332,11 @@ dialog article { max-width: 680px; border: 1px solid var(--vv-borde); }
   #lista > li:nth-child(n+16), #lista-pie, .tabla-alt { display: none !important; }   /* el PDF lleva los 15 primeros */
   .entra { animation: none !important; }
 }
+
+/* aviso cuando el tablero no carga (vigia.js) */
+.falla-carga { position: fixed; inset: auto 1rem 1rem 1rem; z-index: 9000; max-width: 32rem; margin: 0 auto; padding: 1.25rem;
+  background: var(--m-asfalto-2); color: var(--m-blanco); border: 1px solid var(--m-linea); border-left: 4px solid var(--m-peligro);
+  font: 400 1rem/1.45 var(--f-texto); }
+.falla-carga p { margin: 0 0 .75rem; color: inherit; }
+.falla-carga .t-etiqueta { color: var(--m-peligro); }
+.falla-carga .b-marca { width: auto; margin: 0; }
