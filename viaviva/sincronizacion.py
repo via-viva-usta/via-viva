@@ -69,6 +69,17 @@ def riesgo_publico(fila: dict) -> dict:
             "rango": fila.get("rango")}
 
 
+def id_local_de(cambio: dict) -> int | None:
+    """El id del hueco en esta base, sacado de `id_origen` («instancia|id»). None si es de otra instancia o si
+    `instancia` / `id_local` del pedido no coinciden con `id_origen`."""
+    instancia, _, local = str(cambio.get("id_origen") or "").rpartition("|")
+    if instancia != INSTANCIA or not local.isdigit():
+        return None
+    if cambio.get("instancia", instancia) != instancia or str(cambio.get("id_local", local)) != local:
+        return None
+    return int(local)
+
+
 class Sincronizador:
     def __init__(self, url: str | None = None, clave: str | None = None, url_db: str | None = None):
         self.url = (url if url is not None else os.getenv("SUPABASE_URL", "")).rstrip("/")
@@ -179,15 +190,18 @@ class Sincronizador:
 
     def traer_cambios(self, con) -> int:
         """Los editores cambian estados en línea → tabla cambios_remotos. La Pi (fuente de verdad) los aplica a
-        SQLite con el historial (usuario `nube:<correo>`) y los marca como aplicados. Los ajenos se ignoran."""
+        SQLite con el historial (usuario `nube:<correo>`) y los marca como aplicados. Los ajenos se ignoran.
+        El hueco sale de `id_origen` (llave hacia huecos_publicos); si `id_local` o `instancia` no coinciden con
+        él, el pedido se rechaza: así un pedido armado a mano no cambia otro hueco."""
         pendientes = self._json("GET", f"cambios_remotos?aplicado=eq.false&instancia=eq.{INSTANCIA}"
-                                       "&select=id,id_local,estado,nota,autor&order=id") or []
+                                       "&select=id,id_origen,instancia,id_local,estado,nota,autor&order=id") or []
         from viaviva.almacen import cambiar_estado_hueco
         aplicados = 0
         for c in pendientes:
+            id_hueco = id_local_de(c)
             try:
-                ok = cambiar_estado_hueco(con, int(c["id_local"]), c["estado"], f"nube:{c.get('autor') or '?'}",
-                                          nota=c.get("nota"))
+                ok = id_hueco is not None and cambiar_estado_hueco(
+                    con, id_hueco, c["estado"], f"nube:{c.get('autor') or '?'}", nota=c.get("nota"))
             except ValueError:
                 ok = False
             self._json("PATCH", f"cambios_remotos?id=eq.{int(c['id'])}",

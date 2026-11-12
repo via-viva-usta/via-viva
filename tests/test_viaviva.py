@@ -482,14 +482,21 @@ def test_sincroniza_huecos_y_aplica_cambios_hechos_en_linea(tmp_path):
     almacen.agrupar_huecos(con)
     id_h = almacen.huecos(con)[0]["id_hueco"]
     con.close()
-    nube = _NubeConCambios([{"id": 7, "id_local": id_h, "estado": "verificado", "nota": "visto", "autor": "a@b.co"},
-                            {"id": 8, "id_local": 999, "estado": "reparado", "nota": None, "autor": "a@b.co"}])
+    io = f"pi-01|{id_h}"
+    nube = _NubeConCambios([
+        # armado a mano: id_origen de un hueco que existe pero id_local de otro → rechazado, no toca nada
+        {"id": 6, "id_origen": io, "instancia": "pi-01", "id_local": id_h + 1, "estado": "descartado",
+         "nota": None, "autor": "x@y.co"},
+        {"id": 7, "id_origen": io, "instancia": "pi-01", "id_local": id_h, "estado": "verificado", "nota": "visto",
+         "autor": "a@b.co"},
+        {"id": 8, "id_origen": "pi-01|999", "instancia": "pi-01", "id_local": 999, "estado": "reparado",
+         "nota": None, "autor": "a@b.co"}])
     sin = s.Sincronizador(url=nube.url, clave="clave-prueba", url_db=url)
     r = sin.una_vez()
     assert r["cambios_en_linea"] == 1                     # el 999 no existe: se marca rechazado
     hp = dict(nube.recibido)["/rest/v1/huecos_publicos"][0]
-    assert hp["id_origen"] == f"pi-01|{id_h}" and hp["estado"] == "detectado" and "nota" not in hp
-    assert [b["resultado"] for _, b in nube.parches] == ["aplicado", "rechazado"]
+    assert hp["id_origen"] == io and hp["estado"] == "detectado" and "nota" not in hp
+    assert [b["resultado"] for _, b in nube.parches] == ["rechazado", "aplicado", "rechazado"]
     con = almacen.conectar(url)
     h = almacen.huecos(con)[0]
     assert h["estado"] == "verificado" and h["usuario_estado"] == "nube:a@b.co"
@@ -516,3 +523,12 @@ def test_nube_preparar_no_publica_la_clave_secreta(tmp_path, monkeypatch):
     assert "publica-prueba" in cfg and "secreta-prueba" not in cfg
     g = json.loads((tmp_path / "sitio" / "datos" / "tramos.geojson").read_text(encoding="utf-8"))
     assert g["features"][0]["id"] == 1 and g["features"][0]["geometry"]["coordinates"][0] == [-73.37, 5.535]
+
+
+def test_id_local_de_exige_que_el_pedido_coincida_con_id_origen():
+    from viaviva import sincronizacion as s
+    assert s.id_local_de({"id_origen": f"{s.INSTANCIA}|12", "instancia": s.INSTANCIA, "id_local": 12}) == 12
+    assert s.id_local_de({"id_origen": f"{s.INSTANCIA}|12", "instancia": s.INSTANCIA, "id_local": 13}) is None
+    assert s.id_local_de({"id_origen": "otra-pi|12", "instancia": "otra-pi", "id_local": 12}) is None
+    assert s.id_local_de({"id_origen": f"{s.INSTANCIA}|abc", "id_local": 1}) is None
+    assert s.id_local_de({}) is None
