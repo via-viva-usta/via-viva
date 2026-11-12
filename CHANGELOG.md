@@ -1,5 +1,16 @@
 # Cambios
 
+## 2026-11-12 — tablero en línea: íconos SVG y cifras con tendencia (rama `web/iconos-tendencia`)
+
+- Un solo juego de íconos SVG en `web/en_linea/tablero.html` (trazo 1,75, puntas rectas, sin archivos ni fuentes aparte):
+  reemplaza los caracteres ?, ◐, ✕, ✓ y × de la barra, los filtros activos y la lista, y suma pictogramas de hueco y
+  golpe en el detalle.
+- Las cifras Huecos abiertos, Severidad alta y Reparados muestran una mini línea de 8 ventanas de 7 días y una frase
+  («3 menos que 7 días antes»). Respeta severidad y tipo, no el periodo. Funciones en `reglas.js`
+  (`abiertoEn`, `serieSemanas`, `textoTendencia`) con pruebas: `node --test tests/web/*.test.mjs` (5 pasan).
+- Revisado con los datos de prueba en el navegador (1440 px oscuro y claro, 390 px sin desborde). Sin probar contra
+  Supabase real.
+
 ## 2026-11-11 — roles definitivos de la salida de campo
 
 - iPhone A = Anzola (phyphox + punto de acceso); PC de captura = su Lenovo, marca con el teclado; iPhone B = Pipe, solo
