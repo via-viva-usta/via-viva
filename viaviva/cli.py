@@ -35,8 +35,11 @@ def _doctor(a) -> int:
     if sim:
         sim.cerrar()
     elif fuente == "phyphox" and inf.url_phyphox and not a.no_guardar and inf.url_phyphox != config.PHYPHOX_URL:
-        config.guardar_env("VIAVIVA_PHYPHOX_URL", inf.url_phyphox)
-        print(f"URL de phyphox guardada en .env: {inf.url_phyphox}")
+        try:
+            config.guardar_env("VIAVIVA_PHYPHOX_URL", inf.url_phyphox)
+            print(f"URL de phyphox guardada en .env: {inf.url_phyphox}")
+        except OSError:                    # p. ej. en Docker (/app es de solo lectura para el usuario)
+            print(f"phyphox respondió en {inf.url_phyphox}: úsela con VIAVIVA_PHYPHOX_URL={inf.url_phyphox}")
     if a.json:
         import json
         print(json.dumps(inf.dict(), ensure_ascii=False, indent=1))
@@ -95,10 +98,13 @@ def _servir(ctx, a, grabar: bool) -> int:
     if grabar:
         print(f" Grabando: {ctx.n.sesion.carpeta.name if ctx.n.sesion else '—'}")
     print(f" Captura: {url_local}/captura    Tablero: {url_local}/tablero    Sincronía: {url_local}/sync")
-    if ctx.ip:
-        print(f" Celular del copiloto: http://{ctx.ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
-    print(" Teclas aquí: 1 hueco · 2 resalto · 3 grieta · 4 parche · 5 tapa · 6 obstáculo · 7 vía buena ·")
-    print("              U deshacer · S marca de sincronía · Q terminar (o Ctrl+C)")
+    ip = ctx.ip or "<IP de este PC>"          # en Docker la IP del contenedor no sirve al celular
+    print(f" Celular del copiloto: http://{ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
+    if sys.platform == "win32":
+        print(" Teclas aquí: 1 hueco · 2 resalto · 3 grieta · 4 parche · 5 tapa · 6 obstáculo · 7 vía buena ·")
+        print("              U deshacer · S marca de sincronía · Q terminar (o Ctrl+C)")
+    else:                                     # Mac, Linux y Docker: las teclas de la consola son solo de Windows
+        print(" Marcar: botones de /captura o el celular (/marcar). Terminar: Ctrl+C")
     print("═" * 64, flush=True)
     if getattr(a, "abrir", False):
         threading.Timer(1.5, lambda: webbrowser.open(f"{url_local}/captura")).start()

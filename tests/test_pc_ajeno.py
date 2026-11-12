@@ -48,6 +48,15 @@ def test_pin_fijo_por_entorno_y_redes_de_editor_para_docker(tmp_path, monkeypatc
         ctx.fuente.cerrar()
 
 
+def test_ip_para_el_celular_en_docker(monkeypatch):
+    from viaviva import doctor
+    monkeypatch.delenv("VIAVIVA_IP_PC", raising=False)
+    monkeypatch.setenv("VIAVIVA_EN_DOCKER", "1")
+    assert doctor.ip_local() is None                           # la IP del contenedor no le sirve al celular
+    monkeypatch.setenv("VIAVIVA_IP_PC", "172.20.10.3")
+    assert doctor.ip_local() == "172.20.10.3"
+
+
 def test_sesion_copiada_de_otro_pc_rehace_sus_etiquetas(tmp_path):
     from viaviva import sesiones
     ctx, c = _cliente(tmp_path, _base_con_calle(tmp_path), segundos=20, velocidad=40)

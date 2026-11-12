@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import email.utils
 import math
+import os
 import platform
 import shutil
 import socket
@@ -59,6 +60,10 @@ def puerta_de_enlace() -> str | None:
                                 "Sort-Object RouteMetric | Select-Object -First 1).NextHop"],
                                capture_output=True, text=True, timeout=8)
             return r.stdout.strip() or None
+        if platform.system() == "Darwin":            # macOS (sin probar en Mac)
+            r = subprocess.run(["route", "-n", "get", "default"], capture_output=True, text=True, timeout=3)
+            linea = next((x for x in r.stdout.splitlines() if x.strip().startswith("gateway:")), "")
+            return linea.split(":", 1)[1].strip() or None if linea else None
         r = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True, timeout=3)
         partes = r.stdout.split()
         return partes[partes.index("via") + 1] if "via" in partes else None
@@ -67,6 +72,13 @@ def puerta_de_enlace() -> str | None:
 
 
 def ip_local() -> str | None:
+    """IP de este equipo en la red del iPhone (la que abre el celular). En Docker la del contenedor no sirve: se usa
+    VIAVIVA_IP_PC si está, o ninguna."""
+    fija = os.getenv("VIAVIVA_IP_PC", "").strip()
+    if fija:
+        return fija
+    if os.getenv("VIAVIVA_EN_DOCKER"):
+        return None
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("172.20.10.1", 80))      # no envía nada: solo elige la interfaz de salida
@@ -215,7 +227,9 @@ def chequear_pc(inf: Informe, puerto: int, dir_sesiones: Path, con_internet: boo
                 f"{puerto} libre" if puerto_libre(puerto) else f"{puerto} ocupado: ¿ya hay una captura abierta?")
     ip = ip_local()
     inf.agregar(OK if ip else AVISO, "Celular que marca", f"http://{ip}:{puerto}/marcar (mismo WiFi; aceptar el aviso "
-                "del Firewall de Windows en red PRIVADA)" if ip else "sin IP en la red del iPhone")
+                "del Firewall de Windows en red PRIVADA)" if ip else
+                ("en Docker: http://<IP del PC>:" + str(puerto) + "/marcar (la IP con ipconfig o ifconfig; o "
+                 "VIAVIVA_IP_PC)" if os.getenv("VIAVIVA_EN_DOCKER") else "sin IP en la red del iPhone"))
 
 
 def chequear_pi(inf: Informe) -> None:
