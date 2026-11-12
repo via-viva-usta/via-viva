@@ -1,15 +1,23 @@
 <!doctype html>
-<html lang="es" class="tema-a">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f6feb">
 <title>VÍA VIVA · Captura</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preload" href="/fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
 </head>
 <body>
 <header class="barra">
-  <div class="marca"><span class="logo"></span><div>VÍA VIVA<small>Captura en el carro</small></div></div>
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion">Campo</span>
   <span id="insignia" class="rol">—</span>
   <span class="espacio"></span>
   <button id="b-pantalla" class="enlace" title="Pantalla completa (tablet fija)">⛶ Pantalla completa</button>
@@ -29,6 +37,24 @@
     <p id="aviso-fuente" class="aviso oculto" style="margin-top:10px"></p>
   </section>
 
+  <section class="tarjeta area-conexion" id="conexion" aria-live="polite">
+    <h2>Conexión <span class="estado-conexion" id="c-resumen"><span class="punto"></span>Revisando…</span></h2>
+    <div class="conexion">
+      <div><span class="et">Red del PC</span><b id="c-red">—</b><small id="c-red2"></small></div>
+      <div><span class="et">phyphox · iPhone A</span><b id="c-ph">—</b><small id="c-ph2"></small></div>
+      <div><span class="et">Raspberry Pi</span><b id="c-pi">—</b><small id="c-pi2"></small></div>
+      <div><span class="et">Celular extra · /marcar</span>
+        <div class="qr"><img id="c-qr" alt="Código QR para abrir /marcar en un celular" width="112" height="112">
+          <div><b id="c-pin">PIN —</b><small id="c-url"></small></div></div></div>
+    </div>
+    <div class="botones-fila">
+      <button id="b-probar" type="button">Probar conexión</button>
+      <button id="b-reintentar" type="button">Reintentar con el iPhone A</button>
+      <button id="b-ejemplo" type="button" title="Recorrido SINTÉTICO por Tunja: para practicar o mostrar sin iPhone">Usar el ejemplo</button>
+    </div>
+    <p id="c-msg" class="aviso msg-conexion oculto" role="status"></p>
+  </section>
+
   <section class="tarjeta area-etq">
     <h2>¿Qué pisó la llanta? <span class="sub">teclas 1–7 · U deshace · se une al evento a ± 3 s</span></h2>
     <div class="etiquetas" id="etiquetas"></div>
@@ -44,6 +70,22 @@
     <canvas id="grafica" class="grafica"></canvas>
     <div class="estado-gps" style="margin-top:10px"><span id="p-gps" class="punto"></span><span id="d-gps">GPS: —</span></div>
     <div id="mapa" class="mapa"></div>
+  </section>
+
+  <section class="tarjeta area-camara" id="camara">
+    <h2>Cámara en vivo <span class="sub">webcam del PC o celular · se graba dentro de la sesión, ya sincronizada</span></h2>
+    <div class="camara-vivo">
+      <div class="botones-fila" style="margin-top:0">
+        <select id="cam-lista" aria-label="Cámara del PC"><option value="">Cámara del PC</option></select>
+        <button id="b-cam" type="button">Encender</button>
+        <button id="b-cam-rec" type="button" disabled>Grabar con la sesión</button>
+        <span id="cam-rec" class="rec oculto">Grabando video</span>
+      </div>
+      <video id="cam-video" class="oculto" autoplay muted playsinline></video>
+      <img id="cam-celular" class="oculto" alt="Imagen en vivo del celular">
+      <p id="cam-error" class="aviso rojo oculto"></p>
+      <p class="ayuda" id="cam-ayuda"></p>
+    </div>
   </section>
 
   <details class="tarjeta area-diag" id="diag">
@@ -63,6 +105,7 @@
 </main>
 
 <script src="/static/comun.js"></script>
+<script src="/static/camara.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 let ultimo = null, mapa = null, centrado = false, fallos = 0, ETIQUETAS = [];
@@ -134,12 +177,21 @@ function grafica(serie) {
   g.strokeStyle = VV.color('--borde'); g.lineWidth = 1;
   for (const v of [0, 0.3, -0.3]) { g.setLineDash(v ? [4, 4] : []); g.beginPath(); g.moveTo(0, y(v)); g.lineTo(w, y(v)); g.stroke(); }
   g.setLineDash([]);
-  if (serie.length < 2) return;
+  if (serie.length < 2) {
+    g.fillStyle = VV.color('--sub'); g.font = '600 11px ' + VV.color('--f-texto');
+    g.fillText('SIN SEÑAL: revise la conexión (arriba)', 10, h / 2 - 8); return;
+  }
   const t0 = serie[serie.length - 1][0] - 30;
-  g.strokeStyle = VV.color('--acento'); g.lineWidth = 1.6; g.beginPath();
+  for (const ev of (ultimo ? ultimo.ultimos_eventos : [])) {         // eventos de los últimos 30 s
+    if (ev.t_s < t0) continue;
+    const x = (ev.t_s - t0) / 30 * w;
+    g.fillStyle = VV.color(COLOR_SEV[ev.severidad] || '--est-detectado'); g.fillRect(x - 1, 0, 3, h);
+  }
+  g.strokeStyle = VV.color('--senal'); g.lineWidth = 1.6; g.beginPath();
   serie.forEach(([t, v], i) => { const x = (t - t0) / 30 * w; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); });
   g.stroke();
 }
+const COLOR_SEV = {alta: '--est-verificado', media: '--est-detectado', baja: '--r2'};
 
 const punto = (ok) => '<span class="punto ' + (ok === true ? 'ok' : ok === false ? 'mal' : '') + '"></span>';
 
@@ -175,10 +227,13 @@ async function actualizar() {
   $('d-gps').textContent = g.fix ? 'GPS ' + g.lat.toFixed(5) + ', ' + g.lon.toFixed(5) + ' · ±' + VV.texto(g.precision_m, ' m', 0) +
     (g.satelites ? ' · ' + g.satelites + ' sat.' : '') + (g.hora_de_gps ? ' · hora GPS' : '') : 'GPS sin fijación';
   if (mapa) {
-    mapa.lineas('recorrido', [{puntos: e.trayecto, color: VV.color('--acento'), grosor: 4}]);
+    mapa.lineas('recorrido', [{puntos: e.trayecto, color: VV.color('--senal'), grosor: 4}]);
     mapa.puntos('eventos', e.ultimos_eventos.filter(x => x.lat !== null).map(x => ({lat: x.lat, lon: x.lon,
-      color: VV.color('--est-detectado'), titulo: (x.etiqueta_manual || x.clase) + ' · ' + x.p2p_g + ' g'})));
-    if (g.fix) { mapa.puntos('yo', [{lat: g.lat, lon: g.lon, color: VV.color('--acento'), radio: 8}]);
+      color: VV.color(COLOR_SEV[x.severidad] || '--est-detectado'), radio: x.severidad === 'alta' ? 8 : 6,
+      borde: VV.color('--vv-borde-punto'),
+      titulo: (x.etiqueta_manual || x.clase.replace('_', ' ')) + ' · severidad ' + x.severidad + ' · ' + x.p2p_g + ' g'})));
+    if (g.fix) { mapa.puntos('yo', [{lat: g.lat, lon: g.lon, color: VV.color('--acento'), radio: 8,
+                                     borde: VV.color('--senal')}]);
       if (!centrado || e.grabando) { mapa.centrar(g.lat, g.lon, centrado ? 0 : 16); centrado = true; } }
   }
 
@@ -206,10 +261,100 @@ async function actualizar() {
     '</td><td class="num">' + x.p2p_g + ' g</td><td>' + VV.escapar(x.etiqueta_manual || x.clase + ' (sin etiquetar)') +
     '</td><td>' + (x.id_tramo || (x.lat === null ? 'sin GPS' : '—')) + '</td></tr>').join('');
   $('mensajes').innerHTML = e.mensajes.slice().reverse().map(m => '<li>' + VV.escapar(m) + '</li>').join('');
-  if (e.pin) $('pin-info').innerHTML = 'Celular extra (opcional): <b>http://' + VV.escapar(e.ip || location.hostname) + ':' +
-    (location.port || 80) + '/marcar</b> · PIN <b style="font-size:18px;letter-spacing:.15em">' + e.pin + '</b>' +
-    ' · retardo ' + e.retardo_s + ' s · ' + e.destellos + ' destellos';
+  $('pin-info').textContent = 'Retardo de reacción ' + e.retardo_s + ' s · ' + e.destellos + ' destellos en esta sesión.';
+  if (cam.flujo || cam.grabando()) pintarCamara();
 }
+
+// ---------------------------------------------------------------- panel de conexión
+const FUENTE = {phyphox: 'phyphox (iPhone A)', ejemplo: 'Ejemplo SINTÉTICO', ninguna: 'Sin fuente'};
+let qrPuesto = '';
+function mensaje(texto, tipo) {
+  $('c-msg').textContent = texto; $('c-msg').className = 'aviso msg-conexion ' + (tipo || '');
+  $('c-msg').classList.toggle('oculto', !texto);
+}
+async function conexion() {
+  let c;
+  try { c = await VV.json('/api/conexion'); } catch (err) { return; }
+  const r = c.red, f = c.fuente, pi = c.pi;
+  $('c-red').innerHTML = punto(r.hotspot_iphone ? true : r.ip ? null : false) + VV.escapar(r.ip || 'Sin red');
+  $('c-red2').textContent = (r.wifi ? 'WiFi «' + r.wifi + '» · ' : '') + r.mensaje;
+  const vivo = f.conectado && f.hz_real > 0;
+  $('c-ph').innerHTML = punto(vivo ? (f.hz_real > 0.8 * f.hz_esperada ? true : null) : false) +
+    (f.tipo === 'phyphox' ? (vivo ? 'Conectado' : 'No detectado') : VV.escapar(FUENTE[f.tipo] || f.tipo));
+  $('c-ph2').textContent = f.url ? [f.simulador ? 'simulador local' : f.url, f.puerto ? 'puerto ' + f.puerto : '',
+    f.latencia_ms !== null && f.latencia_ms !== undefined ? f.latencia_ms + ' ms' : '',
+    f.hz_real + ' Hz reales de ' + f.hz_esperada, f.reconexiones ? f.reconexiones + ' reconexiones' : '']
+    .filter(Boolean).join(' · ') + (f.error ? ' · ' + f.error : '') : (f.tipo === 'ninguna' ? 'Solo tablero' : '');
+  $('c-pi').innerHTML = punto(pi.encontrada ? true : null) + (pi.encontrada ? 'En la red' : 'No está en esta red');
+  $('c-pi2').textContent = pi.mensaje || '';
+  $('c-pin').textContent = 'PIN ' + c.marcar.pin;
+  $('c-url').textContent = c.marcar.url;
+  if (qrPuesto !== c.marcar.url_qr) { qrPuesto = c.marcar.url_qr; $('c-qr').src = '/api/marcar/qr.svg?u=' + encodeURIComponent(qrPuesto); }
+  const ok = f.tipo !== 'phyphox' ? null : vivo;
+  $('c-resumen').innerHTML = punto(ok) + (f.tipo === 'ejemplo' ? 'Ejemplo SINTÉTICO en marcha' :
+    f.tipo === 'ninguna' ? 'Sin fuente de datos' : vivo ? 'Todo listo para grabar' : 'Falta phyphox');
+  $('b-ejemplo').disabled = $('b-reintentar').disabled = f.grabando;
+  $('b-ejemplo').title = f.grabando ? 'Detenga la grabación para cambiar de fuente' : $('b-ejemplo').title;
+  const h = c.https || {};
+  $('cam-ayuda').innerHTML = h.activo ? 'Celular (iPhone B) en vivo: en el celular abra <b>' + VV.escapar(h.url_camara) +
+    '</b>. La primera vez instale la autoridad local desde <b>' + VV.escapar(h.url_ca) + '</b> (pasos en README_SALIDA). ' +
+    'Sin ese paso Safari no da la cámara.' : 'Cámara del celular: no disponible (' + VV.escapar(h.error || 'servidor HTTPS apagado') + ').';
+  const cel = c.camara && c.camara.cuadro_edad_s !== null && c.camara.cuadro_edad_s < 5;
+  $('cam-celular').classList.toggle('oculto', !cel || !!cam.flujo);
+  if (cel && !cam.flujo) $('cam-celular').src = '/api/camara/cuadro.jpg?t=' + Date.now();
+  $('cam-rec').classList.toggle('oculto', !(c.camara && c.camara.grabando && c.camara.grabando.length));
+}
+$('b-probar').onclick = async () => {
+  $('b-probar').disabled = true; mensaje('Probando la red, phyphox (puertos 80 y 8080) y la Raspberry Pi…', '');
+  try {
+    const r = await VV.post('/api/conexion/probar', {});
+    mensaje(r.phyphox.mensaje + ' ' + r.red.mensaje + '. ' + r.pi.mensaje, r.phyphox.ok ? 'ok' : 'rojo');
+  } catch (e) { mensaje('No se pudo probar: ' + e.message, 'rojo'); }
+  $('b-probar').disabled = false; conexion();
+};
+async function usarFuente(tipo) {
+  try {
+    await VV.post('/api/conexion/fuente', {tipo});
+    mensaje(tipo === 'ejemplo' ? 'Ejemplo SINTÉTICO en marcha: recorre Tunja y genera eventos (se guardan como simulados).' :
+            'Conectando con phyphox del iPhone A…', tipo === 'ejemplo' ? 'ok' : '');
+    centrado = false;
+  } catch (e) { mensaje(e.message, 'rojo'); }
+  conexion();
+}
+$('b-reintentar').onclick = () => usarFuente('phyphox');
+$('b-ejemplo').onclick = () => usarFuente('ejemplo');
+
+// ---------------------------------------------------------------- cámara en vivo (webcam del PC)
+const cam = new CamaraVV($('cam-video'), 'pc');
+function pintarCamara() {
+  const rec = cam.grabando();
+  $('b-cam').textContent = cam.flujo ? 'Apagar' : 'Encender';
+  $('cam-video').classList.toggle('oculto', !cam.flujo);
+  $('b-cam-rec').disabled = !cam.flujo || (!(ultimo && ultimo.grabando) && !rec);
+  $('b-cam-rec').textContent = rec ? 'Detener video' : (ultimo && ultimo.grabando ? 'Grabar con la sesión' : 'Inicie la grabación');
+  $('b-cam-rec').classList.toggle('peligro', rec);
+  $('cam-error').textContent = cam.error || ''; $('cam-error').classList.toggle('oculto', !cam.error);
+  if (rec && ultimo && !ultimo.grabando) cam.detener();
+}
+cam.alCambiar = pintarCamara;
+async function listarCamaras() {
+  const l = await cam.listar();
+  $('cam-lista').innerHTML = l.length ? l.map(x => '<option value="' + VV.escapar(x.id) + '">' + VV.escapar(x.nombre) +
+    '</option>').join('') : '<option value="">Cámara del PC</option>';
+}
+$('b-cam').onclick = async () => {
+  cam.error = null;
+  if (!CamaraVV.disponible()) { cam.error = CamaraVV.motivo(); return pintarCamara(); }
+  try { cam.flujo ? cam.apagar() : (await cam.encender($('cam-lista').value || null), await listarCamaras()); }
+  catch (e) { cam.error = e.name === 'NotAllowedError' ? 'Permiso de cámara negado: actívelo en el candado de la barra.' :
+                           e.name === 'NotFoundError' ? 'No hay ninguna cámara conectada a este PC.' : e.message; }
+  pintarCamara();
+};
+$('cam-lista').onchange = () => { if (cam.flujo) cam.encender($('cam-lista').value || null).catch(e => { cam.error = e.message; pintarCamara(); }); };
+$('b-cam-rec').onclick = async () => {
+  try { cam.grabando() ? cam.detener() : await cam.grabar(); } catch (e) { cam.error = e.message; }
+  pintarCamara();
+};
 
 (async () => {
   VV.usuario($('cuenta')).then(r => VV.nav('campo', r.usuario && r.usuario.rol)).catch(() => {});
@@ -224,6 +369,8 @@ async function actualizar() {
   });
   mapa = await VV.crearMapa($('mapa'));
   actualizar(); setInterval(actualizar, 500);
+  conexion(); setInterval(conexion, 2000);
+  if (CamaraVV.disponible()) listarCamaras();
 })();
 </script>
 </body>
