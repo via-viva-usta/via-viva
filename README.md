@@ -25,8 +25,8 @@ en `http://localhost:8000`. Paso a paso de una página: **[`README_SALIDA.md`](R
 
 1. **Clonar e instalar** (una vez; Python 3.11):
    ```powershell
-   git clone --branch ac/cierre-software https://github.com/via-viva-usta/via-viva.git; cd via-viva   # rama hasta fusionar el PR #29
-   powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y un .env sin claves
+   git clone https://github.com/via-viva-usta/via-viva.git; cd via-viva   # rama main
+   powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y copia .env.example a .env (sin claves)
    ```
 2. **Probar sin carro** (recorrido SINTÉTICO que se crea solo; también sirve un export real de phyphox):
    ```powershell
@@ -80,12 +80,13 @@ Los datos (`data/`), las fotos y los secretos (`.env`, `secretos.h`) **no** se s
 ## Summary (English)
 
 **VÍA VIVA** is a low-cost edge-AI system that detects, maps and predicts road hazards (potholes, speed bumps, severe impacts
-and obstacles) in Tunja, Colombia. A vehicle-mounted ESP32 node with an accelerometer, IMU, laser time-of-flight sensor and
-GPS classifies events on-device and logs temperature, humidity and light; a smartphone running phyphox streams live
+and obstacles) in Tunja, Colombia. A vehicle-mounted Raspberry Pi 4 node with an accelerometer, IMU, laser time-of-flight
+sensor and GPS detects events with a threshold detector and logs temperature, humidity and light (not yet tested on the
+hardware; an ESP32 version is kept only as the computer-architecture baseline). In field runs, a smartphone running phyphox streams live
 accelerometer, gyroscope and GPS data to a laptop, where the co-driver labels hazards from the keyboard. The smartphone is
 also the edge device for images: an own dataset of geotagged photos of nine road classes, an ArUco card for metric scale and
 an int8 convolutional classifier that runs in the phone's browser. An ETL pipeline merges node events, citizen reports
-(Telegram bot), web-scraped public sources and the OpenStreetMap street graph into SQLite. A georeferenced model estimates
+(Telegram bot, postponed), web-scraped public sources and the OpenStreetMap street graph into SQLite. A georeferenced model estimates
 the risk of unreported hazards per street segment, and a Java Swing dashboard ranks inspections and repairs for the
 authorities. The system does not issue fines or read license plates.
 

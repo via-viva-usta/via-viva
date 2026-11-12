@@ -45,7 +45,8 @@
 
 - Se marca **cuando la llanta pasa**. El programa corre la marca **1 s hacia atrás** (tiempo de reacción).
 - **1–7 y U** cuentan en la ventana que esté activa: la consola o la página `/captura` del navegador. **S**
-  (sincronía) y **Q** (terminar) solo en la consola.
+  (sincronía) y **Q** (terminar) solo en la consola de Windows. En Mac o Docker la consola no lee teclas: la sincronía
+  se hace con **DESTELLO** en `/sync` y se termina con **Ctrl+C** (la sesión queda guardada al mostrar el RESUMEN).
 - Si se cae el WiFi del iPhone A, la captura **avisa y reconecta sola**. Lo del corte no se pierde mientras phyphox
   siga midiendo (▶). **No** detengas phyphox hasta terminar.
 
@@ -75,13 +76,13 @@ export real de phyphox (.zip o carpeta). Con `--velocidad 5` va 5 veces más rá
 ## Instalar en el Lenovo de Anzola (y opciones: Mac de Dani, Docker)
 
 - **Windows (camino principal):** instalar Git y Python 3.11 (`winget install Git.Git Python.Python.3.11`; ffmpeg
-  opcional: `winget install Gyan.FFmpeg`). `git clone` del repo, rama `ac/cierre-software`, y en la carpeta `via-viva`:
-  `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1`. No hace falta ningún `.env` ni clave: el instalador
-  crea uno vacío; el PIN de `/marcar` sale en la consola (o fijo con `VIAVIVA_PIN` en `.env`).
+  opcional: `winget install Gyan.FFmpeg`). `git clone` del repo (rama `main`) y en la carpeta `via-viva`:
+  `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1`. No hace falta ninguna clave: el instalador copia
+  `.env.example` a `.env` (sin secretos); el PIN de `/marcar` sale en la consola (o fijo con `VIAVIVA_PIN` en `.env`).
 - **Mac de Dani (opcional, sin probar en Mac):** `bash viaviva/instalar_mac.sh` (Homebrew: Python 3.11 y ffmpeg) y
   luego `./viaviva.sh doctor` y `./viaviva.sh capture --abrir`. macOS pregunta si Python acepta conexiones entrantes
   y si Terminal puede usar la red local: **Permitir**. Se marca con 1–7 y U en la página `/captura` (la consola no
-  lee teclas fuera de Windows; se termina con Ctrl+C).
+  lee teclas fuera de Windows), la sincronía con **DESTELLO** en `/sync` y se termina con Ctrl+C.
 - **Docker (plan B, NO probado en Docker):** hay `Dockerfile` y `docker-compose.yml`, pero aquí no había Docker: solo se
   comprobó que la app corre (doctor y `--replay ejemplo --por-http`) con los mismos archivos que entran en la imagen.
   Pasos: `docker compose build` → `docker compose run --rm viaviva doctor` → `docker compose up` →
