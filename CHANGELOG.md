@@ -1,5 +1,23 @@
 # Cambios
 
+## 2026-11-12 — app v1 (rama `ac/app-v1`)
+
+- **Un solo sistema de estilos con la web de Dany:** `web/en_linea/marca.css` guarda los temas (`--t-*`, `--vv-*`);
+  el tablero en línea y la app local los leen. La app usa su barra, tipografía (Archivo Black + Inter locales), ◐,
+  botones y cifras. Se quitaron los temas A/B del 11-nov y Google Fonts.
+- **Mapa:** MapLibre 6.17 + OpenFreeMap (como el tablero en línea); las teselas de OSM daban 403 y CARTO pide clave.
+  Debajo, siempre, las calles de Tunja de la base local (`/api/calles`; sin base, `viaviva/web/datos/calles_tunja.json`):
+  sin internet el mapa muestra esas calles. `sw.js` guarda lo ya visto. Instaladores y Docker bajan MapLibre.
+- **Ejemplo que se mueve:** ruta real de 5,75 km por Tunja, 15–29 km/h, 16 baches con severidad baja/media/alta;
+  el simulador da vueltas (antes: 1 min quieto al inicio, 0 km/h y 0 eventos al abrirlo).
+- **Panel de conexión** en Campo (red, phyphox con puerto/latencia/Hz reales, Pi, PIN + QR) y cambio de fuente sin
+  cerrar la app (phyphox / ejemplo / ninguna).
+- **Cámara en vivo:** webcam del PC grabada dentro de la sesión (desfase por reloj, sin destello); celular por HTTPS
+  local con autoridad propia (`/ca.crt`, `/camara`). Probado con cámara sintética en Edge; **iPhone sin probar**.
+- **App con doble clic:** `viaviva app` + acceso directo «VIA VIVA» con icono (escritorio y menú Inicio) que crea
+  `instalar_pc.ps1`; `VIA VIVA.app` en Mac (sin probar). Al cerrar la ventana se guarda la grabación y se apaga.
+- Capturas de todas las pantallas (escritorio y celular) junto a la web de Dany: `docs/capturas/app-v1/`.
+
 ## 2026-11-11 — roles definitivos de la salida de campo
 
 - iPhone A = Anzola (phyphox + punto de acceso); PC de captura = su Lenovo, marca con el teclado; iPhone B = Pipe, solo
