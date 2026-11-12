@@ -12,6 +12,7 @@ import email.utils
 import math
 import os
 import platform
+import re
 import shutil
 import socket
 import statistics
@@ -89,6 +90,24 @@ def ip_local() -> str | None:
         s.close()
 
 
+def bateria_pmset(salida: str) -> tuple[int | None, bool | None]:
+    """Lee `pmset -g batt` de macOS: «Now drawing from 'AC Power'» y «-InternalBattery-0 (id=…)	85%; charging; …»."""
+    m = re.search(r"(\d{1,3})%;", salida)
+    if not m:
+        return None, None                     # Mac de escritorio: pmset no lista batería
+    return int(m.group(1)), "AC Power" in salida
+
+
+def texto_firewall() -> str:
+    """El aviso que pide el sistema para que un celular entre a /marcar."""
+    sistema = platform.system()
+    if sistema == "Windows":
+        return "aceptar el aviso del Firewall de Windows en red PRIVADA"
+    if sistema == "Darwin":
+        return "en macOS, Permitir conexiones entrantes a Python y el acceso a la red local de Terminal"
+    return "abrir el puerto en el firewall si hay uno activo"
+
+
 def bateria() -> tuple[int | None, bool | None]:
     if platform.system() == "Windows":
         class Estado(ctypes.Structure):
@@ -100,6 +119,12 @@ def bateria() -> tuple[int | None, bool | None]:
             pct = e.BatteryLifePercent & 0xFF
             return (None if pct == 255 else pct), (None if e.ACLineStatus == 255 else e.ACLineStatus == 1)
         return None, None
+    if platform.system() == "Darwin":
+        try:
+            salida = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return None, None
+        return bateria_pmset(salida)
     for p in Path("/sys/class/power_supply").glob("BAT*"):
         try:
             return int((p / "capacity").read_text()), (p / "status").read_text().strip() != "Discharging"
@@ -226,8 +251,8 @@ def chequear_pc(inf: Informe, puerto: int, dir_sesiones: Path, con_internet: boo
     inf.agregar(OK if puerto_libre(puerto) else FALTA, "Puerto del tablero",
                 f"{puerto} libre" if puerto_libre(puerto) else f"{puerto} ocupado: ¿ya hay una captura abierta?")
     ip = ip_local()
-    inf.agregar(OK if ip else AVISO, "Celular que marca", f"http://{ip}:{puerto}/marcar (mismo WiFi; aceptar el aviso "
-                "del Firewall de Windows en red PRIVADA)" if ip else
+    inf.agregar(OK if ip else AVISO, "Celular que marca",
+                f"http://{ip}:{puerto}/marcar (mismo WiFi; {texto_firewall()})" if ip else
                 ("en Docker: http://<IP del PC>:" + str(puerto) + "/marcar (la IP con ipconfig o ifconfig; o "
                  "VIAVIVA_IP_PC)" if os.getenv("VIAVIVA_EN_DOCKER") else "sin IP en la red del iPhone"))
 
