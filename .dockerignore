@@ -26,6 +26,11 @@ report/
 dashboard-java/
 futuro/
 docs/
-web/
+web/*
+!web/en_linea/
+web/en_linea/*
+!web/en_linea/marca.css
+!web/en_linea/tema.js
+!web/en_linea/fuentes/
 tests/
 viaviva/web/vendor/
