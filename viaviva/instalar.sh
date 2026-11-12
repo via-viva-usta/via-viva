@@ -4,7 +4,7 @@
 # Pide sudo para apt, interfaces y systemd. Las claves NO van aquí: van en ~/via-viva/.env
 #
 # Hace: (1) paquetes, (2) SPI + I2C a 400 kHz + UART del GPS + gpio-shutdown en GPIO27 + sin Bluetooth (manual v3,
-# paso 2), (3) venv viaviva/.venv, (4) Leaflet local, (5) .env, (6) [opcional] punto de acceso propio VIA-VIVA,
+# paso 2), (3) venv viaviva/.venv, (4) MapLibre local, (5) .env, (6) [opcional] punto de acceso propio VIA-VIVA,
 # (7) permiso de apagado desde la web, (8) servicios systemd: via-viva-pi (captura + tablero) y scraping diario.
 # Red normal (manual v3): la Pi se conecta al HOTSPOT del celular, que da internet para sincronizar con Supabase.
 set -euo pipefail
@@ -41,10 +41,10 @@ viaviva/.venv/bin/python -m pip install -r viaviva/requirements.txt
 python3 -m venv etl/.venv
 etl/.venv/bin/python -m pip install -r etl/requirements.txt
 
-paso "4/8 Leaflet local (el tablero local funciona sin internet)"
-mkdir -p viaviva/web/vendor/leaflet
-for f in leaflet.js leaflet.css; do
-  curl -fsSL "https://unpkg.com/leaflet@1.9.4/dist/$f" -o "viaviva/web/vendor/leaflet/$f"
+paso "4/8 MapLibre local (el mapa del tablero local funciona sin internet)"
+mkdir -p viaviva/web/vendor/maplibre
+for f in maplibre-gl.mjs maplibre-gl-worker.mjs maplibre-gl.css; do
+  curl -fsSL "https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/$f" -o "viaviva/web/vendor/maplibre/$f"
 done
 
 paso "5/8 Archivo .env (claves solo aquí)"

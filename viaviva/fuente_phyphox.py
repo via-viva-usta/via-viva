@@ -148,6 +148,7 @@ class FuentePhyphox:
         self.error: str | None = None
         self.peticiones = 0
         self.partes = 1
+        self.latencia_ms: float | None = None    # última petición /get (panel de conexión)
 
     def arrancar(self, n: Nucleo) -> None:
         self.n = n
@@ -184,7 +185,8 @@ class FuentePhyphox:
             self.peticiones += 1
             self.error = None
             self.ultimo_ok = time.monotonic()
-            n.latencias["http_phyphox_ms"].agregar((time.perf_counter() - t0) * 1e3)
+            self.latencia_ms = round((time.perf_counter() - t0) * 1e3, 1)
+            n.latencias["http_phyphox_ms"].agregar(self.latencia_ms)
             n.conexion(True)
             estado = resp.get("status", {}) or {}
             self.midiendo = estado.get("measuring")

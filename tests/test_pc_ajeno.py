@@ -23,7 +23,26 @@ def test_ejemplo_sintetico_se_crea_una_vez_y_se_reproduce(tmp_path, monkeypatch,
     assert "Creando" not in capsys.readouterr().out            # no lo vuelve a generar
     assert main(["resumen", ruta]) == 0
     salida = capsys.readouterr().out
-    assert "18 000" in salida and "100.0 Hz" in salida          # 3 min a 100 Hz, 1 min quieto al inicio y al final
+    assert "100.0 Hz" in salida and "Velocidad máxima | 2" in salida   # se mueve: 20–29 km/h, nunca > 30
+    km = float(salida.split("| Distancia | ")[1].split(" km")[0])
+    assert 5.5 < km < 6.6                                       # ~5,75 km de calles reales de Tunja (+ ruido del GPS)
+
+
+def test_ejemplo_recorre_tunja_y_el_detector_ve_los_baches(tmp_path):
+    """El ejemplo se mueve por calles reales y genera eventos de severidad baja, media y alta (para mostrar)."""
+    from collections import Counter
+
+    from viaviva import ejemplo
+    from viaviva.app import construir
+    c = ejemplo.generar(tmp_path / "ej")
+    ctx = construir("replay", str(c), velocidad=80, sync=False, dir_grabaciones=tmp_path / "ses")
+    try:
+        assert ctx.fuente.terminada.wait(60)
+        sev = Counter(e["severidad"] for e in ctx.n.eventos)
+    finally:
+        ctx.fuente.cerrar()
+    assert ctx.n.n_eventos_total >= 14 and set(sev) == {"baja", "media", "alta"}
+    assert all(e["lat"] is not None for e in ctx.n.eventos)             # todos con GPS, sobre la ruta
 
 
 def test_pin_fijo_por_entorno_y_redes_de_editor_para_docker(tmp_path, monkeypatch):

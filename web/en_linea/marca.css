@@ -52,3 +52,28 @@
   .aparece { opacity: 1; transform: none; transition: none; }
   .b-marca, .b-marca .flecha, .enlace-marca .flecha { transition: none; }
 }
+
+/* ---------------------------------------------------------------- temas compartidos (sitio en línea + app local)
+   Un solo juego de colores para las dos interfaces: el tablero en línea (estilo.css, sobre Pico) y la app local de
+   captura (viaviva/web/estilo.css) leen estos --t-* y --vv-*. Oscuro = asfalto (por defecto, tema.js); claro con ◐. */
+:root:not([data-theme="dark"]), [data-theme="light"] {
+  --t-fondo: #f3f3f0; --t-tarjeta: #ffffff; --t-tarjeta-2: #fafafa; --t-texto: #111111; --t-titulo: #0a0a0a;
+  --t-tenue: #5f5f5f; --t-borde: #dddddd; --t-primario: #0a0a0a; --t-primario-hover: #2a2a2a; --t-primario-hover-txt: #000;
+  --t-sobre-primario: #ffffff; --t-foco: rgb(10 10 10 / .25); --t-subrayado: rgb(10 10 10 / .4);
+  --t-campo: #ffffff; --t-campo-borde: #cfcfcf;
+  /* colores de DATOS: estado del hueco y riesgo (un color = un significado) */
+  --vv-detectado: #e8590c; --vv-verificado: #c92a2a; --vv-reparado: #2b8a3e; --vv-descartado: #868e96;
+  --vv-r0: #ced4da; --vv-r1: #f2c94c; --vv-r2: #f08c2e; --vv-r3: #d9480f; --vv-r4: #7a1f1f;
+  --vv-punto-ref: #1f2328; --vv-borde-punto: #ffffff; --vv-fondo-punto: #ffffff;
+  --vv-ok: #2b8a3e; --vv-alerta: #b7791f; --vv-sin: #868e96;
+}
+[data-theme="dark"] {
+  --t-fondo: #0a0a0a; --t-tarjeta: #111111; --t-tarjeta-2: #161616; --t-texto: #ededed; --t-titulo: #ffffff;
+  --t-tenue: #9a9a9a; --t-borde: #262626; --t-primario: #ffffff; --t-primario-hover: #ffd60a; --t-primario-hover-txt: #ffd60a;
+  --t-sobre-primario: #0a0a0a; --t-foco: rgb(255 214 10 / .45); --t-subrayado: rgb(255 255 255 / .45);
+  --t-campo: #141414; --t-campo-borde: #2e2e2e;
+  --vv-detectado: #ffa94d; --vv-verificado: #ff6b6b; --vv-reparado: #51cf66; --vv-descartado: #adb5bd;   /* ámbar vs. rojo */
+  --vv-r0: #3b424b; --vv-r1: #d9b44a; --vv-r2: #f08c2e; --vv-r3: #ff6b35; --vv-r4: #ff3b3b;
+  --vv-punto-ref: #f1f3f5; --vv-borde-punto: #0a0a0a; --vv-fondo-punto: #0a0a0a;
+  --vv-ok: #51cf66; --vv-alerta: #e3b341; --vv-sin: #868e96;
+}

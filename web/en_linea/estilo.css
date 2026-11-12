@@ -13,37 +13,25 @@
   --vv-borde: var(--pico-muted-border-color);
   --vv-tinte: color-mix(in srgb, var(--pico-primary) 8%, transparent);
 }
-:root:not([data-theme="dark"]), [data-theme="light"] {
-  --pico-background-color: #f3f3f0; --pico-card-background-color: #ffffff; --pico-card-sectioning-background-color: #fafafa;
-  --pico-color: #111111; --pico-h1-color: #0a0a0a; --pico-h2-color: #0a0a0a; --pico-h3-color: #0a0a0a;
-  --pico-muted-color: #5f5f5f; --pico-muted-border-color: #dddddd;
-  --pico-primary: #0a0a0a; --pico-primary-background: #0a0a0a; --pico-primary-border: #0a0a0a; --pico-primary-underline: rgb(10 10 10 / .4);
-  --pico-primary-hover: #000; --pico-primary-hover-background: #2a2a2a; --pico-primary-hover-border: #2a2a2a;
-  --pico-primary-focus: rgb(10 10 10 / .25); --pico-primary-inverse: #ffffff;
-  --pico-form-element-background-color: #ffffff; --pico-form-element-border-color: #cfcfcf;
-  --vv-sobre-primario: #ffffff;
-  /* estado del hueco y riesgo (colores de DATOS) */
-  --vv-detectado: #e8590c; --vv-verificado: #c92a2a; --vv-reparado: #2b8a3e; --vv-descartado: #868e96;
-  --vv-r0: #ced4da; --vv-r1: #f2c94c; --vv-r2: #f08c2e; --vv-r3: #d9480f; --vv-r4: #7a1f1f;
-  --vv-punto-ref: #1f2328; --vv-borde-punto: #ffffff; --vv-fondo-punto: #ffffff;
-  --vv-ok: #2b8a3e; --vv-alerta: #b7791f; --vv-sin: #868e96;
+/* Colores: tokens --t-* y --vv-* de marca.css (los mismos que usa la app local de captura). */
+:root:not([data-theme="dark"]), [data-theme="light"], [data-theme="dark"] {
+  --pico-background-color: var(--t-fondo); --pico-card-background-color: var(--t-tarjeta);
+  --pico-card-sectioning-background-color: var(--t-tarjeta-2);
+  --pico-color: var(--t-texto); --pico-h1-color: var(--t-titulo); --pico-h2-color: var(--t-titulo); --pico-h3-color: var(--t-titulo);
+  --pico-muted-color: var(--t-tenue); --pico-muted-border-color: var(--t-borde);
+  --pico-primary: var(--t-primario); --pico-primary-background: var(--t-primario); --pico-primary-border: var(--t-primario);
+  --pico-primary-underline: var(--t-subrayado);
+  --pico-primary-hover: var(--t-primario-hover-txt); --pico-primary-hover-background: var(--t-primario-hover);
+  --pico-primary-hover-border: var(--t-primario-hover);
+  --pico-primary-focus: var(--t-foco); --pico-primary-inverse: var(--t-sobre-primario);
+  --pico-form-element-background-color: var(--t-campo); --pico-form-element-border-color: var(--t-campo-borde);
+  --vv-sobre-primario: var(--t-sobre-primario);
 }
 [data-theme="dark"] {
-  --pico-background-color: #0a0a0a; --pico-card-background-color: #111111; --pico-card-sectioning-background-color: #161616;
-  --pico-color: #ededed; --pico-h1-color: #ffffff; --pico-h2-color: #ffffff; --pico-h3-color: #ffffff;
-  --pico-muted-color: #9a9a9a; --pico-muted-border-color: #262626;
-  --pico-primary: #ffffff; --pico-primary-background: #ffffff; --pico-primary-border: #ffffff; --pico-primary-underline: rgb(255 255 255 / .45);
-  --pico-primary-hover: #ffd60a; --pico-primary-hover-background: #ffd60a; --pico-primary-hover-border: #ffd60a;
-  --pico-primary-focus: rgb(255 214 10 / .45); --pico-primary-inverse: #0a0a0a;
-  --pico-form-element-background-color: #141414; --pico-form-element-border-color: #2e2e2e; --pico-form-element-color: #ededed;
+  --pico-form-element-color: #ededed;
   --pico-form-element-focus-color: #ffffff; --pico-form-element-placeholder-color: #6b6b6b;
   --pico-dropdown-background-color: #141414; --pico-dropdown-border-color: #2e2e2e; --pico-dropdown-hover-background-color: #1f1f1f;
   --pico-modal-overlay-background-color: rgb(0 0 0 / .72);
-  --vv-sobre-primario: #0a0a0a;
-  --vv-detectado: #ffa94d; --vv-verificado: #ff6b6b; --vv-reparado: #51cf66; --vv-descartado: #adb5bd;   /* ámbar vs. rojo */
-  --vv-r0: #3b424b; --vv-r1: #d9b44a; --vv-r2: #f08c2e; --vv-r3: #ff6b35; --vv-r4: #ff3b3b;
-  --vv-punto-ref: #f1f3f5; --vv-borde-punto: #0a0a0a; --vv-fondo-punto: #0a0a0a;
-  --vv-ok: #51cf66; --vv-alerta: #e3b341; --vv-sin: #868e96;
 }
 body { margin: 0; background: var(--pico-background-color); -webkit-font-smoothing: antialiased; }
 .oculto { display: none !important; }

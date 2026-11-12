@@ -27,9 +27,12 @@ RUN pip install -r viaviva/requirements-pc.txt
 COPY db/ db/
 COPY config/ config/
 COPY viaviva/ viaviva/
-# Leaflet dentro de la imagen: el mapa funciona sin internet en el carro
-ADD --chmod=644 https://unpkg.com/leaflet@1.9.4/dist/leaflet.js https://unpkg.com/leaflet@1.9.4/dist/leaflet.css \
-    viaviva/web/vendor/leaflet/
+# Marca compartida con la web de Dany (marca.css, tema.js, fuentes) y MapLibre dentro de la imagen (mapa sin internet)
+COPY web/en_linea/marca.css web/en_linea/tema.js web/en_linea/
+COPY web/en_linea/fuentes/ web/en_linea/fuentes/
+ADD --chmod=644 https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/maplibre-gl.mjs \
+    https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/maplibre-gl-worker.mjs \
+    https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/maplibre-gl.css viaviva/web/vendor/maplibre/
 
 RUN useradd --create-home --uid 1000 viaviva \
     && mkdir -p /sesiones /app/data \

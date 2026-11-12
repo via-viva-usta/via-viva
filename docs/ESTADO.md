@@ -3,7 +3,15 @@
 Última actualización: **11-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
-## Resumen al 11-nov (lo vigente)
+## 12-nov: app v1 (rama `ac/app-v1`, PR abierto)
+
+App local con la marca de Dany, mapa MapLibre/OpenFreeMap que funciona sin internet, ejemplo que recorre Tunja,
+panel de conexión, cámara en vivo e icono de escritorio. **Probado en el PC de AC:** instalación limpia (clon nuevo),
+icono → ventana propia → grabar → cerrar guarda la sesión; mapa con y sin internet; panel con el simulador de phyphox;
+grabación de video con una cámara SINTÉTICA en Edge. **Sin probar:** webcam real, iPhone B por HTTPS, Mac, Docker y la
+Pi con esta versión. Detalle en `CHANGELOG.md`.
+
+## Resumen al 11-nov
 
 - **Nodo:** Raspberry Pi 4 (la ESP32 salió el 9-nov; `firmware/` queda como historia). Fase 1 = umbrales; fase 2 =
   TFLite solo cuando haya marcas reales suficientes.
