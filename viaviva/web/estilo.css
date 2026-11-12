@@ -34,6 +34,7 @@ code, kbd { font: 600 .8em ui-monospace, "Cascadia Mono", Consolas, monospace; }
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--borde); }
 .barra .marca, .marca.logo-texto { color: var(--texto); text-decoration: none; }
 .barra-seccion { color: var(--sub); padding-left: .9rem; border-left: 1px solid var(--borde); }
+.nav + .barra-seccion { display: none; }          /* con menú, la sección ya se ve subrayada */
 .barra .espacio { flex: 1; }
 .nav { display: flex; gap: .2rem; flex-wrap: wrap; }
 .nav a { padding: .45rem .7rem; color: var(--sub); text-decoration: none; font: 600 .72rem/1 var(--fuente);
@@ -43,7 +44,8 @@ code, kbd { font: 600 .8em ui-monospace, "Cascadia Mono", Consolas, monospace; }
 button.icono { margin: 0; width: 2.2rem; height: 2.2rem; min-height: 0; padding: 0; font-size: .95rem; line-height: 1;
   background: transparent; color: var(--texto); border: 1px solid var(--borde); letter-spacing: 0; }
 button.icono:hover { border-color: var(--texto); background: transparent; }
-.cuenta { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--sub); }
+.cuenta { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--sub); min-width: 0; }
+.cuenta .persona { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rol { padding: .15rem .5rem; border: 1px solid var(--borde); font-size: .66rem; font-weight: 600; letter-spacing: .12em;
   text-transform: uppercase; color: var(--texto); }
 .franja-demo { position: sticky; top: 0; }
@@ -193,17 +195,22 @@ details.tarjeta[open] > summary::after { content: "−"; }
 
 @media (min-width: 1000px) {
   .captura { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    grid-template-areas: "etiquetas control" "etiquetas conexion" "etiquetas vivo" "camara vivo" "diag diag"; align-items: start; }
+    grid-template-areas: "etiquetas control" "vivo conexion" "vivo camara" "diag diag"; align-items: start; }
   .etq { min-height: 118px; font-size: 1.6rem; }
   .area-etq .etiquetas { grid-auto-rows: minmax(118px, 1fr); }
+}
+@media (max-width: 700px) {
+  .barra { gap: .5rem; padding: .55rem .75rem; }
+  .barra .nav { order: 9; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -.25rem; }
+  .barra .nav a { white-space: nowrap; padding: .4rem .55rem; }
+  .cuenta .persona, #b-pantalla, .barra-seccion { display: none; }
+  .etiquetas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .etq { font-size: 1.1rem; min-height: 80px; }
 }
 @media (max-width: 420px) {
   .fichas { grid-template-columns: repeat(2, 1fr); }
   .ficha:nth-child(2) { border-right: 0; } .ficha:nth-child(-n+2) { border-bottom: 1px solid var(--borde); }
-  .etq { min-height: 84px; font-size: 1.05rem; }
   .rejilla { grid-template-columns: repeat(2, 1fr); }
-  .barra { gap: .5rem; padding: .55rem .75rem; }
-  .barra-seccion { display: none; }
 }
 
 /* ---------------------------------------------------------------- tablero local */
@@ -270,7 +277,7 @@ dialog::backdrop { background: rgb(0 0 0 / .72); }
 .tira > span:last-child { border-right: 0; }
 .tira .et { font-size: .6rem; } .tira b { font: 400 1.35rem/1.1 var(--tit); font-variant-numeric: tabular-nums; }
 .botones-marcar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.b-marcar { min-height: 96px; font: 400 1.5rem/1 var(--tit); text-transform: uppercase; border-width: 1px; border-left-width: 8px;
+.b-marcar { min-height: 96px; font: 400 clamp(1.05rem, 5.2vw, 1.6rem)/1 var(--tit); letter-spacing: -.01em; text-transform: uppercase; overflow-wrap: anywhere; border-width: 1px; border-left-width: 8px;
   position: relative; background: var(--superficie-2); }
 .b-marcar:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .b-marcar.pulsado { background: var(--senal); color: #0a0a0a; border-color: var(--senal); }

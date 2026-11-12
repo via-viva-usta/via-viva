@@ -202,7 +202,7 @@ async function actualizar() {
     return;
   }
   ultimo = e;
-  $('insignia').textContent = e.grabando ? '● Grabando' : (e.origen === 'simulado' ? 'Reproducción (demo)' : 'Listo');
+  $('insignia').textContent = e.grabando ? '● Grabando' : (e.fuente === 'ejemplo' ? 'Ejemplo SINTÉTICO' : e.origen === 'simulado' ? 'Reproducción' : 'Listo');
   $('insignia').style.color = e.grabando ? 'var(--mal)' : 'var(--ok)';
   $('t-grabar').textContent = e.grabando ? 'Detener y guardar' : 'Iniciar grabación';
   $('b-grabar').classList.toggle('grabando', e.grabando);
@@ -215,7 +215,8 @@ async function actualizar() {
   $('d-etq').textContent = e.n_etiquetas;
   const av = $('aviso-fuente');
   const textos = [];
-  if (e.origen === 'simulado') textos.push('Modo reproducir: datos de una grabación; los eventos se guardan como simulados.');
+  if (e.fuente === 'ejemplo') textos.push('Ejemplo SINTÉTICO: recorre calles reales de Tunja con baches puestos a mano. Sirve para practicar y mostrar; los eventos se guardan como simulados.');
+  else if (e.origen === 'simulado') textos.push('Modo reproducir: datos de una grabación; los eventos se guardan como simulados.');
   if (e.acelerometro_sin_datos) textos.push('El acelerómetro no envía datos.');
   if (e.eventos_sin_gps) textos.push(e.eventos_sin_gps + ' eventos sin GPS (no van a la base).');
   if (e.sistema.estrangulamiento && e.sistema.estrangulamiento.bajo_voltaje) textos.push('Bajo voltaje: revisar el adaptador de 12 V → 5 V 3 A.');

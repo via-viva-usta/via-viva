@@ -291,7 +291,9 @@ class Nucleo:
         with self.candado:
             if self.sesion is None:
                 return None
-            return round(epoch - self.epoch(self.t0_sesion), 3)
+            # segundo actual de la sesión menos cuánto hace que empezó el video (reloj del PC): sirve igual con
+            # phyphox en vivo y con una reproducción, cuya hora es la de la grabación original
+            return round(self.t_ahora() - self.t0_sesion - (time.time() - epoch), 3)
 
     # ---------------------------------------------------------------- tiempo y bitácora
     def t_ahora(self) -> float:

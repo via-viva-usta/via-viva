@@ -89,12 +89,14 @@ function pintar() {
 function valores() {
   const p = PASOS[paso]; if (!E) return;
   $('cifra').textContent = p.cifra(E); $('detalle').textContent = p.det(E);
-  $('origen').textContent = E.origen === 'simulado' ? 'Reproducción de una salida real' : E.conectado ? 'En vivo' : 'Sin conexión';
-  $('origen').className = 'pill ' + (E.conectado ? 'ok' : 'mal');
-  $('pie').textContent = E.origen === 'simulado' ? 'Datos reproducidos de una grabación; los huecos de la reproducción van marcados como simulados.' : '';
+  $('origen').textContent = E.fuente === 'ejemplo' ? 'Ejemplo SINTÉTICO por Tunja' : E.origen === 'simulado' ?
+    'Reproducción de una grabación' : E.conectado ? 'En vivo' : 'Sin conexión';
+  $('origen').className = 'pill ' + (E.fuente === 'ejemplo' ? 'senal' : E.conectado ? 'ok' : 'mal');
+  $('pie').textContent = E.fuente === 'ejemplo' ? 'Recorrido SINTÉTICO por calles reales de Tunja: los baches están puestos a mano para mostrar; no son resultados.' :
+    E.origen === 'simulado' ? 'Datos reproducidos de una grabación; los huecos de la reproducción van marcados como simulados.' : '';
   senal();
   if (mapa) {
-    mapa.lineas('recorrido', [{puntos: E.trayecto, color: VV.color('--acento'), grosor: 4}]);
+    mapa.lineas('recorrido', [{puntos: E.trayecto, color: VV.color('--senal'), grosor: 4}]);
     mapa.puntos('huecos', H.map(h => ({lat: h.lat, lon: h.lon, color: VV.color(VV.COLOR_ESTADO[h.estado]), radio: 6})));
   }
 }

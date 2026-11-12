@@ -148,6 +148,7 @@ class Contexto:
                        "error": self.calles.error}
         e["apagado_permitido"] = self.permitir_apagado
         e["pin"] = self.pin                       # solo lo ve el equipo (editor), para dárselo al copiloto
+        e["fuente"] = self.tipo_fuente            # phyphox | ejemplo | replay | pi | ninguna
         e["ip"] = self.ip
         return e
 
@@ -431,7 +432,7 @@ def crear_app(ctx: Contexto) -> FastAPI:
                                 status_code=409)
         datos = await request.body()
         desfase = ctx.n.t_sesion_de_epoch(inicio) if (n == 0 and inicio) else None
-        return ctx.camara.parte(sesion.carpeta, id, int(n), datos, tipo, desfase, origen[:20])
+        return ctx.camara.parte(sesion.carpeta, id, int(n), datos, tipo, desfase, origen[:20], inicio)
 
     @app.post("/api/camara/fin")
     def api_camara_fin(request: Request, id: str):

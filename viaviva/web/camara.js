@@ -36,11 +36,11 @@ class CamaraVV {
     this.flujo = null; this.video.srcObject = null; this.alCambiar();
   }
   grabando() { return !!(this.grabador && this.grabador.state !== 'inactive'); }
-  static tipo() {
-    for (const t of ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'])
-      if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
-    return '';
+  static tipos() {                           // H.264 en MP4 primero (lo abre cualquier reproductor); si no, WebM
+    return ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+      .filter(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
   }
+  static tipo() { return CamaraVV.tipos()[0] || ''; }
   async desfaseReloj() {                     // hora del PC − hora de este equipo (s), con la mitad del viaje
     let mejor = null;
     for (let k = 0; k < 3; k++) {
@@ -53,10 +53,18 @@ class CamaraVV {
   async grabar() {
     if (!this.flujo) throw new Error('Encienda la cámara primero');
     if (!window.MediaRecorder) throw new Error('Este navegador no puede grabar video (MediaRecorder)');
-    const tipo = CamaraVV.tipo(), desfase = await this.desfaseReloj();
+    const desfase = await this.desfaseReloj();
     this.id = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     this.n = 0; this.bytes = 0; this.error = null;
-    this.grabador = new MediaRecorder(this.flujo, tipo ? {mimeType: tipo, videoBitsPerSecond: 2_500_000} : {});
+    // Algunos equipos dicen que aceptan MP4 y luego no arrancan: se prueba cada formato hasta que uno empiece
+    let tipo = '', ultimoError = null;
+    for (const t of [...CamaraVV.tipos(), '']) {
+      try {
+        this.grabador = new MediaRecorder(this.flujo, t ? {mimeType: t, videoBitsPerSecond: 2_500_000} : {});
+        this.grabador.start(2000); tipo = t; ultimoError = null; break;
+      } catch (e) { ultimoError = e; this.grabador = null; }
+    }
+    if (!this.grabador) throw new Error('No se pudo grabar video en este navegador: ' + (ultimoError && ultimoError.message));
     const inicio = Date.now() / 1000 + desfase, mime = this.grabador.mimeType || tipo || 'video/webm';
     this.grabador.ondataavailable = (ev) => {
       if (!ev.data || !ev.data.size) return;
@@ -74,7 +82,6 @@ class CamaraVV {
       this.cola = this.cola.then(() => fetch('/api/camara/fin?id=' + encodeURIComponent(id), {method: 'POST'}))
         .catch(() => {}).then(() => this.alCambiar());
     };
-    this.grabador.start(2000);
     this.alCambiar();
   }
   detener() { if (this.grabando()) this.grabador.stop(); }

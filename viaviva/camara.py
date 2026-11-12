@@ -115,7 +115,7 @@ class Grabaciones:
         return ".mp4" if "mp4" in (tipo or "") else ".webm"
 
     def parte(self, carpeta: Path, ident: str, n: int, datos: bytes, tipo: str, desfase_s: float | None,
-              origen: str) -> dict:
+              origen: str, inicio_epoch: float | None = None) -> dict:
         from viaviva import sesiones
         if not _ID.match(ident or ""):
             raise ValueError("identificador de video inválido")
@@ -128,7 +128,7 @@ class Grabaciones:
                     raise ValueError("ese video ya empezó")
                 archivo = carpeta / f"video_vivo_{time.strftime('%Y%m%d_%H%M%S')}_{ident[:8]}{self.extension(tipo)}"
                 g = {"carpeta": carpeta, "archivo": archivo, "n": -1, "bytes": 0, "desfase_s": desfase_s,
-                     "inicio": time.time(), "origen": origen, "tipo": tipo}
+                     "inicio": inicio_epoch or time.time(), "origen": origen, "tipo": tipo}
                 self.activas[ident] = g
             elif g is None or g["carpeta"] != carpeta:
                 raise ValueError("ese video no empezó en esta sesión")

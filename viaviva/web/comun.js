@@ -42,6 +42,8 @@ VV.cargarMapLibre = async () => {
 
 VV.color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 VV.oscuro = () => document.documentElement.dataset.theme !== 'light';
+VV.COLOR_ESTADO = {detectado: '--est-detectado', verificado: '--est-verificado', reparado: '--est-reparado',
+                   descartado: '--est-descartado'};
 
 // Calles de Tunja para el fondo del mapa (una sola descarga por página)
 VV._calles = null;
