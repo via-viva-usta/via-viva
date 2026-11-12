@@ -33,7 +33,7 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 |---|---|
 | 13-oct | Reporte con evidencia (no multas); nodo a bordo de vehículos; usuario = autoridad (tablero) + ciudadanía (mapa) |
 | 24-oct | Capa predictiva georreferenciada por tramo (sugerencia del docente y comité curricular); láser VL53L0X para profundidad |
-| 26-oct | Repositorio privado `via-viva-usta/via-viva`; Python en `.venv`; firmware PlatformIO; tablero NetBeans *Java with Ant* |
+| 26-oct | Repositorio ~~privado~~ `via-viva-usta/via-viva` (**público** al 12-nov: el clon sin cuenta funciona); Python en `.venv`; firmware PlatformIO; tablero NetBeans *Java with Ant* |
 | **2-nov** | **Placa principal: ESP32 normal (WROOM-32, DevKit de 30 pines, entorno `esp32dev`).** La ESP32-S3 quedó descartada |
 | ~~2-nov~~ | ~~ESP32-CAM se programa con adaptador USB-TTL CP2102~~ → reemplazado el 3-nov (sin ESP32-CAM) |
 | ~~2-nov~~ | ~~Presupuesto aproximado 330.000 COP~~ → 268.900 COP el 3-nov (`docs/presupuesto.md`) |
@@ -64,7 +64,7 @@ Detecta, mapea y **predice** huecos, resaltos, impactos y obstáculos en las ví
 | **7-nov (noche)** | **Raspberry Pi 4 Model B = nodo central** (el docente de Arquitectura vio insuficiente el ESP32). Sensores directo a la Pi: ADXL345 por SPI con **FIFO + interrupción en GPIO** (sustituye al DMA), MPU-6050/VL53L0X/BH1750 por I2C, GPS por UART, DHT22 tolerante a fallos, pulsador y LED; **sin módulo microSD**. ESP32 = línea base de R7. **Pines por confirmar con la rama de Dany** (no tocar firmware ni hardware antes) |
 | 7-nov | **Aplicativo web servido por la Pi**, local primero (la Pi es punto de acceso `VIA-VIVA`, 192.168.4.1): captura para celular o tablet fija (botones grandes) y tablero en vivo para la Alcaldía (capas de huecos por estado y de riesgo por tramo). **Hueco** = detecciones a ≤ 10 m; estado detectado → verificado → reparado (o descartado), con historial. **Roles:** 4 editores (equipo), Alcaldía y docentes de solo lectura. Exportar PDF (top-10 con mapa), CSV y Excel (3 hojas); importar reparaciones por CSV con validación. Prioridad: captura → tablero → exportables → sincronización |
 | **9-nov** | **La ESP32 sale del proyecto** (alternativa descartada por recursos; `firmware/` se conserva sin tocar). Raspberry Pi 4 = único nodo, Pi OS Lite 64, systemd, sin Docker. Interfaz local con **FastAPI** y botón grande MARCAR. Tablero en línea estático (Netlify) que lee de Supabase. Fase 1 umbrales; Fase 2 TFLite solo con datos suficientes. R7 sin ESP32 (PC vs. Pi; umbrales vs. TFLite) |
-| **10-nov** | Una sola aplicación `viaviva/` (antes `pi/`), fuente `phyphox \| pi \| replay`. Salida de prueba: iPhone 1 con phyphox + hotspot, PC con `viaviva capture`, marcas 1–7 + U (retardo −1 s) en el PC o en `/marcar` (PIN), video con destellos en `/sync`. Sesiones en `02_VIA_VIVA/06_CAMPO/sesiones/` (nunca en Git). Pines de la Pi = manual v3 (pulsador por `gpio-shutdown`). Nube: huecos además de eventos y riesgo; los editores cambian estados en línea y la Pi los aplica. Rama `ac/cierre-software` |
+| **10-nov** | Una sola aplicación `viaviva/` (antes `pi/`), fuente `phyphox \| pi \| replay`. Salida de prueba: iPhone 1 con phyphox + hotspot, PC con `viaviva capture`, marcas 1–7 + U (retardo −1 s) en el PC o en `/marcar` (PIN), video con destellos en `/sync`. Sesiones en `02_VIA_VIVA/06_CAMPO/sesiones/` (nunca en Git). Pines de la Pi = manual v3 (pulsador por `gpio-shutdown`). Nube: huecos además de eventos y riesgo; los editores cambian estados en línea y la Pi los aplica. Rama `ac/cierre-software` (fusionada a `main` el 11-nov, PR #29; queda como respaldo) |
 | **11-nov** | **Roles de la salida de campo** (`README_SALIDA.md`, mandan sobre lo anterior): **iPhone A = Anzola** (phyphox «VÍA VIVA 2.0» + punto de acceso, fijo en el carro; experimento en `config/phyphox/`); **PC de captura = Lenovo de Anzola** (Windows), que marca con el teclado (1–7, U, S, Q); **iPhone B = Pipe, solo video** (filma el destello de `/sync` en la pantalla del Lenovo al inicio y al final de cada toma; no se conecta al programa); `/marcar` solo si va un tercero con celular; el conductor solo conduce. Mac de Dani opcional y Docker plan B, ambos sin probar |
 | 11-nov | Diseño (`docs/DISENO.md`): tema **A · Asfalto** en Campo, Sesiones, Revisión, Dataset y Demo; tema **B · Cartografía** en el tablero local, la entrada y los PDF. El **sitio en línea conserva la marca de Dany** (PR #30); el tema B archivado no se restaura |
 | 7-nov | **Nube opcional:** solo eventos y riesgo a **Supabase** (cola con reintentos, lista blanca de columnas, nada de fotos, video, trazas ni datos de la Alcaldía); SQLite local = fuente de verdad; claves solo en `.env`. Alimentación: 12 V del carro → USB-C 5 V / 3 A; **apagado seguro** con el pulsador (3 s). La cámara no va en la Pi (fotos con el celular). **Bot de Telegram pospuesto** (`futuro/bot/`). Estructuras de datos en Python (`pi/estructuras.py`), justificadas con Big-O |
@@ -98,8 +98,10 @@ via-viva/
 ├── risk_model/      variables.py (tabla de variables por tramo), modelo.py (logística y bosque, plan B)
 ├── viaviva/         LA APLICACIÓN: captura (phyphox | pi | replay), doctor, resumen, detector, dataset, FastAPI,
 │                    usuarios, exportar, sincronizacion, nube, instalar.sh / instalar_pc.ps1, sistemas/, r7/
-├── config/          detector.yaml · web/en_linea/ tablero en línea · SALIDA_DE_CAMPO.cmd · viaviva.cmd
-├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular)
+├── config/          detector.yaml · phyphox/ (experimento «VÍA VIVA 2.0»)
+├── SALIDA_DE_CAMPO.cmd · viaviva.cmd · viaviva.sh   en la raíz (Windows · Mac/Linux)
+├── web/             index.html (Leaflet) + exportar.py → datos.js; clasificador/ (CNN en el navegador del celular);
+│                    en_linea/ (portada + tablero en línea, Netlify)
 ├── herramientas/    captura_phyphox_remoto.py (+ vista_en_vivo.html), validar_campo.py, programar_scraping.ps1, buscar_secretos.py
 ├── iniciar.ps1      demo en el PC (viaviva en :8000, mapa, clasificador); salida de campo: SALIDA_DE_CAMPO.cmd
 ├── demo/            datos_demo.py (base DEMO aparte)
@@ -271,7 +273,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 | MiKTeX 25.12 | Instalado por usuario con winget; `pdflatex main`, `bibtex main`, `pdflatex main` ×2 en `report/`. Incluye `pdftoppm` |
 | Java / NetBeans | JDK 25 (`C:\Program Files\Java\jdk-25.0.4.1`), NetBeans 25 con Ant en `C:\Program Files\NetBeans-25\netbeans\extide\ant`; para compilar por consola pasar `-Dlibs.CopyLibs.classpath=...\java\ant\extra\org-netbeans-modules-java-j2seproject-copylibstask.jar` |
 | Microsoft Word | Instalado: sirve para revisar `.docx` exportándolos a PDF por COM |
-| GitHub | Organización `via-viva-usta`, repo **privado** `via-viva`. **Cuenta correcta: `andresscardens`.** En este PC `gh` también tiene `acstromia` (cuenta de trabajo) y a veces queda activa: verificar con `gh auth status`; para cambiar: `gh auth switch --user andresscardens`, o en un solo comando: `GH_TOKEN=$(gh auth token --user andresscardens) gh ...`. `git push` ya funciona con las credenciales guardadas |
+| GitHub | Organización `via-viva-usta`, repo **público** `via-viva` (nada de datos, correos ni rutas personales en Git). **Cuenta correcta: `andresscardens`.** En este PC `gh` también tiene `acstromia` (cuenta de trabajo) y a veces queda activa: verificar con `gh auth status`; para cambiar: `gh auth switch --user andresscardens`, o en un solo comando: `GH_TOKEN=$(gh auth token --user andresscardens) gh ...`. `git push` ya funciona con las credenciales guardadas |
 
 **Trampas conocidas (para Claude):**
 - En la herramienta Bash, los *heredoc* con barras invertidas (`\\n`, regex, LaTeX) se dañan: escribir esos scripts con la
@@ -293,7 +295,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
 | Persona | GitHub | Área principal | Apoyo |
 |---|---|---|---|
 | Andrés Cárdenas | `andresscardens` (admin de la organización) | C. Datos y plataforma · D. Gestión y documento | B |
-| Dany Cipamocha | `dany286-ri` (member; **read** en el repo: issue #17) | A. Hardware y firmware | C |
+| Dany Cipamocha | `dany286-ri` (member; **Write** en el repo desde el 11-nov: trabaja en ramas `fix/…` o `web/…` y abre PR) | A. Hardware y firmware | C |
 | Juan Felipe García ("Pipe") | `juanfelipegarciacarvajal444-rgb` (owner) | B. Señales e IA; en campo: **iPhone B, solo video** (desde el 11-nov) | — |
 | Juan Diego Anzola | `Juandi-1` (owner) | Fotos (iPhone 15), informe en Overleaf, póster, video, pitch; en campo: **iPhone A (phyphox + hotspot) y Lenovo de captura, marca con el teclado** (desde el 11-nov) | A, D |
 

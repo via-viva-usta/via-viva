@@ -1,6 +1,6 @@
 # Estado de VÍA VIVA
 
-Última actualización: **11-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **11-nov-2026**. Informes: **13-nov-2026** · prototipo funcionando: **26-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
 
 ## Resumen al 11-nov (lo vigente)
@@ -181,14 +181,15 @@ riesgo con plan B, bot, mapa, tablero, dataset de fotos (ingesta, etiquetador, e
 | `andresscardens` | Andrés | **owner** | admin |
 | `Juandi-1` | Juan Diego | **owner** | admin |
 | `juanfelipegarciacarvajal444-rgb` | Juan Felipe (Pipe) | **owner** | admin |
-| `dany286-ri` | Dany | member | **read** |
+| `dany286-ri` | Dany | member | **write** (desde el 11-nov) |
 
 Organización: permiso base *read*, los miembros pueden crear repos (también públicos), **2FA no obligatorio**, plan
-gratuito (no permite proteger `main` en un repo privado). **Recomendado** (lo aplica Andrés, issue #17):
+gratuito. **12-nov: el repo es público**, así que el plan gratuito sí permite proteger `main` (exigir PR y la CI en
+verde; *Settings → Branches*). **Recomendado** (lo aplica Andrés, issue #17):
 1. **Un solo owner** (Andrés); Juan Diego, Pipe y Dany como **Member** con rol **Write** en `via-viva`
    (*Settings → Collaborators and teams*; o un equipo "via-viva" con Write).
 2. Exigir **2FA** a la organización y quitar a los miembros el permiso de crear repositorios públicos.
-3. Sin protección de ramas (plan gratuito): mantener la regla de `CONTRIBUTING.md` (PR y revisión de Andrés).
+3. Proteger `main` (posible al ser público) y mantener la regla de `CONTRIBUTING.md` (PR y revisión de Andrés).
 
 ## Discrepancias corregidas el 5-nov
 

@@ -125,3 +125,8 @@ pi/web/vendor/
 # Tablero en línea: se generan con 'viaviva nube preparar'
 web/en_linea/config.js
 web/en_linea/datos/
+
+# Cobertura de pytest (trae rutas del PC de quien la corre)
+.coverage
+.coverage.*
+htmlcov/
