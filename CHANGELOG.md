@@ -1,5 +1,13 @@
 # Cambios
 
+## 2026-11-11 — roles definitivos de la salida de campo
+
+- iPhone A = Anzola (phyphox + punto de acceso); PC de captura = su Lenovo, marca con el teclado; iPhone B = Pipe, solo
+  video; `/marcar` solo para un tercero; el conductor solo conduce. Tabla «Rol por persona» en `README_SALIDA.md`;
+  `CLAUDE.md`, `ARQUITECTURA.md`, `viaviva/README.md` y `analysis/README.md` (histórico) al día.
+- `config/phyphox/VIA_VIVA_2.0.phyphox`: el experimento del 7-nov **sin datos ni horas**, para instalar en el iPhone A
+  (o crearlo como «Experimento simple»). Sin probar todavía en ese iPhone.
+
 ## 2026-11-11 — captura en el PC de otra persona
 
 - Instalación limpia probada en Windows (clon nuevo, sin `.env` ni datos): `instalar_pc.ps1` → `doctor` →

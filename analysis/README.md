@@ -19,6 +19,10 @@ No se usa JupyterLab: en Windows sin rutas largas activadas su instalación fall
 
 ## Protocolo de recorridos con phyphox (para Pipe)
 
+> **Histórico (3–7 nov).** La salida de campo vigente es `README_SALIDA.md` (roles del 11-nov: phyphox en el iPhone A
+> de Anzola, captura y marcas en su Lenovo, Pipe solo video). Este protocolo con `captura_phyphox_remoto` queda como
+> registro de los primeros recorridos.
+
 ### 1. Configurar phyphox (una vez)
 
 1. phyphox → **+** → *Add simple experiment* → marcar **Accelerometer** (con g, NO "linear acceleration"),

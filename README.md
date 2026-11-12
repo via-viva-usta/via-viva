@@ -25,13 +25,14 @@ en `http://localhost:8000`. Paso a paso de una página: **[`README_SALIDA.md`](R
 
 1. **Clonar e instalar** (una vez; Python 3.11):
    ```powershell
-   git clone https://github.com/via-viva-usta/via-viva.git; cd via-viva
-   powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y .env
+   git clone --branch ac/cierre-software https://github.com/via-viva-usta/via-viva.git; cd via-viva   # rama hasta fusionar el PR #29
+   powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y un .env sin claves
    ```
-2. **Probar sin carro** (reproduce una salida real como si fuera en vivo):
+2. **Probar sin carro** (recorrido SINTÉTICO que se crea solo; también sirve un export real de phyphox):
    ```powershell
-   .\viaviva.cmd capture --replay "..\..\06_CAMPO\phyphox\2026-11-07\VÍA VIVA 2.0 2026-11-07 09-42-16.zip" --por-http --abrir
+   .\viaviva.cmd capture --replay ejemplo --por-http --abrir
    ```
+   Salida de campo real, con los roles de cada persona: [`README_SALIDA.md`](README_SALIDA.md).
 3. **Base de datos y demo completa** (OpenStreetMap, riesgo, mapa): `.\db\reconstruir.ps1` y `.\iniciar.ps1 -Demo`.
 
 Todos los comandos: [`viaviva/README.md`](viaviva/README.md). Pruebas: `dataset\.venv\Scripts\python -m pytest`

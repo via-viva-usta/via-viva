@@ -37,7 +37,7 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 | Página | Quién | Qué |
 |---|---|---|
 | `/captura` | equipo (editor) | Grabar, marcar (1–7, U), señal, GPS, sensores, PIN para el celular, apagar (Pi) |
-| `/marcar` | celular del copiloto (PIN de la consola) | Botones grandes 1–7 y deshacer, sin zoom |
+| `/marcar` | celular extra, solo si va un tercero (PIN de la consola) | Botones grandes 1–7 y deshacer, sin zoom. En la salida normal Anzola marca con el teclado del Lenovo (`README_SALIDA.md`) |
 | `/sync` | quien filma | Reloj UTC grande y destello de 3 s (queda guardado en la sesión) |
 | `/sesiones` | equipo | Salidas con resumen, calidad, recorrido, video y avance de revisión |
 | `/revision?s=<sesión>` | equipo | Importar el video (se sincroniza solo), línea de tiempo con señal + video, confirmar / corregir / descartar. Si el video es HEVC o el navegador no lo reproduce, avisa y ofrece «Convertir a H.264» cuando `ffmpeg` está instalado (opcional; `winget install Gyan.FFmpeg` en Windows, `sudo apt install ffmpeg` en la Pi); el original se conserva |
