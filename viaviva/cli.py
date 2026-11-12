@@ -116,6 +116,8 @@ def _servir(ctx, a, grabar: bool) -> int:
     threading.Thread(target=vigilar, daemon=True).start()
     try:
         servidor.run()
+    except KeyboardInterrupt:                 # Ctrl+C en Mac/Linux: uvicorn lo vuelve a lanzar al cerrar; no es un error
+        pass
     finally:
         parar.set()
         carpeta = ctx.n.detener_grabacion()
