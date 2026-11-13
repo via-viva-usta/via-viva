@@ -3,12 +3,25 @@
 Misma base de código en el PC (con phyphox) y en la Raspberry Pi 4 (con sensores). Arquitectura: `docs/ARQUITECTURA.md`.
 Salida de campo paso a paso: `README_SALIDA.md`.
 
+## La app (desde el 12-nov, rama `ac/app-v1`)
+
+- **Icono VÍA VIVA** (lo crea `instalar_pc.ps1` en el escritorio y el menú Inicio; en Mac, `VIA VIVA.app`): corre
+  `viaviva app`, que levanta el servidor y abre Edge o Chrome en modo aplicación (ventana propia, perfil propio, sin
+  consola). Al cerrar la ventana guarda la grabación abierta y se apaga. Se eligió así y no pywebview/Electron porque
+  Edge ya viene en Windows y es el mismo motor que se probó (cámara, descargas, arrastrar video, caché del mapa).
+- **Estilo:** el de la web de Dany, compartido (`web/en_linea/marca.css`; ver `docs/DISENO.md`).
+- **Mapa:** MapLibre + OpenFreeMap con las calles de la base local debajo; sin internet quedan las calles (aviso).
+- **Panel de conexión** (en Campo): red e IP del PC, phyphox del iPhone A (puerto, latencia, Hz reales), Raspberry Pi
+  en la red, PIN y QR de `/marcar`; **Probar conexión**, **Reintentar con el iPhone A** y **Usar el ejemplo**.
+- **Cámara en vivo:** webcam del PC grabada dentro de la sesión (sincronizada por reloj); el iPhone B por HTTPS
+  (`:8443/camara`, autoridad local en `/ca.crt`, **sin probar en iPhone**). Pasos en `README_SALIDA.md`.
+
 ## Instalar
 
 - **PC (Windows):** `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1` → `viaviva\.venv`.
   Se usa con `viaviva.cmd …` desde la carpeta `via-viva` (o doble clic en `SALIDA_DE_CAMPO.cmd`).
-- **Mac** (sin probar en Mac): `bash viaviva/instalar_mac.sh` → `./viaviva.sh …`. **Docker** (plan B, solo captura del
-  PC, sin probar): `Dockerfile` + `docker-compose.yml` en la raíz. Pasos para un PC ajeno: `README_SALIDA.md`.
+- **Mac** (sin probar en Mac): `bash viaviva/instalar_mac.sh` → `./viaviva.sh …`. Pasos para un PC ajeno:
+  `README_SALIDA.md`.
 - Práctica sin datos de campo en cualquier PC: `capture --replay ejemplo --por-http` y `doctor --simulado ejemplo`
   (recorrido SINTÉTICO). `.env` opcional: `VIAVIVA_PIN` (PIN fijo de `/marcar`), `VIAVIVA_IP_PC` e
   `VIAVIVA_IPS_EDITOR` (solo Docker).
@@ -24,6 +37,7 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 | `viaviva capture --replay <export> [--por-http] [--velocidad 5] [--bucle]` | Reproduce una salida como si fuera en vivo |
 | `viaviva capture --source pi --puerto 80 --permitir-apagado` | En la Pi (lo usa el servicio) |
 | `viaviva serve` | Solo el tablero local |
+| `viaviva app [--fuente phyphox\|ejemplo\|ninguna] [--puerto 8000]` | La app en su ventana (lo que abre el icono) |
 | `viaviva resumen <sesión o export>` | RESUMEN.md |
 | `viaviva detector detectar\|evaluar\|calibrar <sesiones…>` | Detector calibrable (`config/detector.yaml`) |
 | `viaviva dataset construir <sesiones…>` · `viaviva dataset evaluar <manifest>` | Dataset de ventanas y clasificador por salida |
@@ -37,12 +51,13 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 | Página | Quién | Qué |
 |---|---|---|
 | `/captura` | equipo (editor) | Grabar, marcar (1–7, U), señal, GPS, sensores, PIN para el celular, apagar (Pi) |
-| `/marcar` | celular extra, solo si va un tercero (PIN de la consola) | Botones grandes 1–7 y deshacer, sin zoom. En la salida normal Anzola marca con el teclado del Lenovo (`README_SALIDA.md`) |
+| `/marcar` | celular extra, solo si va un tercero (PIN o QR del panel de conexión) | Botones grandes 1–7 y deshacer, sin zoom. En la salida normal Anzola marca con el teclado del Lenovo (`README_SALIDA.md`) |
 | `/sync` | quien filma | Reloj UTC grande y destello de 3 s (queda guardado en la sesión) |
 | `/sesiones` | equipo | Salidas con resumen, calidad, recorrido, video y avance de revisión |
 | `/revision?s=<sesión>` | equipo | Importar el video (se sincroniza solo), línea de tiempo con señal + video, confirmar / corregir / descartar. Si el video es HEVC o el navegador no lo reproduce, avisa y ofrece «Convertir a H.264» cuando `ffmpeg` está instalado (opcional; `winget install Gyan.FFmpeg` en Windows, `sudo apt install ffmpeg` en la Pi); el original se conserva |
 | `/dataset` | equipo | Construir el dataset, ver balance y cobertura, evaluar umbrales y clasificador |
 | `/demo` | equipo (proyector) | Recorrido guiado de 2 min: captura → detección → mapa → reporte |
+| `/camara` | celular que filma (HTTPS `:8443`, PIN) | Cámara del celular en vivo, grabada dentro de la sesión (sin probar en iPhone) |
 | `/tablero` | editor, Alcaldía, docentes | Huecos por estado y riesgo por tramo, prioridad, exportar PDF/CSV/Excel, importar reparaciones |
 
 ## Pines (Raspberry Pi 4, BCM, manual v3)

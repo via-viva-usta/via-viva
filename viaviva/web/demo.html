@@ -1,14 +1,23 @@
 <!doctype html>
-<html lang="es" class="tema-a">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VÍA VIVA · Demo</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preload" href="/fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
 </head>
 <body>
 <header class="barra">
-  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion">Demo</span>
   <span class="espacio"></span>
   <span class="pill" id="origen">—</span>
   <button id="b-pausa">Pausar</button><button id="b-pantalla">Pantalla completa</button>
@@ -80,12 +89,14 @@ function pintar() {
 function valores() {
   const p = PASOS[paso]; if (!E) return;
   $('cifra').textContent = p.cifra(E); $('detalle').textContent = p.det(E);
-  $('origen').textContent = E.origen === 'simulado' ? 'Reproducción de una salida real' : E.conectado ? 'En vivo' : 'Sin conexión';
-  $('origen').className = 'pill ' + (E.conectado ? 'ok' : 'mal');
-  $('pie').textContent = E.origen === 'simulado' ? 'Datos reproducidos de una grabación; los huecos de la reproducción van marcados como simulados.' : '';
+  $('origen').textContent = E.fuente === 'ejemplo' ? 'Ejemplo SINTÉTICO por Tunja' : E.origen === 'simulado' ?
+    'Reproducción de una grabación' : E.conectado ? 'En vivo' : 'Sin conexión';
+  $('origen').className = 'pill ' + (E.fuente === 'ejemplo' ? 'senal' : E.conectado ? 'ok' : 'mal');
+  $('pie').textContent = E.fuente === 'ejemplo' ? 'Recorrido SINTÉTICO por calles reales de Tunja: los baches están puestos a mano para mostrar; no son resultados.' :
+    E.origen === 'simulado' ? 'Datos reproducidos de una grabación; los huecos de la reproducción van marcados como simulados.' : '';
   senal();
   if (mapa) {
-    mapa.lineas('recorrido', [{puntos: E.trayecto, color: VV.color('--acento'), grosor: 4}]);
+    mapa.lineas('recorrido', [{puntos: E.trayecto, color: VV.color('--senal'), grosor: 4}]);
     mapa.puntos('huecos', H.map(h => ({lat: h.lat, lon: h.lon, color: VV.color(VV.COLOR_ESTADO[h.estado]), radio: 6})));
   }
 }

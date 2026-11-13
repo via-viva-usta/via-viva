@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import hmac
 import ipaddress
+import json
 import platform
 import secrets
 import subprocess
 import tempfile
 import threading
 import time
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -24,13 +26,16 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from viaviva import almacen, config, exportar, sesiones
+from viaviva import almacen, conexion, config, exportar, sesiones
+from viaviva.camara import Grabaciones
 from viaviva.nucleo import Nucleo
 from viaviva.sincronizacion import Sincronizador
 from viaviva.sistema import Sistema
 from viaviva.usuarios import DURACION_SESION, Sesiones, hay_usuarios
 
 WEB = Path(__file__).resolve().parent / "web"
+MARCA = config.RAIZ / "web" / "en_linea"        # marca.css, tema.js y fuentes de la web de Dany: un solo sistema
+CALLES = WEB / "datos" / "calles_tunja.json"   # calles de Tunja (OSM) para el mapa sin internet
 COOKIE, COOKIE_PIN = "vv_sesion", "vv_marcador"
 LOCAL = {"usuario": "local", "nombre": "Equipo (esta máquina, sin usuarios creados)", "rol": "editor"}
 LECTURA = ("editor", "alcaldia", "docente")
@@ -55,9 +60,64 @@ class Contexto:
         self.apagando = False
         self.version_datos = 0
         self.ip: str | None = None                # IP del equipo en la red del iPhone (la pone la CLI)
+        self.simulador = None
+        self.tipo_fuente = "ninguna"
+        self.latido: float | None = None          # último aviso de la ventana de la app (viaviva app)
+        self._muestras = (time.monotonic(), 0)    # para la frecuencia real
+        self.hz_real = 0.0
+        self._candado_fuente = threading.Lock()
+        self.https: dict = {}                     # lo llena la CLI si arrancó el servidor HTTPS (cámara del iPhone)
+        self.puerto = config.PUERTO
+        self.vigia = conexion.Vigia()
+        self.camara = Grabaciones()
+        self.actualizacion_habilitada = False     # solo la ventana de escritorio, nunca el servicio/Pi
+        self.actualizacion_en_curso = False
+        self._candado_actualizacion = threading.Lock()
+        self.reinicio_pendiente = threading.Event()
 
     def con(self):
         return almacen.conectar(self.url_db)
+
+    def medir_frecuencia(self) -> float:
+        """Muestras por segundo que de verdad llegan (entre dos lecturas separadas al menos 1 s)."""
+        t, n = time.monotonic(), self.n.n_acc
+        t0, n0 = self._muestras
+        if t - t0 >= 1.0:
+            self.hz_real = round(max(0, n - n0) / (t - t0), 1) if n >= n0 else 0.0
+            self._muestras = (t, n)
+        return self.hz_real
+
+    def cambiar_fuente(self, tipo: str, url: str | None = None, velocidad: float = 1.0) -> dict:
+        """Cambia la fuente sin cerrar la app: phyphox (iPhone A) | ejemplo (recorrido SINTÉTICO) | ninguna."""
+        if tipo not in ("phyphox", "ejemplo", "ninguna"):
+            raise ValueError(f"fuente desconocida: {tipo}")
+        with self._candado_fuente:
+            if self.n.sesion is not None:
+                raise ValueError("detenga la grabación antes de cambiar de fuente")
+            if hasattr(self.fuente, "cerrar"):
+                self.fuente.cerrar()
+            if self.simulador:
+                self.simulador.cerrar()
+            if tipo == "ejemplo":
+                from viaviva.ejemplo import resolver
+                f, sim, origen, id_nodo = crear_fuente("replay-http", resolver("ejemplo"), velocidad, bucle=True)
+            else:
+                f, sim, origen, id_nodo = crear_fuente(tipo, url_phyphox=(url or config.PHYPHOX_URL))
+            self.n.reiniciar_fuente(f.fs, origen, id_nodo)
+            self.fuente, self.simulador, self.tipo_fuente = f, sim, tipo
+            self._muestras, self.hz_real = (time.monotonic(), 0), 0.0
+            f.arrancar(self.n)
+            self.n.aviso({"phyphox": f"Fuente: phyphox del iPhone A ({url or config.PHYPHOX_URL})",
+                          "ejemplo": "Fuente: recorrido de ejemplo SINTÉTICO por Tunja",
+                          "ninguna": "Sin fuente: solo tablero"}[tipo])
+            self.cambio()
+            return {"ok": True, "fuente": tipo}
+
+    def cerrar(self) -> None:
+        if hasattr(self.fuente, "cerrar"):
+            self.fuente.cerrar()
+        if self.simulador:
+            self.simulador.cerrar()
 
     def leer(self, f, *args):
         con = self.con()
@@ -92,6 +152,7 @@ class Contexto:
                        "error": self.calles.error}
         e["apagado_permitido"] = self.permitir_apagado
         e["pin"] = self.pin                       # solo lo ve el equipo (editor), para dárselo al copiloto
+        e["fuente"] = self.tipo_fuente            # phyphox | ejemplo | replay | pi | ninguna
         e["ip"] = self.ip
         return e
 
@@ -261,6 +322,221 @@ def crear_app(ctx: Contexto) -> FastAPI:
     def hora():
         return {"utc": time.time()}
 
+    # ------------------------------------------------------------ marca compartida, app instalable y mapa sin red
+    @app.get("/marca.css")
+    def marca_css():
+        return FileResponse(MARCA / "marca.css", media_type="text/css; charset=utf-8")
+
+    @app.get("/tema.js")
+    def tema_js():
+        return FileResponse(MARCA / "tema.js", media_type="text/javascript; charset=utf-8")
+
+    @app.get("/fuentes/{archivo}")
+    def fuentes(archivo: str):
+        if archivo not in ("archivo-black.woff2", "inter.woff2"):
+            return JSONResponse({"error": "no existe"}, status_code=404)
+        return FileResponse(MARCA / "fuentes" / archivo, media_type="font/woff2")
+
+    @app.get("/manifest.webmanifest")
+    def manifiesto():
+        return FileResponse(WEB / "manifest.webmanifest", media_type="application/manifest+json")
+
+    @app.get("/sw.js")
+    def trabajador():                    # en la raíz: así puede guardar en caché toda la app y las teselas
+        return FileResponse(WEB / "sw.js", media_type="text/javascript; charset=utf-8",
+                            headers={"Service-Worker-Allowed": "/"})
+
+    @app.get("/api/calles")
+    def api_calles():
+        """Calles de la base local (OSM ya importado); sin base, las de Tunja que trae el repositorio."""
+        def armar():
+            if ctx.calles.listo.wait(5) and len(ctx.calles.indice):
+                tipo = {"primary": 1, "trunk": 1, "primary_link": 1, "trunk_link": 1, "secondary": 2,
+                        "secondary_link": 2, "tertiary": 3, "tertiary_link": 3}
+                lista = [[tipo.get(i.get("tipo_via"), 4), [[round(a, 5), round(b, 5)] for a, b in i["puntos"]]]
+                         for _, i in ctx.calles.info.items()]
+                return {"fuente": "base local (OpenStreetMap, ODbL)", "calles": lista}
+            return {"fuente": "repositorio (OpenStreetMap, ODbL)",
+                    "calles": json.loads(CALLES.read_text(encoding="utf-8"))["calles"]}
+        return ctx.cache("calles", 3600, armar)
+
+    @app.post("/api/latido")
+    def latido(request: Request):
+        if local(request):               # solo la ventana de la app en este PC (no los celulares)
+            ctx.latido = time.monotonic()
+        return {"ok": True}
+
+    # ------------------------------------------------------------ panel de conexión
+    @app.get("/api/conexion")
+    def api_conexion(request: Request):
+        exigir(request, ("editor",))
+        vig = ctx.vigia.estado()
+        ip = vig["red"].get("ip") or ctx.ip
+        f = ctx.fuente
+        cliente = getattr(f, "cliente", None)
+        url = getattr(cliente, "url", None)
+        n = ctx.n
+        presente = bool(getattr(f, "ultimo_ok", None)) and getattr(f, "error", None) is None and n.conectado
+        fuente = {"tipo": ctx.tipo_fuente, "url": url,
+                  "puerto": (urllib.parse.urlsplit(url).port or 80) if url else None,
+                  "simulador": ctx.simulador is not None, "conectado": presente if url else n.n_acc > 0,
+                  "midiendo": getattr(f, "midiendo", None), "latencia_ms": getattr(f, "latencia_ms", None),
+                  "hz_real": ctx.medir_frecuencia(), "hz_esperada": n.fs, "muestras": n.n_acc,
+                  "reconexiones": n.reconexiones, "error": getattr(f, "error", None),
+                  "grabando": n.sesion is not None}
+        marcar = f"http://{ip or 'localhost'}:{ctx.puerto}/marcar"
+        return {"red": vig["red"], "pi": vig["pi"], "fuente": fuente,
+                "marcar": {"url": marcar, "pin": ctx.pin, "url_qr": f"{marcar}?pin={ctx.pin}"},
+                "https": ctx.https, "camara": ctx.camara.estado()}
+
+    @app.post("/api/conexion/probar")
+    def api_probar(request: Request, datos: dict = Body(default={})):
+        exigir(request, ("editor",))
+        ctx.vigia.refrescar(esperar=True)
+        url = datos.get("url") or getattr(getattr(ctx.fuente, "cliente", None), "url", None) or config.PHYPHOX_URL
+        return {"phyphox": conexion.probar_phyphox(url), **ctx.vigia.estado()}
+
+    @app.post("/api/conexion/fuente")
+    def api_fuente(request: Request, datos: dict = Body(default={})):
+        exigir(request, ("editor",))
+        return ctx.cambiar_fuente(str(datos.get("tipo", "")), datos.get("url") or None,
+                                  float(datos.get("velocidad") or 1.0))
+
+    def puede_actualizar(request: Request) -> bool:
+        exigir(request, ("editor",))
+        return ctx.actualizacion_habilitada and local(request)
+
+    def hay_captura_activa() -> bool:
+        return ctx.n.sesion is not None or bool(ctx.camara.activas)
+
+    @app.get("/api/actualizacion")
+    def api_estado_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return {"habilitada": False, "estado": "no_disponible",
+                    "mensaje": "Las actualizaciones automáticas solo están disponibles en la app de escritorio."}
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return {"habilitada": True, "estado": "actualizando", "mensaje": "Instalando la actualización…",
+                        "disponible": False, "revertible": False}
+            if hay_captura_activa():
+                return {"habilitada": True, "estado": "grabando",
+                        "mensaje": "Guarda la sesión y termina el video antes de actualizar.",
+                        "disponible": False, "revertible": False}
+        from viaviva import actualizacion
+        return {"habilitada": True, **actualizacion.estado(config.RAIZ)}
+
+    @app.post("/api/actualizacion/aplicar")
+    def api_aplicar_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return JSONResponse({"error": "La actualización no está habilitada para este modo de ejecución."},
+                                status_code=403)
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Ya hay una actualización en curso."}, status_code=409)
+            if hay_captura_activa():
+                return JSONResponse({"error": "Guarda la sesión y termina el video antes de actualizar."},
+                                    status_code=409)
+            ctx.actualizacion_en_curso = True
+        from viaviva import actualizacion
+        try:
+            resultado = actualizacion.aplicar(config.RAIZ)
+        except Exception:
+            resultado = {"ok": False, "estado": "error", "mensaje": "No se pudo completar la actualización."}
+        if resultado.get("ok"):
+            threading.Timer(1.5, ctx.reinicio_pendiente.set).start()
+        else:
+            with ctx._candado_actualizacion:
+                ctx.actualizacion_en_curso = False
+        return resultado
+
+    @app.post("/api/actualizacion/revertir")
+    def api_revertir_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return JSONResponse({"error": "La reversa no está habilitada para este modo de ejecución."},
+                                status_code=403)
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Ya hay una operación en curso."}, status_code=409)
+            if hay_captura_activa():
+                return JSONResponse({"error": "Guarda la sesión y termina el video antes de revertir."},
+                                    status_code=409)
+            ctx.actualizacion_en_curso = True
+        from viaviva import actualizacion
+        try:
+            resultado = actualizacion.revertir(config.RAIZ)
+        except Exception:
+            resultado = {"ok": False, "estado": "error", "mensaje": "No se pudo completar la reversa."}
+        if resultado.get("ok"):
+            threading.Timer(1.5, ctx.reinicio_pendiente.set).start()
+        else:
+            with ctx._candado_actualizacion:
+                ctx.actualizacion_en_curso = False
+        return resultado
+
+    @app.get("/api/marcar/qr.svg")
+    def api_qr(request: Request):
+        exigir(request, ("editor",))
+        ip = ctx.vigia.red.get("ip") or ctx.ip or "localhost"
+        svg = conexion.qr_svg(f"http://{ip}:{ctx.puerto}/marcar?pin={ctx.pin}")
+        if svg is None:
+            return JSONResponse({"error": "falta la librería segno (pip install segno)"}, status_code=501)
+        return Response(svg, media_type="image/svg+xml")
+
+    # ------------------------------------------------------------ cámara: webcam del PC o celular (HTTPS)
+    @app.get("/camara")
+    def p_camara():
+        return pagina("camara.html")       # pide el PIN si hace falta (igual que /marcar)
+
+    @app.get("/ca.crt")
+    def ca_crt():
+        from viaviva import camara
+        try:
+            datos = camara.ca_der()
+        except ImportError:
+            return JSONResponse({"error": "falta la librería cryptography"}, status_code=501)
+        return Response(datos, media_type="application/x-x509-ca-cert",
+                        headers={"Content-Disposition": 'attachment; filename="VIA_VIVA_autoridad_local.crt"'})
+
+    @app.post("/api/camara/parte")
+    async def api_camara_parte(request: Request, id: str, n: int, tipo: str = "video/webm",
+                               inicio: float | None = None, origen: str = "pc"):
+        exigir(request, MARCAR)
+        sesion = ctx.n.sesion
+        if sesion is None:
+            return JSONResponse({"error": "No hay grabación abierta: inicie la grabación en el PC primero"},
+                                status_code=409)
+        datos = await request.body()
+        desfase = ctx.n.t_sesion_de_epoch(inicio) if (n == 0 and inicio) else None
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "La app se está actualizando; no se inició el video."}, status_code=409)
+            sesion = ctx.n.sesion
+            if sesion is None:
+                return JSONResponse({"error": "No hay grabación abierta: inicie la grabación en el PC primero"},
+                                    status_code=409)
+            return ctx.camara.parte(sesion.carpeta, id, int(n), datos, tipo, desfase, origen[:20], inicio)
+
+    @app.post("/api/camara/fin")
+    def api_camara_fin(request: Request, id: str):
+        exigir(request, MARCAR)
+        r = ctx.camara.fin(id)
+        ctx.cambio()
+        return r
+
+    @app.post("/api/camara/cuadro")
+    async def api_camara_cuadro(request: Request, origen: str = "celular"):
+        exigir(request, MARCAR)
+        ctx.camara.poner_cuadro(await request.body(), origen[:20])
+        return {"ok": True}
+
+    @app.get("/api/camara/cuadro.jpg")
+    def api_camara_ver(request: Request):
+        exigir(request, ("editor",))
+        c = ctx.camara.cuadro
+        if c is None or time.time() - c[1] > 10:
+            return JSONResponse({"error": "sin imagen del celular"}, status_code=404)
+        return Response(c[0], media_type="image/jpeg")
+
     @app.post("/api/entrar")
     def entrar(request: Request, datos: dict = Body(default={})):
         con = ctx.con()
@@ -334,11 +610,15 @@ def crear_app(ctx: Contexto) -> FastAPI:
     @app.post("/api/grabar")
     def grabar(request: Request, datos: dict = Body(default={})):
         exigir(request, ("editor",))
-        if datos.get("accion") == "detener":
-            carpeta = ctx.n.detener_grabacion()
-            ctx.cambio()
-            return {"ok": True, "carpeta": carpeta}
-        return {"ok": True, "carpeta": ctx.n.iniciar_grabacion(datos.get("nombre", ""))}
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Espera a que termine la actualización para iniciar otra sesión."},
+                                    status_code=409)
+            if datos.get("accion") == "detener":
+                carpeta = ctx.n.detener_grabacion()
+                ctx.cambio()
+                return {"ok": True, "carpeta": carpeta}
+            return {"ok": True, "carpeta": ctx.n.iniciar_grabacion(datos.get("nombre", ""))}
 
     @app.post("/api/apagar")
     def apagar(request: Request, datos: dict = Body(default={})):
@@ -526,7 +806,8 @@ def crear_app(ctx: Contexto) -> FastAPI:
         v = sesiones.ruta_video(sesiones.carpeta(base_sesiones(), nombre))
         if v is None:
             return JSONResponse({"error": "la sesión no tiene video"}, status_code=404)
-        tipo = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime"}[v.suffix.lower()]
+        tipo = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime",
+                ".webm": "video/webm"}[v.suffix.lower()]
         return FileResponse(v, media_type=tipo)
 
     @app.get("/api/sesiones/{nombre}/video/info")
@@ -563,13 +844,9 @@ def crear_app(ctx: Contexto) -> FastAPI:
     return app
 
 
-def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, bucle: bool = False,
-              url_db: str | None = None, dir_grabaciones: Path | None = None, sync: bool = True,
-              permitir_apagado: bool = False, url_phyphox: str = config.PHYPHOX_URL, iniciar_phyphox: bool = False,
-              retardo_s: float | None = None, pin: str | None = None, resumen_al_cerrar: bool = True) -> Contexto:
-    """Arma núcleo + fuente + calles + sincronización. fuente: phyphox | pi | replay | replay-http."""
-    calles = almacen.Calles()
-    threading.Thread(target=calles.cargar, args=(url_db,), daemon=True, name="calles").start()
+def crear_fuente(fuente: str, archivo: str | None = None, velocidad: float = 1.0, bucle: bool = False,
+                 url_phyphox: str = config.PHYPHOX_URL, iniciar_phyphox: bool = False):
+    """(fuente, simulador | None, origen, id_nodo). fuente: phyphox | pi | replay | replay-http | ninguna."""
     simulador = None
     if fuente == "replay":
         from viaviva.fuentes import FuenteReproduccion
@@ -578,7 +855,7 @@ def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, b
     elif fuente == "replay-http":                      # el camino completo de phyphox, contra un simulador
         from viaviva.fuente_phyphox import FuentePhyphox
         from viaviva.simulador_phyphox import SimuladorPhyphox
-        simulador = SimuladorPhyphox(Path(archivo), velocidad=velocidad)
+        simulador = SimuladorPhyphox(Path(archivo), velocidad=velocidad, bucle=bucle)
         f = FuentePhyphox(simulador.url)
         origen, id_nodo = "simulado", "reproduccion"
     elif fuente == "phyphox":
@@ -593,6 +870,17 @@ def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, b
         from viaviva.fuentes import FuenteSensores
         f = FuenteSensores()
         origen, id_nodo = "nodo", config.ID_NODO
+    return f, simulador, origen, id_nodo
+
+
+def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, bucle: bool = False,
+              url_db: str | None = None, dir_grabaciones: Path | None = None, sync: bool = True,
+              permitir_apagado: bool = False, url_phyphox: str = config.PHYPHOX_URL, iniciar_phyphox: bool = False,
+              retardo_s: float | None = None, pin: str | None = None, resumen_al_cerrar: bool = True) -> Contexto:
+    """Arma núcleo + fuente + calles + sincronización. fuente: phyphox | pi | replay | replay-http."""
+    calles = almacen.Calles()
+    threading.Thread(target=calles.cargar, args=(url_db,), daemon=True, name="calles").start()
+    f, simulador, origen, id_nodo = crear_fuente(fuente, archivo, velocidad, bucle, url_phyphox, iniciar_phyphox)
     ref: list[Contexto] = []
 
     def guardar(lote, nodo, org):
@@ -608,6 +896,7 @@ def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, b
         n.al_cerrar_sesion = resumen.generar
     ctx = Contexto(n, f, calles, Sincronizador(url_db=url_db) if sync else None, permitir_apagado, url_db, pin)
     ctx.simulador = simulador
+    ctx.tipo_fuente = "ejemplo" if archivo and "SINTETICO_ejemplo" in str(archivo) else fuente
     ref.append(ctx)
     if fuente == "pi":
         f.al_apagar = ctx.apagar

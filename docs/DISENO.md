@@ -7,7 +7,20 @@ jsDelivr; no son cifras de los proyectos). Dos tableros con la misma estética:
    local y, si no, un mapa simple en `<canvas>`. Ya existe y está probado.
 2. **Tablero en línea** (Netlify, lee de Supabase): página estática sin compilación, en `web/en_linea/`.
 
-## Dirección visual elegida (11-nov)
+## Vigente desde el 12-nov: un solo sistema, la marca de Dany (app local y web)
+
+AC pidió que la app local sea **idéntica a la web de Dany**. Desde la rama `ac/app-v1`:
+- `web/en_linea/marca.css` es la única fuente de colores, tipografía y temas: `--m-*` (marca), `--t-*` (fondo, tarjeta,
+  texto, borde, primario… para oscuro y claro) y `--vv-*` (estado del hueco y riesgo). El tablero en línea
+  (`estilo.css`, sobre Pico) y la app local (`viaviva/web/estilo.css`) los leen; la app sirve `marca.css`, `tema.js` y las
+  fuentes locales (Archivo Black + Inter, OFL) desde `web/en_linea/`. Nada de Google Fonts: todo funciona sin internet.
+- Oscuro (asfalto) por defecto y ◐ para claro, con la misma llave `vv_tema`. Barra con el logo «Vía·Viva», secciones en
+  mayúscula espaciada, esquinas rectas, botones con borde y el principal blanco que pasa a amarillo de señal.
+- Mapa: **MapLibre 6.17 + OpenFreeMap** también en la app local (antes Leaflet + teselas OSM, que dan 403 desde una app;
+  CARTO pide clave desde nov-2026). Debajo, las calles de la base local para ver Tunja sin internet.
+Las secciones de abajo (temas A/B del 11-nov) quedan como historia.
+
+## Dirección visual del 11-nov (HISTÓRICO: reemplazada el 12-nov)
 
 Maquetas en `docs/diseno/` (`maqueta.html?d=a|b`, `direccion_a.png`, `direccion_b.png`). AC eligió **combinarlas**:
 

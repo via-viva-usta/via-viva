@@ -1,14 +1,23 @@
 <!doctype html>
-<html lang="es" class="tema-a">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VÍA VIVA · Revisión</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preload" href="/fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
 </head>
 <body>
 <header class="barra">
-  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion">Revisión</span>
   <span class="espacio"></span><div class="cuenta" id="cuenta"></div>
 </header>
 <main class="pagina">
@@ -139,8 +148,8 @@ function mostrarVideo() {
   const src = api + '/video?v=' + encodeURIComponent(v.archivo || '');
   if ($('video').getAttribute('src') !== src) { noSeVe = false; $('video').src = src; }
   $('desfase').value = v.desfase_s;
-  $('p-sinc').textContent = {destello: 'Sincronizado por destello', fecha_del_archivo: 'Por fecha del archivo (± 1–2 s)', manual: 'Desfase manual'}[v.metodo] || v.metodo;
-  $('p-sinc').className = 'pill ' + (v.metodo === 'destello' ? 'ok' : 'ac');
+  $('p-sinc').textContent = {destello: 'Sincronizado por destello', fecha_del_archivo: 'Por fecha del archivo (± 1–2 s)', manual: 'Desfase manual', en_vivo: 'Grabado en vivo (reloj del PC)'}[v.metodo] || v.metodo;
+  $('p-sinc').className = 'pill ' + (['destello', 'en_vivo'].includes(v.metodo) ? 'ok' : 'ac');
   const conv = v.conversion || {};
   const hevc = ['hvc1', 'hev1', 'hevc', 'h265', 'x265'].includes(v.codec);
   $('b-convertir').classList.toggle('oculto', !(D.ffmpeg && (hevc || noSeVe) && conv.estado !== 'en_curso'));

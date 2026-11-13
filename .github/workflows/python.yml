@@ -1,14 +1,13 @@
-# Pruebas de Python (pytest + cobertura de viaviva) y estilo (ruff). Solo corre si cambian esas carpetas; caché de pip;
-# cancela corridas viejas de la misma rama.
+# Pruebas de Python (pytest + cobertura de viaviva) y estilo (ruff). Corre en todo PR para que la protección
+# de main siempre tenga este check; en push a main conserva filtro de rutas. Caché de pip y cancela corridas viejas.
 name: python
 on:
   push:
     branches: [main, "ac/**"]
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "futuro/bot/**", "db/**",
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "db/**",
             "tests/**", "config/**", "pytest.ini", "pyproject.toml", ".github/workflows/python.yml"]
   pull_request:
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "futuro/bot/**", "db/**",
-            "tests/**", "config/**", "pytest.ini", "pyproject.toml", ".github/workflows/python.yml"]
+    # Todas las PR deben emitir este check requerido por la protección de main.
 concurrency:
   group: python-${{ github.ref }}
   cancel-in-progress: true

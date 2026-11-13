@@ -1,26 +1,31 @@
 // VÍA VIVA · tablero en línea (estático, Netlify). Lee de Supabase con la clave pública + sesión (RLS por rol).
-// ?demo=1 → datos INVENTADOS en el navegador para ver el diseño sin cuenta (con aviso).  ?kiosco=1 → pantalla fija.
-// ?demo=1&rol=editor → muestra también los controles de edición (en DEMO no se envía nada).
-// Módulos: reglas.js (vocabulario y fórmulas, sin dependencias) · carga.js (Supabase, DEMO, preparación) · mapa.js.
+// Acceso PÚBLICO del prototipo (sin sesión o sin config.js): datos de PRUEBA simulados en el navegador, con la franja
+// «Prototipo» a la vista (regla 5 de CLAUDE.md: lo simulado siempre se marca). Con sesión: datos reales de Supabase.
+// ?entrar=1 → formulario del equipo · ?rol=editor (solo en prueba) → ver los controles de edición sin enviar nada ·
+// ?demo=1 (enlace viejo) = acceso público · ?kiosco=1 sigue funcionando para una pantalla fija, sin botón.
+// Módulos: reglas.js (vocabulario y fórmulas, sin dependencias) · carga.js (Supabase, prueba, preparación) · mapa.js.
 // Recorrido de la pantalla: cifras (también son atajos) → filtros (lo secundario, plegado) → mapa (modo Huecos o
 // Riesgo) + panel (Para atender · Riesgo · Tendencia). El detalle de un hueco se abre en el panel: el mapa sigue a la
 // vista. Para no saturar: los datos entran por partes, la lista muestra pocos y se pide más, la leyenda va plegada.
 // Desde la portada (index.html) se puede llegar directo a una pestaña: tablero.html#riesgo · #tendencia · #atender.
 import Chart from 'https://cdn.jsdelivr.net/npm/chart.js@4.6.1/auto/+esm';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm';
-import {cambiosPendientes, cargarSupabase, cargarTramos, datosDemo, preparar} from './carga.js';
+import {cambiosPendientes, cargarSupabase, cargarTramos, datosPrueba, preparar} from './carga.js';
 import {Mapa, leyendaHTML, leyendaResumen} from './mapa.js';
 import * as R from './reglas.js';
 
 const $ = (id) => document.getElementById(id);
 const P = new URLSearchParams(location.search);
-const DEMO = P.has('demo'), KIOSCO = P.has('kiosco');
+const KIOSCO = P.has('kiosco');
+let PRUEBA = false;            // true = acceso público del prototipo, con datos de prueba (se decide en iniciar())
 const CFG = window.VIAVIVA || {};
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const movil = () => matchMedia('(max-width: 960px)').matches;
 const plural = (n, uno, varios) => `${n.toLocaleString('es-CO')} ${n === 1 ? uno : varios}`;
 const DIA = 864e5, QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** Ícono del juego único de tablero.html (decorativo: el texto o el aria-label del botón dicen qué es). */
+const ic = (nombre) => `<svg class="ic" aria-hidden="true" focusable="false"><use href="#i-${nombre}"></use></svg>`;
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 const ui = {filtro: {vista: 'abiertos', sev: '', clase: '', periodo: 'todo', desde: '', hasta: ''}, modo: 'huecos',
@@ -39,7 +44,6 @@ $('b-tema').onclick = () => {
   grafico?.destroy(); grafico = null;
   if (mapa) tendencia(vista.base);
 };
-$('b-kiosco').onclick = () => { const u = new URL(location); u.searchParams.set('kiosco', '1'); location = u; };
 if (KIOSCO) {
   document.body.classList.add('kiosco');
   document.addEventListener('click', () => document.documentElement.requestFullscreen?.().catch(() => {}), {once: true});
@@ -68,29 +72,30 @@ const vacio = (titulo, texto) => `<li class="vacio"><b>${esc(titulo)}</b>${texto
 
 // ------------------------------------------------------------------ sesión
 async function iniciar() {
-  if (DEMO) {
-    const rol = ['editor', 'alcaldia', 'docente'].includes(P.get('rol')) ? P.get('rol') : 'docente';
-    yo = {rol, nombre: 'Demostración'};
-    return mostrarApp();
-  }
+  window.VV_ARRANCO = true; // Las librerías cargaron; vigia.js deja de esperar.
+  const quiereEntrar = P.has('entrar');
   if (!CFG.supabaseUrl || !CFG.supabaseClave) {
-    $('entrar').classList.remove('oculto');
-    $('e-entrar').textContent = 'Falta config.js (viaviva nube preparar). Mientras tanto, vea la DEMOSTRACIÓN.';
-    $('e-entrar').classList.remove('oculto');
-    $('t-frescura').textContent = 'Sin conexión configurada';
-    return;
+    return quiereEntrar ? mostrarEntrar('El acceso del equipo todavía no está configurado en este sitio (viaviva nube preparar).')
+      : accesoPublico();
   }
   sb = createClient(CFG.supabaseUrl, CFG.supabaseClave);
   const {data} = await sb.auth.getSession();
-  if (!data.session) { $('t-frescura').textContent = 'Inicie sesión'; return $('entrar').classList.remove('oculto'); }
+  if (!data.session) return quiereEntrar ? mostrarEntrar() : accesoPublico();
   const {data: perfil} = await sb.from('perfiles').select('rol,nombre').eq('usuario_id', data.session.user.id).maybeSingle();
-  if (!perfil) {
-    $('entrar').classList.remove('oculto');
-    $('e-entrar').textContent = 'Su cuenta no tiene rol asignado: pídaselo al equipo.'; $('e-entrar').classList.remove('oculto');
-    return;
-  }
+  if (!perfil) return mostrarEntrar('Su cuenta no tiene rol asignado: pídaselo al equipo.');
   yo = {...perfil, correo: data.session.user.email};
   mostrarApp();
+}
+/** Acceso público del prototipo: datos de prueba. ?rol=editor deja ver la edición (sin enviar nada). */
+function accesoPublico() {
+  PRUEBA = true;
+  yo = {rol: ['editor', 'alcaldia', 'docente'].includes(P.get('rol')) ? P.get('rol') : 'publico', nombre: ''};
+  mostrarApp();
+}
+function mostrarEntrar(error) {
+  $('entrar').classList.remove('oculto');
+  $('t-frescura').textContent = 'Acceso del equipo';
+  if (error) { $('e-entrar').textContent = error; $('e-entrar').classList.remove('oculto'); }
 }
 $('f-entrar').onsubmit = async (ev) => {
   ev.preventDefault();
@@ -101,16 +106,19 @@ $('f-entrar').onsubmit = async (ev) => {
 };
 
 async function mostrarApp() {
-  $('entrar').classList.add('oculto'); $('app').classList.remove('oculto'); $('b-kiosco').classList.remove('oculto');
-  $('cuenta').innerHTML = esc(yo.nombre || yo.correo || '') + ' <span class="rol">' + esc({editor: 'Editor',
-    alcaldia: 'Alcaldía', docente: 'Docente'}[yo.rol]) + '</span>' + (DEMO ? '' : ' <a href="#" id="b-salir">Salir</a>');
+  $('entrar').classList.add('oculto'); $('app').classList.remove('oculto');
+  const ROL = {editor: 'Editor', alcaldia: 'Alcaldía', docente: 'Docente'};
+  $('cuenta').innerHTML = PRUEBA
+    ? '<span class="publico">Acceso público</span>' + (ROL[yo.rol] ? ` <span class="rol">${ROL[yo.rol]} (prueba)</span>` : '')
+      + ' <a href="?entrar=1">Entrar</a>'
+    : esc(yo.nombre || yo.correo || '') + ` <span class="rol">${esc(ROL[yo.rol])}</span> <a href="#" id="b-salir">Salir</a>`;
   if ($('b-salir')) $('b-salir').onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
   if (yo.rol === 'editor') $('b-importar').classList.remove('oculto');
-  if (DEMO) $('franja-demo').classList.remove('oculto');      // franja amarilla: imposible de no ver, sin tapar
+  if (PRUEBA) $('franja-prototipo').classList.remove('oculto');    // siempre a la vista: los datos de prueba no son de Tunja
   tramos = await cargarTramos();
   if (!tramos.features.length) ponerAviso('tramos', 'Falta datos/tramos.geojson (viaviva nube preparar): no se pueden mostrar calles ni riesgo.');
-  else if (tramos.demo && !DEMO) {
-    ponerAviso('tramos', 'El archivo de calles es de DEMOSTRACIÓN (herramientas/tramos_demo.py): sus números de tramo no '
+  else if (tramos.demo && !PRUEBA) {
+    ponerAviso('tramos', 'El archivo de calles es de prueba (herramientas/tramos_demo.py): sus números de tramo no '
       + 'coinciden con la base y el riesgo no se puede ubicar. Publique el de «viaviva nube preparar».');
   }
   mapa = new Mapa($('mapa'), {alTocarHueco: (id) => abrirDetalle(id), htmlTramo, htmlHuecoCorto});
@@ -120,19 +128,20 @@ async function mostrarApp() {
   await recargar();
   entrada();
   irAlDestino();
+  addEventListener('hashchange', irAlDestino);     // el menú cambia de pestaña sin recargar
   setInterval(recargar, KIOSCO ? 60000 : 120000);
 }
 
 // ------------------------------------------------------------------ datos y filtros
 async function recargar() {
   try {
-    const crudo = DEMO ? datosDemo(tramos) : await cargarSupabase(sb);
+    const crudo = PRUEBA ? datosPrueba(tramos) : await cargarSupabase(sb);
     D = preparar(crudo.huecos, crudo.riesgo, tramos);
     ponerAviso('error', '');
   } catch (e) {
     ponerAviso('error', 'No se pudieron leer los datos: ' + (e.message || e) + '. Se muestran los últimos que se cargaron.');
   }
-  ponerAviso('corrida', D.corrida?.demo && !DEMO ? 'La corrida de riesgo es DEMO/SINTÉTICA: sirve para probar el tablero, no es un resultado.' : '');
+  ponerAviso('corrida', D.corrida?.demo && !PRUEBA ? 'La corrida de riesgo es de prueba (DEMO/SINTÉTICA): no es un resultado.' : '');
   mapa.ponerTramos(D.tramosRiesgo);
   opcionesTipo();
   if (ui.modo === 'riesgo' && !D.riesgo.length) ponerModo('huecos');
@@ -192,7 +201,28 @@ function poner(id, n, sub) {
   b.textContent = typeof n === 'number' ? n.toLocaleString('es-CO') : n;
   $(id).querySelector('small').textContent = sub;
 }
+/** Mini línea (8 ventanas de 7 días) y su frase bajo una cifra. Sin datos, se vacía y no ocupa lugar. */
+function ponerTendencia(id, serie, tipo) {
+  const el = $(id).querySelector('.tend');
+  if (!serie) { el.innerHTML = ''; return; }
+  const max = Math.max(1, ...serie), w = 64, h = 20, x = (i) => (i * w / (serie.length - 1)).toFixed(1);
+  const y = (v) => (h - 2 - (v / max) * (h - 4)).toFixed(1);
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true" focusable="false"><polyline points="`
+    + serie.map((v, i) => `${x(i)},${y(v)}`).join(' ') + `"></polyline><circle cx="${x(serie.length - 1)}" cy="${y(serie.at(-1))}" r="2.25"></circle></svg>`
+    + `<span>${esc(R.textoTendencia(serie, tipo))}</span>`;
+}
+/** La tendencia respeta severidad y tipo, pero no el periodo: siempre son las 8 ventanas que terminan al final del
+ *  periodo elegido (o ahora). Con «Últimos 7 días» seguiría mostrando de dónde viene la cifra. */
+function tendenciasCifras(r) {
+  const f = ui.filtro, fin = r && Number.isFinite(r[1]) ? Math.min(r[1], Date.now()) : Date.now();
+  const huecos = D.huecos.filter((h) => (!f.sev || h.severidad === f.sev) && (!f.clase || h.clase === f.clase));
+  const hay = huecos.length > 0;
+  ponerTendencia('k-abiertos', hay && R.serieSemanas(huecos, 'abiertos', fin), 'abiertos');
+  ponerTendencia('k-alta', hay && R.serieSemanas(huecos.filter((h) => h.severidad === 'alta'), 'abiertos', fin), 'abiertos');
+  ponerTendencia('k-reparados', hay && R.serieSemanas(huecos, 'reparados', fin), 'reparados');
+}
 function cifras({base, rango: r}) {
+  tendenciasCifras(r);
   const ab = base.filter((h) => h.abierto), det = ab.filter((h) => h.estado === 'detectado').length;
   const alta = ab.filter((h) => h.severidad === 'alta').length;
   const enRango = (ts) => !r || (R.ms(ts) >= r[0] && R.ms(ts) <= r[1]);
@@ -229,13 +259,13 @@ function contexto({visibles, rango: r}) {
   if (r) activos.push(['periodo', textoPeriodo(r)[0].toUpperCase() + textoPeriodo(r).slice(1)]);
   $('contexto').innerHTML = `<span>En el mapa: <b>${plural(visibles.length, ...que)}</b>${activos.length ? '' : ' · todo el periodo'}.</span>`
     + activos.map(([k, t]) => `<button type="button" class="filtro-activo" data-quitar="${k}" aria-label="Quitar el filtro ${esc(t)}">`
-      + `${esc(t)} <span aria-hidden="true">✕</span></button>`).join('');
+      + `${esc(t)} ${ic('cerrar')}</button>`).join('');
 }
 
 function frescura() {
   const el = $('frescura'), t = $('t-frescura');
   el.classList.remove('al-dia', 'viejo');
-  if (DEMO) { t.textContent = 'Datos de demostración'; return; }
+  if (PRUEBA) { t.textContent = 'Datos de prueba'; return; }
   if (!D.ultimoDato) { t.textContent = 'Sin datos sincronizados todavía'; el.classList.add('viejo'); return; }
   const reciente = Date.now() - D.ultimoDato <= 2 * DIA;
   el.classList.add(reciente ? 'al-dia' : 'viejo');
@@ -259,7 +289,7 @@ function filaHueco(h, i) {
   if (h.estado === 'descartado') partes.push('descartado');
   if (h.barrio) partes.push(esc(h.barrio));
   const marca = h.abierto ? `<span class="num lleno" style="--c:var(--vv-${h.estado})" aria-hidden="true">${i + 1}</span>`
-    : `<span class="num" style="--c:var(--vv-${h.estado})" aria-hidden="true">${h.estado === 'reparado' ? '✓' : '×'}</span>`;
+    : `<span class="num" style="--c:var(--vv-${h.estado})" aria-hidden="true">${ic(h.estado === 'reparado' ? 'hecho' : 'cerrar')}</span>`;
   // a la derecha, el tiempo con su significado (en el celular no hay «title» que lo explique)
   const der = h.abierto ? `<b>${R.textoDias(h.diasAbierto)}</b>abierto`
     : `<b>${esc(R.fechaDia(h.ts_estado || h.ultima_ts).replace(/ de \d{4}$/, ''))}</b>${h.estado}`;
@@ -318,7 +348,7 @@ function mostrarDetalle(h) {
     : `<ol class="pasos" style="--c:var(--vv-${h.estado})" aria-label="Estado: ${R.ESTADO[h.estado].nombre}">`
       + camino.map((e, i) => `<li class="${i <= k ? 'hecho' : ''}${i === k ? ' actual' : ''}">${R.ESTADO[e].nombre}</li>`).join('') + '</ol>';
   const filas = [
-    ['Tipo', esc(R.nombreClase(h.clase)) + (h.clase === 'impacto_fuerte' ? ' <small>(nadie lo ha etiquetado todavía)</small>' : '')],
+    ['Tipo', ic(h.clase === 'hueco' ? 'hueco' : 'golpe') + esc(R.nombreClase(h.clase)) + (h.clase === 'impacto_fuerte' ? ' <small>(nadie lo ha etiquetado todavía)</small>' : '')],
     ['Severidad', chipSev(h)],
     ['Detecciones', `${h.n_detecciones} ${h.n_detecciones === 1 ? 'vez' : 'veces'}`],
     ['Primera vez', `${R.fechaHora(h.primera_ts)} <small>(${R.hace(h.primera_ts)})</small>`],
@@ -333,8 +363,8 @@ function mostrarDetalle(h) {
   }
   if (h.riesgoTramo != null) filas.push(['Riesgo del tramo', `${R.NIVELES_RIESGO[R.nivelRiesgo(h.riesgoTramo)]} (${R.porcentaje(h.riesgoTramo)})`]);
   filas.push(['Ubicación', `${h.lat.toFixed(5)}, ${h.lon.toFixed(5)} · <a href="https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lon}" target="_blank" rel="noopener">Cómo llegar ↗</a>`]);
-  if (h.instancia && !DEMO) filas.push(['Equipo', esc(h.instancia)]);
-  el.innerHTML = '<button type="button" class="enlace" data-volver>← Volver a la lista</button>'
+  if (h.instancia && !PRUEBA) filas.push(['Equipo', esc(h.instancia)]);
+  el.innerHTML = `<button type="button" class="enlace" data-volver>${ic('volver')}Volver a la lista</button>`
     + `<h3>${esc(h.lugar)} <small>${esc(h.etiqueta)}</small></h3>`
     + `<p class="sub">${esc([h.barrio, h.via !== '—' ? h.via : null].filter(Boolean).join(' · '))}</p>${pasos}`
     + `<dl class="datos">${filas.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`
@@ -344,7 +374,7 @@ function mostrarDetalle(h) {
   el.querySelector('[data-volver]').onclick = () => { const id = h.id_origen; cerrarDetalle(); $('lista').querySelector(`[data-id="${CSS.escape(id)}"]`)?.focus(); };
   el.querySelector('[data-ver]').onclick = () => { mapa.irA(h); if (movil()) $('mapa').scrollIntoView({behavior: 'smooth', block: 'center'}); };
   if (editor) conectarCambio(h);
-  if (sb && !DEMO) {
+  if (sb && !PRUEBA) {
     cambiosPendientes(sb, h.id_origen).then((p) => {
       if (p.length && ui.seleccion === h.id_origen && $('pendientes')) {
         $('pendientes').innerHTML = `<p class="pendiente">Cambio pedido: «${esc(R.ESTADO[p[0].estado]?.nombre || p[0].estado)}» `
@@ -368,7 +398,7 @@ function conectarCambio(h) {
     $('b-cambiar').disabled = elegido === h.estado;
   };
   $('b-cambiar').onclick = async () => {
-    if (DEMO) return toast(`DEMOSTRACIÓN: aquí no se envía nada. En la versión real, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
+    if (PRUEBA) return toast(`Prototipo con datos de prueba: el cambio no se envía. Con el enlace activo, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
     $('b-cambiar').setAttribute('aria-busy', 'true');
     const {error} = await sb.from('cambios_remotos').insert({id_origen: h.id_origen, instancia: h.instancia, id_local: h.id_local,
       estado: elegido, nota: $('nota').value.trim() || null});
@@ -397,7 +427,7 @@ function tramosTop() {
   const c = D.corrida;
   $('ayuda-tramos').innerHTML = 'Probabilidad estimada de que el tramo tenga un hueco sin reportar: una guía para revisar, no una certeza.'
     + (c ? `<br><span class="chip">${esc(c.modelo)} · ${esc(c.version)} · ${R.fechaDia(c.fecha)}</span>` : '')
-    + (c?.demo ? ' <span class="chip fuerte">DEMO: no es un resultado</span>' : '');
+    + (c?.demo ? ' <span class="chip fuerte">Datos de prueba: no es un resultado</span>' : '');
   if (!D.riesgo.length) {
     $('top').innerHTML = vacio('Aún no hay corridas del modelo de riesgo', 'Aparecen cuando se corre el modelo y la Pi sincroniza.');
     return;
@@ -491,8 +521,11 @@ function entrada() {
 /** tablero.html#riesgo · #tendencia · #atender (enlaces de la portada). */
 function irAlDestino() {
   const destino = location.hash.slice(1);
-  if (destino === 'riesgo' && D.riesgo.length) atajo({}, 'riesgo', 'tramos');
+  if (!['atender', 'riesgo', 'tendencia'].includes(destino)) return;
+  if (destino === 'riesgo' && D.riesgo.length) { ponerModo('riesgo'); elegirPestana('tramos'); pintar(); }
   else if (destino === 'tendencia') elegirPestana('tendencia');
+  else { cerrarDetalle(); ponerModo('huecos'); elegirPestana('atender'); pintar(); }
+  if (movil()) document.querySelector('.panel').scrollIntoView({behavior: QUIETO ? 'auto' : 'smooth', block: 'start'});
 }
 
 // ------------------------------------------------------------------ controles
@@ -598,7 +631,7 @@ function descargar(nombre, contenido, tipo) {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 const cerrarMenu = () => { document.querySelector('.menu-exportar').open = false; };
-const sello = () => new Date().toISOString().slice(0, 16).replace(/[:T-]/g, '') + (DEMO ? '_DEMO' : '');
+const sello = () => new Date().toISOString().slice(0, 16).replace(/[:T-]/g, '') + (PRUEBA ? '_PRUEBA' : '');
 // id_hueco (no id_local): así el CSV descargado sirve de base para «Importar reparaciones»
 const COLUMNAS = [['id_hueco', (h) => h.id_local], ['instancia', (h) => h.instancia], ['estado', (h) => h.estado],
   ['tipo', (h) => h.clase], ['severidad', (h) => h.severidad || ''], ['detecciones', (h) => h.n_detecciones],
@@ -622,7 +655,7 @@ $('x-xlsx').onclick = async (e) => {
     return {id_tramo: r.id_tramo, calle: t ? l.titulo : '', barrio: l.barrio || '', tipo_via: t ? l.via : '',
       probabilidad: r.probabilidad, nivel: R.NIVELES_RIESGO[R.nivelRiesgo(r.probabilidad)], huecos_abiertos: D.abiertosTramo.get(r.id_tramo) || 0};
   })), 'Riesgo por tramo');
-  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', DEMO ? 'DEMOSTRACIÓN: datos inventados' : ''],
+  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', PRUEBA ? 'PROTOTIPO: datos de prueba (simulados), no son mediciones de Tunja' : ''],
     ['Generado', new Date().toLocaleString('es-CO', {timeZone: 'America/Bogota'})], ['Vista', $('contexto').textContent],
     ['Último dato', D.ultimoDato ? R.fechaHora(D.ultimoDato) : '—'],
     ['Corrida de riesgo', D.corrida ? `${D.corrida.modelo} ${D.corrida.version} (${R.fechaDia(D.corrida.fecha)})` : '—'], [],
@@ -647,7 +680,7 @@ $('archivo').onchange = async () => {
   $('b-enviar').disabled = r.errores.length > 0 || !r.cambios.length;
 };
 $('b-enviar').onclick = async () => {
-  if (DEMO) { $('d-importar').close(); return toast(`DEMOSTRACIÓN: el archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}), pero aquí no se envía nada.`); }
+  if (PRUEBA) { $('d-importar').close(); return toast(`El archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}). En el prototipo con datos de prueba no se envía nada.`); }
   const {error} = await sb.from('cambios_remotos').insert(cambiosCSV);
   toast(error ? 'No se envió: ' + error.message : `${plural(cambiosCSV.length, 'cambio enviado', 'cambios enviados')}; se aplican cuando la Pi sincronice.`);
   $('d-importar').close();

@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
 # VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS Lite 64 bits, manual de armado v3). [SIN PROBAR EN HARDWARE]
-# Uso (con internet, una sola vez):   cd ~/via-viva && bash viaviva/instalar.sh [--punto-de-acceso]
+# Uso (con internet, una sola vez):   cd ~/via-viva && bash viaviva/instalar.sh [--punto-de-acceso] [--con-scraping]
 # Pide sudo para apt, interfaces y systemd. Las claves NO van aquí: van en ~/via-viva/.env
 #
 # Hace: (1) paquetes, (2) SPI + I2C a 400 kHz + UART del GPS + gpio-shutdown en GPIO27 + sin Bluetooth (manual v3,
-# paso 2), (3) venv viaviva/.venv, (4) Leaflet local, (5) .env, (6) [opcional] punto de acceso propio VIA-VIVA,
-# (7) permiso de apagado desde la web, (8) servicios systemd: via-viva-pi (captura + tablero) y scraping diario.
+# paso 2), (3) venv viaviva/.venv, (4) MapLibre local, (5) .env, (6) [opcional] punto de acceso propio VIA-VIVA,
+# (7) permiso de apagado desde la web, (8) servicio systemd via-viva-pi (captura + tablero) y, solo con
+# --con-scraping, el scraping diario (clima y noticias para el modelo de riesgo; opcional desde el 13-nov).
 # Red normal (manual v3): la Pi se conecta al HOTSPOT del celular, que da internet para sincronizar con Supabase.
 set -euo pipefail
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$RAIZ"
 USUARIO="${SUDO_USER:-$USER}"
-AP=0; [ "${1:-}" = "--punto-de-acceso" ] && AP=1
+AP=0; SCRAPING=0
+for arg in "$@"; do
+  case "$arg" in
+    --punto-de-acceso) AP=1 ;;
+    --con-scraping) SCRAPING=1 ;;
+    *) echo "Opción desconocida: $arg" >&2; exit 2 ;;
+  esac
+done
 CONFIG=/boot/firmware/config.txt; [ -f "$CONFIG" ] || CONFIG=/boot/config.txt
 paso() { printf '\n== %s\n' "$1"; }
 linea() { grep -qxF "$1" "$CONFIG" || echo "$1" | sudo tee -a "$CONFIG" >/dev/null; }
@@ -38,13 +46,15 @@ paso "3/8 Entorno de Python"
 python3 -m venv --system-site-packages viaviva/.venv
 viaviva/.venv/bin/python -m pip install --upgrade pip
 viaviva/.venv/bin/python -m pip install -r viaviva/requirements.txt
-python3 -m venv etl/.venv
-etl/.venv/bin/python -m pip install -r etl/requirements.txt
+if [ "$SCRAPING" = 1 ]; then                     # el scraping usa su propio entorno (etl/.venv)
+  python3 -m venv etl/.venv
+  etl/.venv/bin/python -m pip install -r etl/requirements.txt
+fi
 
-paso "4/8 Leaflet local (el tablero local funciona sin internet)"
-mkdir -p viaviva/web/vendor/leaflet
-for f in leaflet.js leaflet.css; do
-  curl -fsSL "https://unpkg.com/leaflet@1.9.4/dist/$f" -o "viaviva/web/vendor/leaflet/$f"
+paso "4/8 MapLibre local (el mapa del tablero local funciona sin internet)"
+mkdir -p viaviva/web/vendor/maplibre
+for f in maplibre-gl.mjs maplibre-gl-worker.mjs maplibre-gl.css; do
+  curl -fsSL "https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/$f" -o "viaviva/web/vendor/maplibre/$f"
 done
 
 paso "5/8 Archivo .env (claves solo aquí)"
@@ -70,12 +80,19 @@ sudo chmod 440 /etc/sudoers.d/via-viva
 sudo visudo -cf /etc/sudoers.d/via-viva
 
 paso "8/8 Servicios systemd"
-for u in via-viva-pi.service via-viva-scraping.service via-viva-scraping.timer; do
+SERVICIOS="via-viva-pi.service"
+[ "$SCRAPING" = 1 ] && SERVICIOS="$SERVICIOS via-viva-scraping.service via-viva-scraping.timer"
+for u in $SERVICIOS; do
   sed "s#__RAIZ__#$RAIZ#g; s#__USUARIO__#$USUARIO#g" "viaviva/sistemas/$u" | sudo tee "/etc/systemd/system/$u" >/dev/null
 done
 sudo systemctl daemon-reload
-sudo systemctl enable via-viva-pi.service via-viva-scraping.timer
-sudo systemctl start via-viva-scraping.timer
+sudo systemctl enable via-viva-pi.service
+if [ "$SCRAPING" = 1 ]; then
+  sudo systemctl enable via-viva-scraping.timer
+  sudo systemctl start via-viva-scraping.timer
+else
+  echo "Scraping diario: no instalado (opcional; para activarlo: bash viaviva/instalar.sh --con-scraping)."
+fi
 
 cat <<FIN
 

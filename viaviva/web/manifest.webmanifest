@@ -1,0 +1,16 @@
+{
+  "name": "VÍA VIVA · captura y tablero",
+  "short_name": "VÍA VIVA",
+  "description": "Captura de campo, revisión y tablero de huecos de Tunja (app local).",
+  "lang": "es-CO",
+  "start_url": "/captura?app=1",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {"src": "/static/icono/viaviva-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icono/viaviva-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/icono/viaviva-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

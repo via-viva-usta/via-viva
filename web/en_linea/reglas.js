@@ -110,6 +110,33 @@ export function hace(ts, ahora = Date.now()) {
 }
 export const textoDias = (d) => (d < 1 ? 'menos de 1 día' : `${Math.round(d)} día${Math.round(d) === 1 ? '' : 's'}`);
 
+// ------------------------------------------------------------------ tendencia de las cifras (ventanas de 7 días)
+/** ¿El hueco estaba abierto en el instante `t`? Detectado antes de `t` y, si ya se cerró, cerrado después de `t`. */
+export function abiertoEn(h, t) {
+  if (!(ms(h.primera_ts) <= t)) return false;
+  return ABIERTOS.has(h.estado) || ms(h.ts_estado) > t;
+}
+/** `n` ventanas de 7 días que terminan en `fin` (la última = los 7 días hasta `fin`); una ventana sin datos vale 0.
+ *  'abiertos' = huecos abiertos al cierre de cada ventana · 'reparados' = reparados dentro de cada ventana.
+ *  Ventanas móviles y no semanas de calendario: así la última no queda a medias un miércoles. */
+export function serieSemanas(huecos, tipo, fin = Date.now(), n = 8) {
+  return Array.from({length: n}, (_, i) => {
+    const corte = fin - (n - 1 - i) * 7 * DIA_MS;
+    if (tipo === 'reparados') {
+      return huecos.filter((h) => h.estado === 'reparado' && ms(h.ts_estado) > corte - 7 * DIA_MS && ms(h.ts_estado) <= corte).length;
+    }
+    return huecos.filter((h) => abiertoEn(h, corte)).length;
+  });
+}
+/** La tendencia en palabras (una flecha o una línea sola no bastan): la última ventana frente a la anterior. */
+export function textoTendencia(serie, tipo) {
+  const [antes, ahora] = serie.slice(-2).map((v) => v ?? 0);
+  const n = (v) => v.toLocaleString('es-CO');
+  if (tipo === 'reparados') return `${n(ahora)} en 7 días · ${n(antes)} en los 7 anteriores`;
+  const d = ahora - antes;
+  return d === 0 ? 'igual que 7 días antes' : `${n(Math.abs(d))} ${d > 0 ? 'más' : 'menos'} que 7 días antes`;
+}
+
 // ------------------------------------------------------------------ CSV (RFC 4180, separador , o ;)
 export function celdaCSV(v) {
   const s = v === null || v === undefined ? '' : String(v);

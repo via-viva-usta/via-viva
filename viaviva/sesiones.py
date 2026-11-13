@@ -28,7 +28,7 @@ from viaviva import config, resumen
 from viaviva.fuentes import _leer_tabla
 
 NOMBRE_OK = re.compile(r"^sesion_[\w\-]+$")
-VIDEOS = (".mov", ".mp4", ".m4v")
+VIDEOS = (".mov", ".mp4", ".m4v", ".webm")
 MAX_VIDEO_BYTES = 8 * 1024**3  # admite videos largos; el límite también se aplica al cuerpo transmitido
 CLASES = [c for _, c, _ in config.ETIQUETAS]
 SALIDA_DATASET = config.RAIZ / "data" / "procesado" / "dataset_ventanas"

@@ -1,59 +1,10 @@
-# web/ — Mapa público (estático, sin backend)
+# web/ — interfaz web (dueño: Dany)
 
-`index.html` muestra, sobre OpenStreetMap (Leaflet 1.9.4):
-
-- **tramos coloreados por riesgo** (quintiles, amarillo → rojo oscuro, con grosor creciente para leerse con daltonismo);
-- **reportes ciudadanos** (rombos, color por estado: nuevo, confirmado, en reparación, reparado);
-- **eventos detectados** (círculos: nodo y recorridos etiquetados);
-- leyenda, control de capas, "© OpenStreetMap contributors" y un **aviso rojo DEMO** si la corrida del modelo es de prueba.
-
-No hay servidor: los datos van en `datos.js`, que genera `exportar.py` desde SQLite.
-
-```powershell
-etl\.venv\Scripts\python web\exportar.py          # regenera web\datos.js
-start web\index.html                              # abrir con doble clic también sirve
-```
-
-## Qué se publica y qué no
-
-| Sale en el mapa | NO sale |
+| Carpeta | Qué es |
 |---|---|
-| Geometría de tramos (OSM, ODbL) y su riesgo | Datos de la Alcaldía (no se leen) |
-| Reportes: tipo, estado, fecha, ubicación | Fotos, descripción y hash del usuario |
-| Eventos: clase, origen, fecha, ubicación | Hash del vehículo, trayectorias, eventos simulados |
+| `en_linea/` | Sitio público: portada (`index.html`) y tablero (`tablero.html`) que leen de Supabase. Se publica con Netlify (`netlify.toml` en la raíz). Pruebas: `node --test tests/web/*.test.mjs` |
+| `clasificador/` | CNN de fotos en el navegador del celular (`preparar.py --servir`). Queda aquí hasta que Dany decida si sigue en el prototipo |
 
-Coordenadas redondeadas a 5 decimales (~1 m). `datos.js` está en `.gitignore`: se regenera antes de publicar.
-
-## Publicar en Netlify (NO publicar todavía)
-
-Cuando el equipo lo decida (y el riesgo NO sea DEMO):
-
-1. `etl\.venv\Scripts\python web\exportar.py`
-2. Entrar a https://app.netlify.com/drop (cuenta gratuita) y **arrastrar la carpeta `web/`** completa.
-   Netlify da una dirección `https://<nombre>.netlify.app`; se puede cambiar el nombre en *Site settings*.
-3. Para actualizar: volver a exportar y arrastrar de nuevo la carpeta en *Deploys*.
-   (Alternativa por consola: `npm install -g netlify-cli`, `netlify deploy --dir web` y luego `--prod`).
-
-Las teselas vienen de `tile.openstreetmap.org`: su política permite uso liviano con atribución; si el mapa tiene mucho
-tráfico, cambiar a otro proveedor de teselas.
-
-## Estado (2-nov-2026)
-
-Probado en el navegador con un servidor local (`python -m http.server`) y una **base de prueba** (corrida DEMO,
-3 reportes de prueba y 40 eventos de recorridos sintéticos): cargan Leaflet (con verificación SRI), los tramos, los
-reportes, los eventos, la leyenda, las capas y el aviso DEMO. Con la base real de hoy el mapa muestra los 5 775 tramos
-en gris ("sin calcular"): aún no hay modelo entrenado, ni reportes, ni eventos. **No se ha publicado.**
-
-## Clasificador de fotos en el celular (`web/clasificador/`, 5-nov)
-
-Página estática que corre la CNN int8 de `dataset.modelo` **en el navegador del celular** (TensorFlow Lite en
-WebAssembly con `@tensorflow/tfjs-tflite`): tomar o elegir una foto → clase, confianza, latencia en ms y aviso
-SINTÉTICO si aplica. La foto no sale del celular. Probado en Chromium del PC (int8 MobileNetV2 SINTÉTICO: 19 ms,
-misma clase que Python); **falta probarlo en el iPhone**.
-
-```powershell
-python web\clasificador\preparar.py --servir     # descarga las librerías una vez, copia el último modelo y sirve en :8000
-```
-
-Abrir en el iPhone la URL `http://<IP del PC>:8000/` que imprime (mismo WiFi). Si no abre, permitir Python en el
-Firewall de Windows (red privada). `vendor/` y `modelo/` se regeneran con el script (ignorados por Git).
+`en_linea/marca.css` es el único sistema de estilos: lo usan este sitio y la app local (`viaviva/web/`).
+`en_linea/config.js` (URL y clave **pública** de Supabase) no va en Git: lo arma Netlify al publicar o
+`viaviva nube preparar` en el PC. El mapa estático viejo (`index.html` + `exportar.py`) salió del repo el 13-nov.

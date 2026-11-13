@@ -13,37 +13,25 @@
   --vv-borde: var(--pico-muted-border-color);
   --vv-tinte: color-mix(in srgb, var(--pico-primary) 8%, transparent);
 }
-:root:not([data-theme="dark"]), [data-theme="light"] {
-  --pico-background-color: #f3f3f0; --pico-card-background-color: #ffffff; --pico-card-sectioning-background-color: #fafafa;
-  --pico-color: #111111; --pico-h1-color: #0a0a0a; --pico-h2-color: #0a0a0a; --pico-h3-color: #0a0a0a;
-  --pico-muted-color: #5f5f5f; --pico-muted-border-color: #dddddd;
-  --pico-primary: #0a0a0a; --pico-primary-background: #0a0a0a; --pico-primary-border: #0a0a0a; --pico-primary-underline: rgb(10 10 10 / .4);
-  --pico-primary-hover: #000; --pico-primary-hover-background: #2a2a2a; --pico-primary-hover-border: #2a2a2a;
-  --pico-primary-focus: rgb(10 10 10 / .25); --pico-primary-inverse: #ffffff;
-  --pico-form-element-background-color: #ffffff; --pico-form-element-border-color: #cfcfcf;
-  --vv-sobre-primario: #ffffff;
-  /* estado del hueco y riesgo (colores de DATOS) */
-  --vv-detectado: #e8590c; --vv-verificado: #c92a2a; --vv-reparado: #2b8a3e; --vv-descartado: #868e96;
-  --vv-r0: #ced4da; --vv-r1: #f2c94c; --vv-r2: #f08c2e; --vv-r3: #d9480f; --vv-r4: #7a1f1f;
-  --vv-punto-ref: #1f2328; --vv-borde-punto: #ffffff; --vv-fondo-punto: #ffffff;
-  --vv-ok: #2b8a3e; --vv-alerta: #b7791f; --vv-sin: #868e96;
+/* Colores: tokens --t-* y --vv-* de marca.css (los mismos que usa la app local de captura). */
+:root:not([data-theme="dark"]), [data-theme="light"], [data-theme="dark"] {
+  --pico-background-color: var(--t-fondo); --pico-card-background-color: var(--t-tarjeta);
+  --pico-card-sectioning-background-color: var(--t-tarjeta-2);
+  --pico-color: var(--t-texto); --pico-h1-color: var(--t-titulo); --pico-h2-color: var(--t-titulo); --pico-h3-color: var(--t-titulo);
+  --pico-muted-color: var(--t-tenue); --pico-muted-border-color: var(--t-borde);
+  --pico-primary: var(--t-primario); --pico-primary-background: var(--t-primario); --pico-primary-border: var(--t-primario);
+  --pico-primary-underline: var(--t-subrayado);
+  --pico-primary-hover: var(--t-primario-hover-txt); --pico-primary-hover-background: var(--t-primario-hover);
+  --pico-primary-hover-border: var(--t-primario-hover);
+  --pico-primary-focus: var(--t-foco); --pico-primary-inverse: var(--t-sobre-primario);
+  --pico-form-element-background-color: var(--t-campo); --pico-form-element-border-color: var(--t-campo-borde);
+  --vv-sobre-primario: var(--t-sobre-primario);
 }
 [data-theme="dark"] {
-  --pico-background-color: #0a0a0a; --pico-card-background-color: #111111; --pico-card-sectioning-background-color: #161616;
-  --pico-color: #ededed; --pico-h1-color: #ffffff; --pico-h2-color: #ffffff; --pico-h3-color: #ffffff;
-  --pico-muted-color: #9a9a9a; --pico-muted-border-color: #262626;
-  --pico-primary: #ffffff; --pico-primary-background: #ffffff; --pico-primary-border: #ffffff; --pico-primary-underline: rgb(255 255 255 / .45);
-  --pico-primary-hover: #ffd60a; --pico-primary-hover-background: #ffd60a; --pico-primary-hover-border: #ffd60a;
-  --pico-primary-focus: rgb(255 214 10 / .45); --pico-primary-inverse: #0a0a0a;
-  --pico-form-element-background-color: #141414; --pico-form-element-border-color: #2e2e2e; --pico-form-element-color: #ededed;
+  --pico-form-element-color: #ededed;
   --pico-form-element-focus-color: #ffffff; --pico-form-element-placeholder-color: #6b6b6b;
   --pico-dropdown-background-color: #141414; --pico-dropdown-border-color: #2e2e2e; --pico-dropdown-hover-background-color: #1f1f1f;
   --pico-modal-overlay-background-color: rgb(0 0 0 / .72);
-  --vv-sobre-primario: #0a0a0a;
-  --vv-detectado: #ffa94d; --vv-verificado: #ff6b6b; --vv-reparado: #51cf66; --vv-descartado: #adb5bd;   /* ámbar vs. rojo */
-  --vv-r0: #3b424b; --vv-r1: #d9b44a; --vv-r2: #f08c2e; --vv-r3: #ff6b35; --vv-r4: #ff3b3b;
-  --vv-punto-ref: #f1f3f5; --vv-borde-punto: #0a0a0a; --vv-fondo-punto: #0a0a0a;
-  --vv-ok: #51cf66; --vv-alerta: #e3b341; --vv-sin: #868e96;
 }
 body { margin: 0; background: var(--pico-background-color); -webkit-font-smoothing: antialiased; }
 .oculto { display: none !important; }
@@ -86,6 +74,20 @@ button.icono:hover { border-color: var(--vv-texto); }
 .aviso { margin: .75rem 1rem 0; padding: .55rem .9rem; font-size: .88rem;
   background: color-mix(in srgb, var(--vv-verificado) 12%, transparent); border-left: 3px solid var(--vv-verificado); }
 
+/* franja del prototipo: sobria (no alarma), específica y con enlace al estado del enlace */
+.franja-prototipo { display: flex; align-items: center; gap: .6rem 1rem; flex-wrap: wrap; padding: .55rem 1rem; font-size: .8rem;
+  line-height: 1.45; background: #141414; color: #bdbdbd; border-bottom: 1px solid #262626; }
+.franja-prototipo b { color: #fff; font-weight: 600; }
+.franja-texto { flex: 1 1 32rem; }
+.etq-proto { flex: none; padding: .25rem .55rem; border: 1px solid var(--m-senal); color: var(--m-senal);
+  font-size: .64rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.franja-prototipo a { flex: none; color: #fff; font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  text-decoration: none; border-bottom: 1px solid var(--m-senal); padding-bottom: 1px; }
+.barra .b-menu { color: var(--vv-texto); border-color: var(--vv-borde); padding: .6rem .9rem; }
+.barra .b-menu:hover, .barra .b-menu[aria-expanded="true"] { background: var(--vv-texto); color: var(--pico-background-color); border-color: var(--vv-texto); }
+.cuenta .publico { padding: .15rem .5rem; border: 1px solid var(--vv-borde); font-size: .66rem; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--vv-texto); }
+
 /* ---------------------------------------------------------------- cifras (también son atajos) */
 .cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 1rem 1rem 0;
   border: 1px solid var(--vv-borde); background: var(--pico-card-background-color); }
@@ -103,6 +105,25 @@ button.icono:hover { border-color: var(--vv-texto); }
 .cifra b { font-family: var(--f-titulo); font-weight: 400; font-size: 2.6rem; line-height: 1.05; letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums; margin-top: .2rem; }
 .cifra small { font-size: .78rem; color: var(--pico-muted-color); }
+/* tendencia: mini línea de 8 ventanas de 7 días + la frase que la explica (la línea sola no basta) */
+.cifra .tend { display: flex; align-items: center; gap: .55rem; margin-top: .3rem; font-size: .74rem; line-height: 1.3;
+  color: var(--pico-muted-color); }
+.cifra .tend:empty { display: none; }
+.cifra .tend svg { width: 64px; height: 20px; flex: none; overflow: visible; }
+.cifra .tend polyline { fill: none; stroke: var(--c); stroke-width: 1.75; stroke-linejoin: round; }
+.cifra .tend circle { fill: var(--c); }
+.kiosco .cifra .tend { font-size: .9rem; }
+.kiosco .cifra .tend svg { width: 96px; height: 28px; }
+
+/* ---------------------------------------------------------------- íconos (juego único en tablero.html) */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ic { width: 1.25rem; height: 1.25rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75;
+  stroke-linecap: square; stroke-linejoin: miter; vertical-align: -.25em; }
+button.icono .ic { display: block; margin: auto; }
+.filtro-activo .ic { width: .9rem; height: .9rem; stroke-width: 2; }
+.num .ic { width: 14px; height: 14px; stroke-width: 2.5; }
+.datos .ic { width: 1.1rem; height: 1.1rem; margin-right: .35rem; }
+[data-volver] .ic { width: 1rem; height: 1rem; margin-right: .3rem; }
 
 /* ---------------------------------------------------------------- filtros */
 .filtros { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; padding: 1rem 1rem 0; }
@@ -307,7 +328,7 @@ dialog article { max-width: 680px; border: 1px solid var(--vv-borde); }
   .cifra:nth-child(2) { border-right: 0; }
   .cifra:nth-child(n+3) { border-top: 1px solid var(--vv-borde); }
   .cifra b { font-size: 2.1rem; }
-  #b-kiosco, .barra-seccion { display: none; }
+  .barra-seccion { display: none; }
   .barra { position: static; }                 /* en el celular la barra fija se comía pantalla */
   #p-atender, #mapa { scroll-margin-top: 12px; }
 }
@@ -344,3 +365,11 @@ dialog article { max-width: 680px; border: 1px solid var(--vv-borde); }
   #lista > li:nth-child(n+16), #lista-pie, .tabla-alt { display: none !important; }   /* el PDF lleva los 15 primeros */
   .entra { animation: none !important; }
 }
+
+/* aviso cuando el tablero no carga (vigia.js) */
+.falla-carga { position: fixed; inset: auto 1rem 1rem 1rem; z-index: 9000; max-width: 32rem; margin: 0 auto; padding: 1.25rem;
+  background: var(--m-asfalto-2); color: var(--m-blanco); border: 1px solid var(--m-linea); border-left: 4px solid var(--m-peligro);
+  font: 400 1rem/1.45 var(--f-texto); }
+.falla-carga p { margin: 0 0 .75rem; color: inherit; }
+.falla-carga .t-etiqueta { color: var(--m-peligro); }
+.falla-carga .b-marca { width: auto; margin: 0; }

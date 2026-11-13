@@ -30,16 +30,34 @@ if ($LASTEXITCODE -ne 0) { throw "No se pudo crear viaviva\.venv" }
 if ($LASTEXITCODE -ne 0) { throw "pip no pudo instalar viaviva\requirements-pc.txt (hay internet?)" }
 # .env sin secretos: la captura no necesita claves (Supabase y demas quedan vacios)
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Leaflet local: el tablero y la captura muestran el mapa aunque no haya internet en el carro
-New-Item -ItemType Directory -Force viaviva\web\vendor\leaflet | Out-Null
-foreach ($f in "leaflet.js", "leaflet.css") {
+# MapLibre local (el mismo mapa del tablero en linea): el mapa funciona aunque no haya internet en el carro
+New-Item -ItemType Directory -Force viaviva\web\vendor\maplibre | Out-Null
+foreach ($f in "maplibre-gl.mjs", "maplibre-gl-worker.mjs", "maplibre-gl.css") {
     try {
-        Invoke-WebRequest "https://unpkg.com/leaflet@1.9.4/dist/$f" -OutFile "viaviva\web\vendor\leaflet\$f" -UseBasicParsing
-    } catch { Write-Host "Aviso: no se descargo $f (el mapa usara la version simple)." -ForegroundColor Yellow }
+        Invoke-WebRequest "https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/$f" -OutFile "viaviva\web\vendor\maplibre\$f" -UseBasicParsing
+    } catch { Write-Host "Aviso: no se descargo $f (el mapa se bajara de internet o usara la version simple)." -ForegroundColor Yellow }
 }
+# Accesos directos «VIA VIVA» (escritorio y menu Inicio): abren la app en su propia ventana, sin consola
+$pyw = Join-Path $raiz "viaviva\.venv\Scripts\pythonw.exe"
+$icono = Join-Path $raiz "viaviva\web\icono\viaviva.ico"
+$shell = New-Object -ComObject WScript.Shell
+$destinos = @([Environment]::GetFolderPath("Desktop"), (Join-Path ([Environment]::GetFolderPath("Programs")) ""))
+if ($env:VIAVIVA_ACCESOS) { $destinos = @($env:VIAVIVA_ACCESOS) }      # pruebas: otra carpeta en vez del escritorio
+foreach ($carpeta in $destinos) {
+    if (-not $carpeta) { continue }
+    $acceso = $shell.CreateShortcut((Join-Path $carpeta "VIA VIVA.lnk"))
+    $acceso.TargetPath = $pyw
+    $acceso.Arguments = "-m viaviva app"
+    $acceso.WorkingDirectory = $raiz
+    $acceso.IconLocation = "$icono,0"
+    $acceso.Description = "VIA VIVA: captura de campo y tablero (app local)"
+    $acceso.Save()
+}
+Write-Host "Acceso directo VIA VIVA creado en el escritorio y en el menu Inicio." -ForegroundColor Green
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
     Write-Host "Opcional: falta ffmpeg (solo para convertir videos HEVC del iPhone): winget install Gyan.FFmpeg" -ForegroundColor Yellow
 }
-Write-Host "`nListo. Prueba sin iPhone:  .\viaviva.cmd doctor --simulado ejemplo" -ForegroundColor Green
+Write-Host "`nListo. Doble clic en el icono VIA VIVA del escritorio (la app abre en su propia ventana)." -ForegroundColor Green
+Write-Host "Prueba sin iPhone:  .\viaviva.cmd doctor --simulado ejemplo" -ForegroundColor Green
 Write-Host "Practica de captura:      .\viaviva.cmd capture --replay ejemplo --por-http --abrir" -ForegroundColor Green
 Write-Host "Salida de campo: doble clic en SALIDA_DE_CAMPO.cmd (pasos en README_SALIDA.md)" -ForegroundColor Green
