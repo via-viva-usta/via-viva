@@ -128,7 +128,7 @@ via-viva/
 7. **Commits pequeños** en español con prefijo (`feat(etl): ...`, `fix(firmware): ...`, `docs: ...`), con la línea
    `Co-Authored-By` cuando los hace Claude.
 8. **Java:** el tablero debe abrir en Apache NetBeans 25 como *Java with Ant*, Java 21.
-9. **Ramas del repo:** seguir `CONTRIBUTING.md`. `main` solo recibe PRs con CI aplicable en verde; usar ramas breves por tarea (`ac/<tarea>`, `dani/<tarea>`), nunca empujar directamente ni hacer `push --force`. Dany es responsable de `web/`; AC, de `viaviva/`. Tras fusionar, borrar la rama solo si quedó contenida en `main`.
+9. **Ramas del repo:** seguir `CONTRIBUTING.md`. `main` solo recibe PRs con los checks Python, Web y Firmware en verde y una revisión; usar ramas breves por tarea (`ac/<tarea>`, `dani/<tarea>`), nunca empujar directamente ni hacer `push --force`. Dany es responsable de `web/`; AC, de `viaviva/`. Tras fusionar, borrar la rama solo si quedó contenida en `main`.
 10. **UI compartida:** `web/en_linea/marca.css` es la única fuente de tokens de marca para la web y la app local. `web/en_linea/estilo.css` y `viaviva/web/estilo.css` son composiciones distintas: no borrar ni copiar una sobre otra. Claude no rehace la interfaz visual sin una tarea concreta de AC.
 11. **Actualización del software de escritorio:** Windows/macOS pueden actualizar desde la rama oficial `main` con el botón de la app, solo si el clon está limpio y no hay sesión ni video activo. La app conserva la versión local sin internet y ofrece reversa. No habilitar ese mecanismo en la Pi, ni cambiar sensores, servicio o firmware como parte de un cambio visual.
 

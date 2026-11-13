@@ -46,7 +46,7 @@ Crear una rama temporal `ac/<tarea>` desde `main`. Mantener separados los cambio
 - Una rama breve por tarea: `dani/<tarea>`, `ac/<tarea>` o el prefijo del área. No mantener ramas personales permanentes como `ac/software` o `dani/ui`; se vuelven largas y acumulan conflictos.
 - PR pequeños hacia `main`; esperar todos los checks requeridos en verde y la revisión correspondiente. No empujar directamente a `main`.
 - Al fusionar, borrar la rama de trabajo. Se conservan ramas con cambios aún no integrados; no reescribir historial ni usar `push --force`.
-- En GitHub, proteger `main`, requerir los checks Python, Web y Firmware que correspondan, bloquear force-push y permitir borrado automático de ramas fusionadas. La configuración efectiva se administra en GitHub, no en estos archivos.
+- En GitHub, proteger `main`, requerir los checks Python, Web y Firmware en cada PR, pedir una aprobación, bloquear force-push y permitir borrado automático de ramas fusionadas. Los tres workflows corren en PR aunque el cambio afecte otra carpeta, para que los checks requeridos no queden pendientes por filtros. La configuración efectiva se administra en GitHub, no en estos archivos.
 - Los cambios visuales publicados en `main` se despliegan en Netlify si la rama de producción está configurada como `main`. Esa rama se confirma en Netlify; `netlify.toml` fija la carpeta publicada, no demuestra qué rama está activa.
 
 ## Actualizar la app instalada

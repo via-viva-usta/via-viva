@@ -1,12 +1,12 @@
 # Pruebas de Node del tablero en línea (web/en_linea/reglas.js): sin dependencias ni npm install, solo `node --test`.
-# Solo corre si cambian el tablero o sus pruebas; cancela corridas viejas de la misma rama.
+# Corre en todo PR para que la protección de main siempre tenga este check; push a main conserva filtro de rutas.
 name: web
 on:
   push:
     branches: [main]
     paths: ["web/en_linea/**", "tests/web/**", ".github/workflows/web.yml"]
   pull_request:
-    paths: ["web/en_linea/**", "tests/web/**", ".github/workflows/web.yml"]
+    # Todas las PR deben emitir este check requerido por la protección de main.
 concurrency:
   group: web-${{ github.ref }}
   cancel-in-progress: true
