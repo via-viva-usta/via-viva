@@ -133,3 +133,19 @@ def test_rechaza_rama_distinta_y_remoto_no_oficial(tmp_path: Path) -> None:
     otro_origen = actualizacion.estado(instalacion)
     assert otro_origen["estado"] == "bloqueado"
     assert "repositorio oficial" in otro_origen["mensaje"]
+
+
+def test_clon_de_campo_en_etiqueta_nunca_se_mueve(tmp_path: Path, monkeypatch) -> None:
+    """Carril de campo: un clon puesto en una etiqueta (HEAD separado) no se actualiza ni se revierte, aunque main
+    haya avanzado. Así la versión congelada para la prueba en el carro no cambia con el botón «Actualizar»."""
+    trabajo, origen, instalacion = repositorio_limpio(tmp_path)
+    git(instalacion, "tag", "campo-prueba")
+    git(instalacion, "-c", "advice.detachedHead=false", "checkout", "campo-prueba")
+    congelado = git(instalacion, "rev-parse", "HEAD")
+    publicar_cambio(trabajo)
+    simular_fetch(monkeypatch, origen)
+    e = actualizacion.estado(instalacion, origen_esperado=str(origen))
+    assert e["estado"] == "bloqueado" and not e["disponible"] and not e["revertible"]   # el botón queda oculto
+    assert actualizacion.aplicar(instalacion, origen_esperado=str(origen))["estado"] == "bloqueado"
+    assert actualizacion.revertir(instalacion, origen_esperado=str(origen))["estado"] == "bloqueado"
+    assert git(instalacion, "rev-parse", "HEAD") == congelado and git(instalacion, "branch", "--show-current") == ""

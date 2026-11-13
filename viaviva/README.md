@@ -20,8 +20,8 @@ Salida de campo paso a paso: `README_SALIDA.md`.
 
 - **PC (Windows):** `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1` → `viaviva\.venv`.
   Se usa con `viaviva.cmd …` desde la carpeta `via-viva` (o doble clic en `SALIDA_DE_CAMPO.cmd`).
-- **Mac** (sin probar en Mac): `bash viaviva/instalar_mac.sh` → `./viaviva.sh …`. **Docker** (plan B, solo captura del
-  PC, sin probar): `Dockerfile` + `docker-compose.yml` en la raíz. Pasos para un PC ajeno: `README_SALIDA.md`.
+- **Mac** (sin probar en Mac): `bash viaviva/instalar_mac.sh` → `./viaviva.sh …`. Pasos para un PC ajeno:
+  `README_SALIDA.md`.
 - Práctica sin datos de campo en cualquier PC: `capture --replay ejemplo --por-http` y `doctor --simulado ejemplo`
   (recorrido SINTÉTICO). `.env` opcional: `VIAVIVA_PIN` (PIN fijo de `/marcar`), `VIAVIVA_IP_PC` e
   `VIAVIVA_IPS_EDITOR` (solo Docker).

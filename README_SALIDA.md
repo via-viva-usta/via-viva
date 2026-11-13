@@ -1,5 +1,8 @@
 # Salida de campo con phyphox — 1 página
 
+> **Prueba en el carro:** se usa la versión **congelada** (etiqueta `campo-2026-11-13`) en el clon aparte
+> `C:\VIA_VIVA_CAMPO`: no se edita ni se actualiza (el botón Actualizar queda bloqueado ahí). Ver `GUIA_TRABAJO.md`.
+
 | Rol | Quién | Qué hace |
 |---|---|---|
 | iPhone A (fijo en el carro) | Anzola | phyphox «VÍA VIVA 2.0» con acceso remoto y ▶ + **Punto de acceso personal** |
@@ -99,10 +102,6 @@ mapa y en la señal; da vueltas sin parar. No son resultados. También sirve un 
   «VIA VIVA.app» en ~/Applications; en consola: `./viaviva.sh app`, `./viaviva.sh doctor`, `./viaviva.sh capture --abrir`. macOS pregunta si Python acepta conexiones entrantes
   y si Terminal puede usar la red local: **Permitir**. Se marca con 1–7 y U en la página `/captura` (la consola no
   lee teclas fuera de Windows; se termina con Ctrl+C).
-- **Docker (plan B, NO probado en Docker):** hay `Dockerfile` y `docker-compose.yml`, pero aquí no había Docker: solo se
-  comprobó que la app corre (doctor y `--replay ejemplo --por-http`) con los mismos archivos que entran en la imagen.
-  Pasos: `docker compose build` → `docker compose run --rm viaviva doctor` → `docker compose up` →
-  `http://localhost:8000/captura`. En Docker se marca con 1–7 y U en la página `/captura`.
 - **Todo bien:** el panel **Conexión** dice «Todo listo para grabar» (phyphox conectado, ~100 Hz); la señal se mueve,
   el mapa muestra el recorrido y la velocidad cambia. Sin internet el mapa muestra igual las calles de Tunja (aviso
   amarillo «Sin internet»).
