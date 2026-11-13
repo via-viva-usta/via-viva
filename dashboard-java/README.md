@@ -29,8 +29,10 @@ java --enable-native-access=ALL-UNNAMED -cp "build\classes;lib\*" viaviva.herram
 java -cp "build\classes;lib\*" viaviva.herramientas.PruebaPrioridad
 ```
 
-`lib/sqlite-jdbc-3.47.1.0.jar` (driver JDBC de SQLite, Maven Central, checksum SHA-1 verificado) va en el repositorio
-para que el proyecto abra sin configurar nada.
+`lib/sqlite-jdbc-3.47.1.0.jar` (driver JDBC de SQLite, 14 MB) **ya no va en el repositorio** (13-nov). Antes de abrir
+el proyecto en NetBeans, bájelo una vez de Maven Central a `dashboard-java/lib/`:
+`https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.47.1.0/sqlite-jdbc-3.47.1.0.jar`
+(SHA-1 `c49b2969ec5a6ac6b34857401d184a2d1082c393`). `lib/*.jar` está en `.gitignore`.
 
 ## Qué muestra
 

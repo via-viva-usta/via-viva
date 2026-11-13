@@ -4,7 +4,7 @@ name: python
 on:
   push:
     branches: [main, "ac/**"]
-    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "futuro/bot/**", "db/**",
+    paths: ["dataset/**", "analysis/**", "etl/**", "herramientas/**", "risk_model/**", "viaviva/**", "db/**",
             "tests/**", "config/**", "pytest.ini", "pyproject.toml", ".github/workflows/python.yml"]
   pull_request:
     # Todas las PR deben emitir este check requerido por la protección de main.
