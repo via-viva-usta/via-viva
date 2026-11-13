@@ -105,14 +105,11 @@ firmware/**/include/secretos.h
 # ===== Configuración local de Claude Code =====
 .claude/
 
-# ===== Mapa web: datos generados (se regeneran con web/exportar.py) =====
-web/datos.js
-
 # ===== Salidas del análisis (métricas; se suben solo las que vayan al informe) =====
 analysis/salidas/
 
-# ===== Informe: el PDF se regenera con pdflatex (ver report/README.md) =====
-report/main.pdf
+# ===== Tablero Java: el driver JDBC se baja de Maven Central (dashboard-java/README.md) =====
+dashboard-java/lib/*.jar
 web/clasificador/vendor/
 web/clasificador/modelo/
 
@@ -124,7 +121,10 @@ pi/web/vendor/
 
 # Tablero en línea: se generan con 'viaviva nube preparar'
 web/en_linea/config.js
-web/en_linea/datos/
 
 # Librerías del mapa que bajan los instaladores (MapLibre, BSD-3)
 viaviva/web/vendor/
+
+# Cobertura de pytest (se genera al probar)
+.coverage
+coverage.xml

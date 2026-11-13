@@ -1,18 +1,16 @@
-# docs/
+# docs/ — solo lo técnico
 
-Documentación del proyecto.
+| Archivo | Qué es |
+|---|---|
+| `ARQUITECTURA.md` | Piezas de la app y cómo fluyen los datos (fuentes → núcleo → SQLite → tablero → Supabase) |
+| `DATOS.md` | Formato de la sesión, la base, el dataset de ventanas y la nube |
+| `NUBE.md` | Supabase y el sitio en línea (lo cita `viaviva nube`) |
+| `SEGURIDAD.md` | Roles, claves y qué nunca sale del equipo |
+| `DISENO.md` | Sistema visual compartido con la web de Dany y librerías del mapa |
+| `R7.md` (+ `img/r7_latencias.png`) | Informe de recursos PC vs. Pi (lo genera `viaviva r7`) |
+| `SCRAPING.md` | Fuentes externas (clima IDEAM y noticias) y sus licencias |
+| `protocolo_fotos.md`, `tarjeta_aruco.pdf`, `datasets_externos.md` | Dataset de fotos |
+| `diagramas/` | Diagramas Mermaid (arquitectura, flujo, entidad-relación, clases del tablero Java) |
 
-- `03_VIA_VIVA_desarrollo.md` — diseño completo (adquisición, arquitectura, procesamiento, estructuras, capa predictiva).
-- `archivo/` — lo obsoleto (propuesta entregada con ESP32-S3, capturas viejas, revisiones ya aplicadas); ver `archivo/LEEME.md`.
-- `img/` — capturas del tablero (datos DEMO) para el README. El informe final está en `report/`.
-- `diagramas/` — diagramas en Mermaid (arquitectura, flujo de datos, entidad-relación, clases UML del tablero).
-- `ESTADO.md` — qué está hecho, probado y pendiente por persona (leer después de `CLAUDE.md`).
-- `ARQUITECTURA.md`, `DATOS.md`, `SEGURIDAD.md`, `DISENO.md`, `NUBE.md`, `SCRAPING.md`, `R7.md` — documentos del cierre del
-  software (10-nov): arquitectura, datos, seguridad, diseño del tablero, nube, scraping y R7.
-- `REVISION_INTERFAZ.md` — revisión de la interfaz y de la consistencia de datos (10-nov): qué se corrigió y qué falta decidir.
-- `montaje.md`, `experimentos.md` — armado del nodo y experimentos E1–E4.
-- `protocolo_fotos.md`, `tarjeta_aruco.pdf` — cómo tomar las fotos del dataset y la tarjeta de escala.
-- `datasets_externos.md` — revisión de los datasets de baches de Kaggle y Hugging Face.
-- `presupuesto.md` — presupuesto vigente.
-- `demo.md`, `poster.md` — guion de la demo y del video, contenido del póster.
-- `cambios_informe.md` — texto en inglés para actualizar el informe en Overleaf.
+Lo de gestión, informe, armado y capturas salió del repo el 13-nov-2026 (sigue en el historial de Git y en la carpeta
+`02_VIA_VIVA/_archivo/repo_2026-11-13/` de AC).

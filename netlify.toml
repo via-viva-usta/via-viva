@@ -1,10 +1,10 @@
-# Tablero en línea de VÍA VIVA: carpeta estática, sin compilación. Antes de publicar: `viaviva nube preparar`.
+# Sitio en línea de VÍA VIVA (web/en_linea, de Dany): carpeta estática, sin compilación.
+# Al publicar, Netlify arma config.js con SUPABASE_URL y SUPABASE_CLAVE_PUBLICA (variables del sitio; ninguna clave en
+# Git). Sin esas variables el sitio queda en modo demostración. datos/tramos.geojson (calles OSM, ODbL) va en el repo.
 [build]
   publish = "web/en_linea"
-  command = ""
+  command = "node herramientas/config_web.mjs"
 
-# 'wasm-unsafe-eval': el visor 3D del menú (model-viewer / three.js) compila WebAssembly. Solo permite WebAssembly,
-# NO el eval de JavaScript. Sin él, los modelos cargan igual pero la consola marca el error de CSP.
 [[headers]]
   for = "/*"
   [headers.values]
