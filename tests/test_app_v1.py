@@ -144,3 +144,19 @@ def test_latido_de_la_ventana_y_reinicio_de_fuente(tmp_path):
         ctx.fuente.cerrar()
     from viaviva import ventana
     assert ventana.navegador_app() is None or isinstance(ventana.navegador_app(), str)
+
+
+def test_actualizacion_solo_en_escritorio_y_bloqueada_durante_grabacion(tmp_path):
+    ctx, c = _cliente(tmp_path, _base_con_calle(tmp_path), segundos=5, velocidad=5)
+    try:
+        assert c.get("/api/actualizacion").json()["habilitada"] is False
+        ctx.actualizacion_habilitada = True
+        c.post("/api/grabar", json={"accion": "iniciar"})
+        estado = c.get("/api/actualizacion").json()
+        assert estado["estado"] == "grabando" and estado["disponible"] is False
+        r = c.post("/api/actualizacion/aplicar")
+        assert r.status_code == 409 and "Guarda la sesión" in r.json()["error"]
+        assert ctx.n.sesion is not None
+        c.post("/api/grabar", json={"accion": "detener"})
+    finally:
+        ctx.cerrar()

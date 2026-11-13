@@ -1,5 +1,17 @@
 # Cambios
 
+## 2026-11-12 — integración de app/UI y actualización de escritorio (`ac/sincronizacion`, pendiente de publicar)
+
+- Se integraron en una rama de revisión la app v1 y las mejoras de interfaz de Dany (#35 y #37); donde hubo conflicto,
+  prevaleció su HTML y marca. `web/en_linea/marca.css` conserva el sistema compartido y se mantiene `vigia.js`.
+- En Campo, la app de escritorio muestra estado y botón para actualizar desde el remoto oficial `main`; exige clon limpio,
+  bloquea sesiones y videos activos, conserva la versión instalada sin internet, reinstala `viaviva/requirements-pc.txt`
+  si cambió y permite volver al commit anterior. Solo Windows/macOS; Pi, sensores y firmware sin cambios.
+- Suite local: 104 pasan y 1 se omite (TensorFlow no está instalado); Ruff y 5 pruebas web pasan. El clon limpio y la
+  desconexión se simularon con un remoto Git local; el acceso remoto real y la CI de GitHub quedan pendientes de publicar.
+- Añadidos CODEOWNERS y plantilla de PR. Protección de `main`, permiso Write de Dany y rama de producción de Netlify
+  quedan pendientes de confirmar desde sus paneles.
+
 ## 2026-11-12 — app v1 (rama `ac/app-v1`)
 
 - **Un solo sistema de estilos con la web de Dany:** `web/en_linea/marca.css` guarda los temas (`--t-*`, `--vv-*`);

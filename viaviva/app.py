@@ -70,6 +70,10 @@ class Contexto:
         self.puerto = config.PUERTO
         self.vigia = conexion.Vigia()
         self.camara = Grabaciones()
+        self.actualizacion_habilitada = False     # solo la ventana de escritorio, nunca el servicio/Pi
+        self.actualizacion_en_curso = False
+        self._candado_actualizacion = threading.Lock()
+        self.reinicio_pendiente = threading.Event()
 
     def con(self):
         return almacen.conectar(self.url_db)
@@ -398,6 +402,77 @@ def crear_app(ctx: Contexto) -> FastAPI:
         return ctx.cambiar_fuente(str(datos.get("tipo", "")), datos.get("url") or None,
                                   float(datos.get("velocidad") or 1.0))
 
+    def puede_actualizar(request: Request) -> bool:
+        exigir(request, ("editor",))
+        return ctx.actualizacion_habilitada and local(request)
+
+    def hay_captura_activa() -> bool:
+        return ctx.n.sesion is not None or bool(ctx.camara.activas)
+
+    @app.get("/api/actualizacion")
+    def api_estado_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return {"habilitada": False, "estado": "no_disponible",
+                    "mensaje": "Las actualizaciones automáticas solo están disponibles en la app de escritorio."}
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return {"habilitada": True, "estado": "actualizando", "mensaje": "Instalando la actualización…",
+                        "disponible": False, "revertible": False}
+            if hay_captura_activa():
+                return {"habilitada": True, "estado": "grabando",
+                        "mensaje": "Guarda la sesión y termina el video antes de actualizar.",
+                        "disponible": False, "revertible": False}
+        from viaviva import actualizacion
+        return {"habilitada": True, **actualizacion.estado(config.RAIZ)}
+
+    @app.post("/api/actualizacion/aplicar")
+    def api_aplicar_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return JSONResponse({"error": "La actualización no está habilitada para este modo de ejecución."},
+                                status_code=403)
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Ya hay una actualización en curso."}, status_code=409)
+            if hay_captura_activa():
+                return JSONResponse({"error": "Guarda la sesión y termina el video antes de actualizar."},
+                                    status_code=409)
+            ctx.actualizacion_en_curso = True
+        from viaviva import actualizacion
+        try:
+            resultado = actualizacion.aplicar(config.RAIZ)
+        except Exception:
+            resultado = {"ok": False, "estado": "error", "mensaje": "No se pudo completar la actualización."}
+        if resultado.get("ok"):
+            threading.Timer(1.5, ctx.reinicio_pendiente.set).start()
+        else:
+            with ctx._candado_actualizacion:
+                ctx.actualizacion_en_curso = False
+        return resultado
+
+    @app.post("/api/actualizacion/revertir")
+    def api_revertir_actualizacion(request: Request):
+        if not puede_actualizar(request):
+            return JSONResponse({"error": "La reversa no está habilitada para este modo de ejecución."},
+                                status_code=403)
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Ya hay una operación en curso."}, status_code=409)
+            if hay_captura_activa():
+                return JSONResponse({"error": "Guarda la sesión y termina el video antes de revertir."},
+                                    status_code=409)
+            ctx.actualizacion_en_curso = True
+        from viaviva import actualizacion
+        try:
+            resultado = actualizacion.revertir(config.RAIZ)
+        except Exception:
+            resultado = {"ok": False, "estado": "error", "mensaje": "No se pudo completar la reversa."}
+        if resultado.get("ok"):
+            threading.Timer(1.5, ctx.reinicio_pendiente.set).start()
+        else:
+            with ctx._candado_actualizacion:
+                ctx.actualizacion_en_curso = False
+        return resultado
+
     @app.get("/api/marcar/qr.svg")
     def api_qr(request: Request):
         exigir(request, ("editor",))
@@ -432,7 +507,14 @@ def crear_app(ctx: Contexto) -> FastAPI:
                                 status_code=409)
         datos = await request.body()
         desfase = ctx.n.t_sesion_de_epoch(inicio) if (n == 0 and inicio) else None
-        return ctx.camara.parte(sesion.carpeta, id, int(n), datos, tipo, desfase, origen[:20], inicio)
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "La app se está actualizando; no se inició el video."}, status_code=409)
+            sesion = ctx.n.sesion
+            if sesion is None:
+                return JSONResponse({"error": "No hay grabación abierta: inicie la grabación en el PC primero"},
+                                    status_code=409)
+            return ctx.camara.parte(sesion.carpeta, id, int(n), datos, tipo, desfase, origen[:20], inicio)
 
     @app.post("/api/camara/fin")
     def api_camara_fin(request: Request, id: str):
@@ -528,11 +610,15 @@ def crear_app(ctx: Contexto) -> FastAPI:
     @app.post("/api/grabar")
     def grabar(request: Request, datos: dict = Body(default={})):
         exigir(request, ("editor",))
-        if datos.get("accion") == "detener":
-            carpeta = ctx.n.detener_grabacion()
-            ctx.cambio()
-            return {"ok": True, "carpeta": carpeta}
-        return {"ok": True, "carpeta": ctx.n.iniciar_grabacion(datos.get("nombre", ""))}
+        with ctx._candado_actualizacion:
+            if ctx.actualizacion_en_curso:
+                return JSONResponse({"error": "Espera a que termine la actualización para iniciar otra sesión."},
+                                    status_code=409)
+            if datos.get("accion") == "detener":
+                carpeta = ctx.n.detener_grabacion()
+                ctx.cambio()
+                return {"ok": True, "carpeta": carpeta}
+            return {"ok": True, "carpeta": ctx.n.iniciar_grabacion(datos.get("nombre", ""))}
 
     @app.post("/api/apagar")
     def apagar(request: Request, datos: dict = Body(default={})):

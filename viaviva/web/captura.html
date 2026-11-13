@@ -54,6 +54,11 @@
     </div>
     <p id="c-msg" class="aviso msg-conexion oculto" role="status"></p>
   </section>
+  <div class="fila" id="actualizacion" aria-live="polite" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button id="b-actualizar" class="oculto" type="button">↻ Actualizar VÍA VIVA</button>
+    <button id="b-revertir" class="oculto" type="button">Volver a la versión anterior</button>
+    <span id="actualizacion-msg" class="sub">Comprobando actualizaciones…</span>
+  </div>
 
   <section class="tarjeta area-etq">
     <h2>¿Qué pisó la llanta? <span class="sub">teclas 1–7 · U deshace · se une al evento a ± 3 s</span></h2>
@@ -105,6 +110,7 @@
 </main>
 
 <script src="/static/comun.js"></script>
+<script src="/static/actualizacion.js" defer></script>
 <script src="/static/camara.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);

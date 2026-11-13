@@ -90,7 +90,8 @@ mapa y en la señal; da vueltas sin parar. No son resultados. También sirve un 
 ## Instalar en el Lenovo de Anzola (y opciones: Mac de Dani, Docker)
 
 - **Windows (camino principal):** instalar Git y Python 3.11 (`winget install Git.Git Python.Python.3.11`; ffmpeg
-  opcional: `winget install Gyan.FFmpeg`). `git clone` del repo, rama `ac/cierre-software`, y en la carpeta `via-viva`:
+  opcional: `winget install Gyan.FFmpeg`). Clonar la rama estable `main` del repo y, en `via-viva`:
+  `git clone https://github.com/via-viva-usta/via-viva.git; Set-Location via-viva; git switch main`.
   `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1`. Deja el icono **VÍA VIVA** en el escritorio y en
   el menú Inicio (abre la app en su ventana de Edge, sin consola). No hace falta ningún `.env` ni clave: el instalador
   crea uno vacío; el PIN de `/marcar` sale en el panel de conexión (o fijo con `VIAVIVA_PIN` en `.env`).
@@ -111,3 +112,27 @@ mapa y en la señal; da vueltas sin parar. No son resultados. También sirve un 
   8000 ocupado» → ya hay una captura abierta: el icono abre otra ventana hacia ella; si es una consola, cerrarla con Q.
 - **iPhone B (Pipe):** Ajustes → Cámara → Formatos → **Más compatible** (H.264) y Grabar video → 1080p a 30 cps: así
   el video no necesita conversión.
+
+### Actualizar la app de Windows o Mac
+
+Abre VÍA VIVA con el icono o con `viaviva app`. En **Campo** aparece el estado de actualización. Si hay una versión
+nueva, pulsa **Actualizar VÍA VIVA** y confirma; espera a que la ventana se reinicie. La app comprueba que el remoto
+sea `via-viva-usta/via-viva`, que la rama local sea `main` y que no haya cambios locales. Si cambia
+`viaviva/requirements-pc.txt`, actualiza esas dependencias con el Python instalado de VÍA VIVA. Después puede usarse
+**Volver a la versión anterior** si algo falla y el clon sigue limpio.
+
+La actualización se bloquea mientras haya una sesión o video en curso. Sin internet conserva la versión instalada;
+para actualizar, vuelve a conectar el PC y pulsa **Actualizar VÍA VIVA**. La opción automática funciona al abrir la app
+de escritorio en Windows/macOS. Está deshabilitada en Docker, los comandos de servidor y la Raspberry Pi; no actualiza
+sensores, firmware ni configuración del nodo. En la Pi se mantiene el procedimiento técnico separado.
+
+Si aparece «rama main», primero revisa si el clon tiene cambios locales:
+
+```powershell
+git status --short
+git switch main
+git pull --ff-only origin main
+```
+
+Si `git status --short` muestra algo, detente y consérvalo antes de cambiar de rama. Netlify debe tener `main` como
+rama de producción; esta selección se confirma en el panel del sitio y no se puede deducir del `netlify.toml`.

@@ -128,6 +128,9 @@ via-viva/
 7. **Commits pequeños** en español con prefijo (`feat(etl): ...`, `fix(firmware): ...`, `docs: ...`), con la línea
    `Co-Authored-By` cuando los hace Claude.
 8. **Java:** el tablero debe abrir en Apache NetBeans 25 como *Java with Ant*, Java 21.
+9. **Ramas del repo:** seguir `CONTRIBUTING.md`. `main` solo recibe PRs con CI aplicable en verde; usar ramas breves por tarea (`ac/<tarea>`, `dani/<tarea>`), nunca empujar directamente ni hacer `push --force`. Dany es responsable de `web/`; AC, de `viaviva/`. Tras fusionar, borrar la rama solo si quedó contenida en `main`.
+10. **UI compartida:** `web/en_linea/marca.css` es la única fuente de tokens de marca para la web y la app local. `web/en_linea/estilo.css` y `viaviva/web/estilo.css` son composiciones distintas: no borrar ni copiar una sobre otra. Claude no rehace la interfaz visual sin una tarea concreta de AC.
+11. **Actualización del software de escritorio:** Windows/macOS pueden actualizar desde la rama oficial `main` con el botón de la app, solo si el clon está limpio y no hay sesión ni video activo. La app conserva la versión local sin internet y ofrece reversa. No habilitar ese mecanismo en la Pi, ni cambiar sensores, servicio o firmware como parte de un cambio visual.
 
 ## 6. Hardware y pines FINALES (ESP32 DevKit 30 pines, WROOM-32)
 4 MB de flash, 520 KB de SRAM, sin PSRAM. Pines prohibidos o limitados: **0, 2, 5, 12, 15** (arranque), **6–11** (flash),
@@ -192,6 +195,7 @@ MPU rígidos a la baquela; detalles, orden de prueba y errores típicos en `docs
   `resumen.py`. Clases 1–7: hueco, resalto, grieta, parche, tapa, obstaculo, via_buena (`config.ETIQUETAS`).
 - **Servidor:** `app.py` (FastAPI, puerto 8000; `/captura`, `/marcar`, `/sync`, `/tablero`, `/entrar`, `/camara`; HTTPS opcional en 8443 para la cámara del celular). App en ventana: `ventana.py` (`viaviva app`); `conexion.py` (panel); `camara.py` (video por partes, autoridad local en `data/certificados/`). Roles editor /
   alcaldia / docente + `marcador` (PIN que imprime la captura). Sin usuarios, solo 127.0.0.1 entra como editor.
+- **Actualizador de escritorio:** `actualizacion.py` verifica el remoto oficial y avanza solo por fast-forward en `main`; `app.py` expone los controles solo en `viaviva app` de Windows/macOS; `ventana.py` reinicia tras aplicar. No modifica el modo Pi ni las rutas de datos; si cambia `viaviva/requirements-pc.txt`, usa el venv instalado. Leer `CONTRIBUTING.md` y `README_SALIDA.md` antes de cambiar este flujo.
 - **Fase B:** `senal.py` (eje vertical por gravedad), `detector.py` + `config/detector.yaml`, `ventanas.py`,
   `modelo_ventanas.py`. Sin marcas reales todavía: todo lo calibrado/evaluado es SINTÉTICO hasta etiquetar.
 - **Nube:** `sincronizacion.py` (eventos, huecos, riesgo; trae `cambios_remotos`), `supabase_esquema.sql`, `nube.py`,

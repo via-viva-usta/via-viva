@@ -1,49 +1,61 @@
-# Cómo trabajar en VÍA VIVA (ramas y Pull Requests)
+# Contribuir a VÍA VIVA
 
-Andrés opera Claude Code y revisa; Dany y el resto trabajan en ramas y proponen cambios con Pull Requests (PR).
-`main` siempre debe compilar y tener la documentación al día.
+`main` es la versión compartida y estable. Todo cambio entra por un Pull Request (PR) pequeño, con CI verde; nadie trabaja de forma permanente sobre `main`.
 
-## Una vez
+## Responsables
 
-1. Aceptar la invitación a la organización **via-viva-usta** en GitHub.
-2. Pedirle a Andrés permiso de **escritura (Write)** en el repositorio `via-viva`: con permiso de solo lectura no se pueden
-   subir ramas. (Andrés: *Settings → Collaborators and teams → Add people → Write*.)
-3. Clonar e instalar lo necesario según el área (ver el README de cada carpeta):
+- **Dany:** interfaz, contenido e identidad de `web/`. `web/en_linea/marca.css` es la fuente única de tokens y estilos de marca compartidos. La app local puede tener CSS de composición propio en `viaviva/web/estilo.css`, enlazado a esos tokens.
+- **AC:** motor y aplicación local de `viaviva/`, integraciones y coordinación del firmware. Los cambios de Raspberry Pi, sensores, captura o firmware se hacen en tareas separadas y no se mezclan con PR visuales.
+- `CODEOWNERS` propone a Dany para cambios en `web/` y a AC para `viaviva/`. La protección de `main` debe exigir CI y revisión; CODEOWNERS solo se vuelve requisito cuando esa opción está activada en GitHub.
+
+## Una vez por equipo
+
+Instalar Git y clonar el repositorio. El clon debe iniciar en `main`:
 
 ```powershell
-gh repo clone via-viva-usta/via-viva
-cd via-viva
-copy .env.example .env          # y llenar lo que haga falta; .env NUNCA se sube
+git clone https://github.com/via-viva-usta/via-viva.git
+Set-Location via-viva
+git switch main
+git pull --ff-only origin main
 ```
 
-## Flujo de cada cambio
+En la app de Windows y macOS, instalar las dependencias una vez con `viaviva/instalar_pc.ps1` o `viaviva/instalar_mac.sh`. No incluir `.env`, tokens, claves, certificados ni datos de campo en Git.
+
+## Flujo de Dany: interfaz web
 
 ```powershell
 git switch main
-git pull
-git switch -c firmware/prueba-adxl345        # una rama por tarea: <area>/<descripcion-corta>
-# ... cambios ...
-git add <archivos>
-git commit -m "feat(firmware): prueba del ADXL345 por SPI"
-git push -u origin firmware/prueba-adxl345
-gh pr create --fill --base main               # o desde la página de GitHub
+git pull --ff-only origin main
+git switch -c dani/descripcion-corta
+# editar web/; mantener marca.css como única fuente de marca
+node --test tests/web/*.test.mjs
+git add web/ tests/web/
+git commit -m "fix(web): descripción breve"
+git push -u origin dani/descripcion-corta
+gh pr create --base main --fill
 ```
 
-- **Prefijos de rama:** `firmware/`, `analisis/`, `etl/`, `riesgo/`, `bot/`, `web/`, `tablero/`, `docs/`.
-- **Commits pequeños en español** con prefijo: `feat(etl): ...`, `fix(firmware): ...`, `docs: ...`, `chore: ...`.
-- **Un PR por tarea**, enlazando el issue (`Cierra #12`). Andrés revisa y hace *Squash and merge*.
-- Antes de pedir revisión: que compile (`pio run` / `ant jar`) o que el script corra, y actualizar el README del módulo.
-- Si `main` cambió mientras trabajabas: `git pull origin main` en tu rama y resolver conflictos.
+El PR debe describir qué cambió y cómo se revisa. Dany no necesita copiar manualmente sus cambios a la app local: se integra la interfaz a `main`; la app comparte `marca.css` y recibe el código al usar **Actualizar VÍA VIVA** cuando no hay una sesión o video en curso. Los Deploy Previews ayudan a revisar; la publicación de producción debe usar `main` en Netlify (se confirma en la configuración del sitio).
 
-## Reglas (resumen de `CLAUDE.md`, sección 4)
+## Flujo de AC: app local y motor
 
-- **Nunca** subir `.env`, tokens, claves (`include/secretos.h` del firmware), datos crudos (`data/raw/`), datos de la Alcaldía
-  (`data/alcaldia/`) ni fotos. Ya están en `.gitignore`; si `git status` los muestra, algo anda mal.
-- No inventar resultados: todo número del informe sale de código o de una medición, y lo que no se probó en hardware se dice.
-- Recorridos: celular fijo, máx. 30 km/h, el copiloto etiqueta (protocolo en `analysis/README.md`).
+Crear una rama temporal `ac/<tarea>` desde `main`. Mantener separados los cambios de interfaz, motor, dependencias y firmware; para estos últimos, seguir las instrucciones de su módulo y especificar si se probaron en hardware real. Antes del PR, correr las pruebas y `ruff check` que correspondan. Claude Code puede trabajar en `viaviva/` cuando AC le delegue una tarea; debe respetar el flujo de ramas y no cambiar hardware/sensores dentro de un PR de interfaz.
 
-## Estado y tareas
+## Ramas, PR y sincronización
 
-- Estado general: `docs/ESTADO.md`.
-- Tareas: *Issues* de GitHub, con etiqueta de área (`area:A-hardware`, `area:B-senales-ia`, `area:C-datos-plataforma`,
-  `area:D-gestion`), responsable y fecha (hito).
+- Una rama breve por tarea: `dani/<tarea>`, `ac/<tarea>` o el prefijo del área. No mantener ramas personales permanentes como `ac/software` o `dani/ui`; se vuelven largas y acumulan conflictos.
+- PR pequeños hacia `main`; esperar todos los checks requeridos en verde y la revisión correspondiente. No empujar directamente a `main`.
+- Al fusionar, borrar la rama de trabajo. Se conservan ramas con cambios aún no integrados; no reescribir historial ni usar `push --force`.
+- En GitHub, proteger `main`, requerir los checks Python, Web y Firmware que correspondan, bloquear force-push y permitir borrado automático de ramas fusionadas. La configuración efectiva se administra en GitHub, no en estos archivos.
+- Los cambios visuales publicados en `main` se despliegan en Netlify si la rama de producción está configurada como `main`. Esa rama se confirma en Netlify; `netlify.toml` fija la carpeta publicada, no demuestra qué rama está activa.
+
+## Actualizar la app instalada
+
+- En Windows/macOS, abre VÍA VIVA con el icono o `viaviva app`. La app consulta el remoto oficial por Git y solo ofrece avanzar con `origin/main` en un clon limpio de la rama `main`.
+- **Actualizar VÍA VIVA** no inicia si hay una sesión o un video activo. Si cambió `viaviva/requirements-pc.txt`, reinstala esas dependencias con el Python del entorno de VÍA VIVA y reinicia la app. Hay una reversa local a la versión anterior mientras el clon siga limpio.
+- Sin internet, se conserva y se puede seguir usando la versión instalada. La caché local del mapa mantiene las calles de Tunja; los mapas de fondo, actualizaciones y la web pública necesitan red.
+- La actualización automática está deshabilitada en la Pi y en los modos de servicio/terminal. La instalación de Pi y los sensores siguen un procedimiento técnico separado; no ejecutar `git pull` mientras el servicio o una captura estén activos.
+
+## Datos y resultados
+
+Nunca subir `.env`, tokens, claves (`include/secretos.h`), archivos de `06_CAMPO`, `data/raw/`, datos de la Alcaldía, fotos o videos. No inventar resultados: toda cifra del informe debe salir de código o mediciones; identificar las pruebas no hechas en hardware.

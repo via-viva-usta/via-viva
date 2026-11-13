@@ -107,6 +107,7 @@ def main(a) -> int:
     ctx = construir("ninguna", sync=True)
     ctx.puerto = puerto
     ctx.ip = doctor.ip_local()
+    ctx.actualizacion_habilitada = platform.system() in ("Windows", "Darwin")
     if fuente != "ninguna":
         ctx.cambiar_fuente(fuente)
     parar = threading.Event()
@@ -126,9 +127,14 @@ def main(a) -> int:
     print(f"VÍA VIVA en {url} · fuente {fuente} · sesiones en {ctx.n.dir_grabaciones}", flush=True)
     ventana = None if a.sin_ventana else abrir_ventana(url)
     inicio = time.monotonic()
+    reiniciar = False
     try:
         while hilo.is_alive():
             time.sleep(1.0)
+            if ctx.reinicio_pendiente.is_set():
+                print("Actualización lista; cerrando esta versión para reiniciar.", flush=True)
+                reiniciar = True
+                break
             if a.sin_ventana:
                 continue
             ahora = time.monotonic()
@@ -155,4 +161,27 @@ def main(a) -> int:
         if ventana is not None and ventana.poll() is None:
             ventana.terminate()
         hilo.join(10)
+    if reiniciar:
+        from viaviva import doctor
+        limite = time.monotonic() + 12
+        while time.monotonic() < limite and not doctor.puerto_libre(puerto):
+            time.sleep(0.25)
+        if not doctor.puerto_libre(puerto):
+            print("La actualización quedó instalada, pero el puerto sigue ocupado. Cierra el proceso anterior y abre VÍA VIVA.",
+                  flush=True)
+            return 1
+        args = [sys.executable, "-m", "viaviva", "app", "--puerto", str(puerto),
+                "--puerto-https", str(getattr(a, "puerto_https", 8443))]
+        tipo = ctx.tipo_fuente if ctx.tipo_fuente in ("phyphox", "ejemplo", "ninguna") else fuente
+        if tipo:
+            args.extend(("--fuente", tipo))
+        if getattr(a, "sin_https", False):
+            args.append("--sin-https")
+        if getattr(a, "sin_ventana", False):
+            args.append("--sin-ventana")
+        opciones = {"cwd": config.RAIZ}
+        if platform.system() == "Windows":
+            opciones["creationflags"] = 0x08000000
+        subprocess.Popen(args, **opciones)
+        print("VÍA VIVA se está abriendo de nuevo con la versión instalada.", flush=True)
     return 0

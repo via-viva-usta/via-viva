@@ -1,7 +1,17 @@
 # Estado de VÍA VIVA
 
-Última actualización: **11-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
+Última actualización: **12-nov-2026**. Entrega final: **13-nov-2026**. Decisiones y datos técnicos: `CLAUDE.md`.
 Tareas: issues de GitHub (`via-viva-usta/via-viva`). Flujo de trabajo: `CONTRIBUTING.md`.
+
+## 12-nov: sincronización de interfaz y app (rama local `ac/sincronizacion`, pendiente de publicar)
+
+Se integraron localmente la app v1 y las interfaces de Dany de los PR #35 y #37; los conflictos de estilos se resolvieron
+con los tokens y el HTML actuales de Dany, preservando el aviso de carga fallida. Se añadió un actualizador de escritorio
+para Windows/macOS que sigue el remoto oficial en `main`, bloquea una sesión/video activos y permite reversa. Suite local:
+**104 pasan, 1 omitida** (TensorFlow no instalado), Ruff limpio y 5 pruebas web pasan. La actualización y desconexión se
+probaron con un clon limpio y un remoto Git local simulado; la descarga real desde GitHub y la CI del PR quedan pendientes
+de publicar. La protección de `main`, el Write de Dany y el despliegue de Netlify desde `main` requieren revisión manual.
+Pi, sensores y firmware no se modificaron.
 
 ## 12-nov: app v1 (rama `ac/app-v1`, PR abierto)
 
