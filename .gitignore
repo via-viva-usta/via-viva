@@ -121,7 +121,6 @@ pi/web/vendor/
 
 # Tablero en línea: se generan con 'viaviva nube preparar'
 web/en_linea/config.js
-web/en_linea/datos/
 
 # Librerías del mapa que bajan los instaladores (MapLibre, BSD-3)
 viaviva/web/vendor/
