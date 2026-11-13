@@ -128,3 +128,7 @@ web/en_linea/datos/
 
 # Librerías del mapa que bajan los instaladores (MapLibre, BSD-3)
 viaviva/web/vendor/
+
+# Cobertura de pytest (se genera al probar)
+.coverage
+coverage.xml
