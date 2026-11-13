@@ -25,7 +25,7 @@ en `http://localhost:8000`. Paso a paso de una página: **[`README_SALIDA.md`](R
 
 1. **Clonar e instalar** (una vez; Python 3.11):
    ```powershell
-   git clone --branch ac/cierre-software https://github.com/via-viva-usta/via-viva.git; cd via-viva   # rama hasta fusionar el PR #29
+   git clone --branch main https://github.com/via-viva-usta/via-viva.git; cd via-viva
    powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1      # crea viaviva\.venv y un .env sin claves
    ```
 2. **Probar sin carro** (recorrido SINTÉTICO que se crea solo; también sirve un export real de phyphox):
