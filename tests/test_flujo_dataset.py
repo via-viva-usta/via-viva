@@ -68,9 +68,15 @@ def test_flujo_sesion_video_revision_dataset(tmp_path, monkeypatch):
     def ffmpeg_falso(cmd, **kw):
         Path(cmd[-1]).write_bytes(b"0" * 2000)
         return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    class SubprocesoFalso:                     # solo para sesiones: otros hilos de la app siguen con el real
+        TimeoutExpired = subprocess.TimeoutExpired
+        CompletedProcess = subprocess.CompletedProcess
+        run = staticmethod(ffmpeg_falso)
     monkeypatch.setattr(sesiones, "ffmpeg", lambda: "ffmpeg")
-    monkeypatch.setattr(sesiones.subprocess, "run", ffmpeg_falso)
-    assert c.post(f"/api/sesiones/{nombre}/video/convertir").json()["conversion"]["estado"] == "en_curso"
+    monkeypatch.setattr(sesiones, "subprocess", SubprocesoFalso)
+    conv = c.post(f"/api/sesiones/{nombre}/video/convertir")
+    assert conv.status_code == 200 and conv.json().get("conversion", {}).get("estado") == "en_curso", conv.text
     for _ in range(50):
         info = c.get(f"/api/sesiones/{nombre}/video/info").json()
         if info["conversion"]["estado"] != "en_curso":
