@@ -1,7 +1,0 @@
-# Bot ciudadano de VÍA VIVA (Python 3.11)
-python-telegram-bot>=21.6,<23
-python-dotenv>=1.0
-# Sugerencia de clase con la CNN de fotos (opcional: sin esto el bot funciona igual)
-ai-edge-litert
-numpy
-pillow

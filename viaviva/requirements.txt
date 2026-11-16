@@ -10,3 +10,4 @@ reportlab           # PDF del top-10
 adafruit-blinka     # base de las dos librerías de Adafruit
 adafruit-circuitpython-vl53l0x
 adafruit-circuitpython-dht
+segno==1.6.6         # QR del panel de conexión

@@ -1,7 +1,9 @@
-# Tablero en línea de VÍA VIVA: carpeta estática, sin compilación. Antes de publicar: `viaviva nube preparar`.
+# Sitio en línea de VÍA VIVA (web/en_linea, de Dany): carpeta estática, sin compilación.
+# Al publicar, Netlify arma config.js con SUPABASE_URL y SUPABASE_CLAVE_PUBLICA (variables del sitio; ninguna clave en
+# Git). Sin esas variables el sitio queda en modo demostración. datos/tramos.geojson (calles OSM, ODbL) va en el repo.
 [build]
   publish = "web/en_linea"
-  command = ""
+  command = "node herramientas/config_web.mjs"
 
 [[headers]]
   for = "/*"
@@ -9,7 +11,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "same-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self' https://tiles.openfreemap.org; connect-src 'self' https://*.supabase.co https://tiles.openfreemap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self' https://tiles.openfreemap.org; connect-src 'self' https://*.supabase.co https://tiles.openfreemap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-ancestors 'none'"
 
 [[headers]]
   for = "/datos/*"
@@ -26,3 +28,8 @@
   for = "/img/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/modelos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"

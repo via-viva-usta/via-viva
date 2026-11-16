@@ -1,10 +1,13 @@
 # Salida de campo con phyphox — 1 página
 
+> **Prueba en el carro:** se usa la versión **congelada** (etiqueta `campo-2026-11-13`) en el clon aparte
+> `C:\VIA_VIVA_CAMPO`: no se edita ni se actualiza (el botón Actualizar queda bloqueado ahí). Ver `GUIA_TRABAJO.md`.
+
 | Rol | Quién | Qué hace |
 |---|---|---|
 | iPhone A (fijo en el carro) | Anzola | phyphox «VÍA VIVA 2.0» con acceso remoto y ▶ + **Punto de acceso personal** |
-| PC de captura (Lenovo, Windows) | Anzola | `SALIDA_DE_CAMPO.cmd`; marca con el teclado: 1–7, U deshacer, S sincronía, Q terminar |
-| iPhone B (video) | Pipe | **Solo video** (no se conecta al programa); filma el destello de `/sync` al inicio y al final |
+| PC de captura (Lenovo, Windows) | Anzola | Icono **VÍA VIVA** del escritorio (la app abre en su ventana); marca con el teclado: 1–7, U deshacer |
+| iPhone B (video) | Pipe | **Solo video**; filma el destello de `/sync` al inicio y al final (opcional: cámara en vivo, abajo) |
 | Celular extra (opcional) | un tercero, si va | `/marcar` con el PIN; no es el iPhone A ni el B |
 | Conductor | — | Solo conduce. Máx. **30 km/h**; **1 minuto quieto** al inicio y al final |
 
@@ -24,14 +27,16 @@
 1. **iPhone A (Anzola):** **Ajustes → Pantalla y brillo → Bloqueo automático → Nunca**; activa el **Punto de acceso
    personal** (si el Lenovo no ve la red: «Maximizar compatibilidad»). phyphox → **«VÍA VIVA 2.0»** → menú ⋮ →
    **Permitir acceso remoto** (muestra `http://172.20.10.1`; no hace falta anotarla) → **▶**. Fíjalo en el soporte.
-2. **Lenovo (Anzola):** conéctalo al WiFi del iPhone A. Doble clic en **`SALIDA_DE_CAMPO.cmd`** (carpeta `via-viva`).
-   Primero corre el **doctor**: debe decir **LISTO**. Si dice FALTA, haz lo que indica y vuelve a abrirlo.
-   - El doctor prueba los puertos **80 y 8080**, lee de phyphox los nombres de los buffers y deja la dirección que
-     respondió en `.env`. Solo si el iPhone tiene otra IP: `.\viaviva.cmd doctor --url http://<ip>`.
-   - La primera vez Windows pregunta por el **Firewall**: permitir en **redes privadas** (solo hace falta si va un
-     celular extra con `/marcar`).
-3. Con LISTO, la captura **empieza a grabar sola** y abre `http://localhost:8000/captura`. La consola muestra la
-   dirección y el **PIN** por si va un celular extra.
+2. **Lenovo (Anzola):** conéctalo al WiFi del iPhone A y doble clic en el icono **VÍA VIVA** del escritorio: la app
+   abre en su propia ventana, en **Campo**. El panel **Conexión** dice en vivo qué falta:
+   - **Red del PC:** la IP debe ser `172.20.10.x` (la red del iPhone). **phyphox · iPhone A:** «Conectado», puerto 80,
+     latencia en ms y **~100 Hz reales**. Si dice «No detectado»: **Probar conexión** explica qué revisar y
+     **Reintentar con el iPhone A** vuelve a buscarlo (puertos 80 y 8080).
+   - La primera vez Windows pregunta por el **Firewall**: permitir en **redes privadas** (hace falta para el celular
+     extra y para la cámara del iPhone B).
+   - Alternativa sin icono: `SALIDA_DE_CAMPO.cmd` (doctor + captura en consola, como antes).
+3. Con phyphox conectado, toca **Iniciar grabación**. El panel muestra el **PIN y un QR** por si va un celular extra
+   (lo escanea y queda dentro de `/marcar` sin escribir nada).
 4. **Sincronía con el video:** en el Lenovo, abre `http://localhost:8000/sync`; **Pipe** empieza a grabar con el
    iPhone B, apunta a la pantalla del Lenovo y Anzola pulsa **DESTELLO**. Repetirlo **al inicio y al final** de cada
    toma (si Pipe corta el video, destello otra vez al empezar el clip nuevo).
@@ -44,15 +49,16 @@
 | Clase | hueco | resalto | grieta | parche | tapa | obstáculo | vía buena | **deshacer la última** |
 
 - Se marca **cuando la llanta pasa**. El programa corre la marca **1 s hacia atrás** (tiempo de reacción).
-- **1–7 y U** cuentan en la ventana que esté activa: la consola o la página `/captura` del navegador. **S**
-  (sincronía) y **Q** (terminar) solo en la consola.
+- **1–7 y U** funcionan en la ventana de la app (y en la consola si se usó `SALIDA_DE_CAMPO.cmd`, donde además
+  **S** = sincronía y **Q** = terminar).
 - Si se cae el WiFi del iPhone A, la captura **avisa y reconecta sola**. Lo del corte no se pierde mientras phyphox
   siga midiendo (▶). **No** detengas phyphox hasta terminar.
 
 ## 3. Al terminar
 
-1. **1 minuto quieto**, destello en `/sync` (Pipe lo filma) y **Q** en la consola del Lenovo (o Ctrl+C).
-2. La consola muestra el **RESUMEN**: duración, pérdidas, marcas por clase, km, velocidad máxima y **avisos** (si
+1. **1 minuto quieto**, destello en `/sync` (Pipe lo filma) y **Detener y guardar** en la app (cerrar la ventana
+   también guarda la grabación abierta).
+2. En **Sesiones** queda la salida con su **RESUMEN**: duración, pérdidas, marcas por clase, km, velocidad máxima y **avisos** (si
    faltó el minuto quieto —se toleran hasta 5 km/h de ruido del GPS—, si se pasó de 30 km/h…).
 3. La sesión queda en `02_VIA_VIVA\06_CAMPO\sesiones\sesion_AAAA-MM-DD_hhmm\` (en un PC sin esa carpeta:
    `via-viva\data\raw\sesiones\`; la consola dice cuál). **Nunca** al repositorio. Sin caras ni placas.
@@ -66,31 +72,66 @@ el video y se revisa). Para verla «en vivo»: `.\viaviva.cmd capture --replay <
 
 ## Practicar sin carro (cualquier PC)
 
-```
-.\viaviva.cmd capture --replay ejemplo --por-http --abrir
-```
-`ejemplo` es un recorrido **SINTÉTICO** de 3 min que se crea solo (no hacen falta datos de campo); también sirve un
-export real de phyphox (.zip o carpeta). Con `--velocidad 5` va 5 veces más rápido; los eventos quedan **simulados**.
+En la app: panel **Conexión → Usar el ejemplo**. O en consola: `.\viaviva.cmd capture --replay ejemplo --por-http --abrir`.
+`ejemplo` es un recorrido **SINTÉTICO** que se crea solo: 5,75 km por calles reales de Tunja desde la Plaza de Bolívar,
+15–29 km/h, frenadas en las esquinas y 16 baches puestos a mano (huecos, resaltos y tapas) que el detector ve en el
+mapa y en la señal; da vueltas sin parar. No son resultados. También sirve un export real de phyphox (.zip o carpeta).
+
+## Cámara en vivo (opcional)
+
+- **Webcam del PC** (funciona con la app en el Lenovo): tarjeta **Cámara en vivo** → **Encender** → con la grabación
+  andando, **Grabar con la sesión**. El video queda dentro de la sesión, ya sincronizado por el reloj del PC (no hace
+  falta destello) y se ve en **Revisión**. Probado con una cámara sintética en Edge; con la webcam real, pruébelo una vez.
+- **iPhone B en vivo (SIN PROBAR en un iPhone real):** Safari solo da la cámara en HTTPS. La app abre además
+  `https://<IP del Lenovo>:8443` con una autoridad local propia. Una vez por iPhone: (1) en Safari abrir
+  `http://<IP del Lenovo>:8000/ca.crt` → «Permitir» (perfil descargado); (2) Ajustes → General → **VPN y gestión de
+  dispositivos** → «VIA VIVA autoridad local» → Instalar; (3) Ajustes → General → Información → **Ajustes de confianza
+  de certificados** → activarla. Luego abrir `https://<IP del Lenovo>:8443/camara`, escribir el PIN, **Encender cámara**
+  y **Grabar con la sesión**: el Lenovo ve la imagen (unos 1–2 cuadros por segundo) y el video entra a la sesión.
+  Si algo de esto falla, Pipe filma como siempre (normal, con destello) y el video se importa después en **Revisión**.
 
 ## Instalar en el Lenovo de Anzola (y opciones: Mac de Dani, Docker)
 
 - **Windows (camino principal):** instalar Git y Python 3.11 (`winget install Git.Git Python.Python.3.11`; ffmpeg
-  opcional: `winget install Gyan.FFmpeg`). `git clone` del repo, rama `ac/cierre-software`, y en la carpeta `via-viva`:
-  `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1`. No hace falta ningún `.env` ni clave: el instalador
-  crea uno vacío; el PIN de `/marcar` sale en la consola (o fijo con `VIAVIVA_PIN` en `.env`).
-- **Mac de Dani (opcional, sin probar en Mac):** `bash viaviva/instalar_mac.sh` (Homebrew: Python 3.11 y ffmpeg) y
-  luego `./viaviva.sh doctor` y `./viaviva.sh capture --abrir`. macOS pregunta si Python acepta conexiones entrantes
+  opcional: `winget install Gyan.FFmpeg`). Clonar la rama estable `main` del repo y, en `via-viva`:
+  `git clone https://github.com/via-viva-usta/via-viva.git; Set-Location via-viva; git switch main`.
+  `powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1`. Deja el icono **VÍA VIVA** en el escritorio y en
+  el menú Inicio (abre la app en su ventana de Edge, sin consola). No hace falta ningún `.env` ni clave: el instalador
+  crea uno vacío; el PIN de `/marcar` sale en el panel de conexión (o fijo con `VIAVIVA_PIN` en `.env`).
+- **Mac de Dani (opcional, sin probar en Mac):** `bash viaviva/instalar_mac.sh` (Homebrew: Python 3.11 y ffmpeg) deja
+  «VIA VIVA.app» en ~/Applications; en consola: `./viaviva.sh app`, `./viaviva.sh doctor`, `./viaviva.sh capture --abrir`. macOS pregunta si Python acepta conexiones entrantes
   y si Terminal puede usar la red local: **Permitir**. Se marca con 1–7 y U en la página `/captura` (la consola no
   lee teclas fuera de Windows; se termina con Ctrl+C).
-- **Docker (plan B, NO probado en Docker):** hay `Dockerfile` y `docker-compose.yml`, pero aquí no había Docker: solo se
-  comprobó que la app corre (doctor y `--replay ejemplo --por-http`) con los mismos archivos que entran en la imagen.
-  Pasos: `docker compose build` → `docker compose run --rm viaviva doctor` → `docker compose up` →
-  `http://localhost:8000/captura`. En Docker se marca con 1–7 y U en la página `/captura`.
-- **Todo bien:** el doctor dice **LISTO**; la consola muestra «Grabando: sesion_…», la dirección y el PIN; `/captura`
-  muestra la señal moviéndose y el GPS.
+- **Todo bien:** el panel **Conexión** dice «Todo listo para grabar» (phyphox conectado, ~100 Hz); la señal se mueve,
+  el mapa muestra el recorrido y la velocidad cambia. Sin internet el mapa muestra igual las calles de Tunja (aviso
+  amarillo «Sin internet»).
 - **Errores típicos:** «Falta Python» → instalarlo y abrir otra consola · «no se reconoce viaviva.cmd» en PowerShell →
   escribir `.\viaviva.cmd` · «Alcance a phyphox» → WiFi del iPhone, acceso remoto activado y ▶ en phyphox · el celular
   no abre `/marcar` → Firewall de Windows: permitir Python en **red privada** y marcar el WiFi del iPhone como red privada · «Puerto
-  8000 ocupado» → ya hay una captura abierta: cerrarla con Q.
+  8000 ocupado» → ya hay una captura abierta: el icono abre otra ventana hacia ella; si es una consola, cerrarla con Q.
 - **iPhone B (Pipe):** Ajustes → Cámara → Formatos → **Más compatible** (H.264) y Grabar video → 1080p a 30 cps: así
   el video no necesita conversión.
+
+### Actualizar la app de Windows o Mac
+
+Abre VÍA VIVA con el icono o con `viaviva app`. En **Campo** aparece el estado de actualización. Si hay una versión
+nueva, pulsa **Actualizar VÍA VIVA** y confirma; espera a que la ventana se reinicie. La app comprueba que el remoto
+sea `via-viva-usta/via-viva`, que la rama local sea `main` y que no haya cambios locales. Si cambia
+`viaviva/requirements-pc.txt`, actualiza esas dependencias con el Python instalado de VÍA VIVA. Después puede usarse
+**Volver a la versión anterior** si algo falla y el clon sigue limpio.
+
+La actualización se bloquea mientras haya una sesión o video en curso. Sin internet conserva la versión instalada;
+para actualizar, vuelve a conectar el PC y pulsa **Actualizar VÍA VIVA**. La opción automática funciona al abrir la app
+de escritorio en Windows/macOS. Está deshabilitada en Docker, los comandos de servidor y la Raspberry Pi; no actualiza
+sensores, firmware ni configuración del nodo. En la Pi se mantiene el procedimiento técnico separado.
+
+Si aparece «rama main», primero revisa si el clon tiene cambios locales:
+
+```powershell
+git status --short
+git switch main
+git pull --ff-only origin main
+```
+
+Si `git status --short` muestra algo, detente y consérvalo antes de cambiar de rama. Netlify debe tener `main` como
+rama de producción; esta selección se confirma en el panel del sitio y no se puede deducir del `netlify.toml`.
