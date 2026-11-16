@@ -40,7 +40,11 @@ def test_flujo_sesion_video_revision_dataset(tmp_path, monkeypatch):
     lista = c.get("/api/sesiones").json()["sesiones"]
     assert lista[0]["nombre"] == nombre and lista[0]["video"] is False and lista[0]["eventos_detectados"] == 3
     det = c.get(f"/api/sesiones/{nombre}").json()
-    assert [round(e["t_s"]) for e in det["eventos"]] == [10, 20, 30] and len(det["trayecto"]) > 30
+    # Los golpes del export están en 10, 20 y 30 s; la grabación empieza cuando la reproducción (×40) ya avanzó un
+    # poco (en la CI, a veces 3 s): se comprueba la separación de 10 s y no el segundo absoluto.
+    tiempos = [round(e["t_s"]) for e in det["eventos"]]
+    assert len(tiempos) == 3 and [b - a for a, b in zip(tiempos, tiempos[1:])] == [10, 10] and 0 <= tiempos[0] <= 10
+    assert len(det["trayecto"]) > 30
     assert len(det["envolvente"]) > 300 and det["destellos"] == [d["t_s"]]
     # Importar video: se sincroniza solo con el destello
     video = _video_con_destello(tmp_path / "IMG_0001.mp4")
