@@ -54,3 +54,16 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
   evitarlo (sin garantía). Se restaura desde el panel.
 
 Probar sin internet: `viaviva.cmd sync --una-vez` muestra lo que está en la cola.
+
+## Verificar Supabase (después del paso 5)
+
+Con las tres claves ya en el `.env` (nunca en el chat):
+
+```
+dataset\.venv\Scripts\python herramientas\verificar_supabase.py --solo-sql    # sin red: el SQL del repo trae RLS
+dataset\.venv\Scripts\python herramientas\verificar_supabase.py               # contra el proyecto real
+```
+
+La segunda comprueba que la clave pública sin sesión **no lee ni escribe** ninguna tabla sincronizada y que la secreta sí
+escribe, lee y borra. Escribe una fila de prueba (`VERIFICACION|…`) en `eventos_publicos` y la borra. Nunca imprime las
+claves. Debe terminar en «Todo OK»; si no, vuelva a pegar `viaviva/supabase_esquema.sql` (paso 2).
