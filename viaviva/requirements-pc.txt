@@ -9,3 +9,5 @@ openpyxl
 reportlab
 opencv-python-headless<5   # ver los destellos en el video del iPhone B
 scikit-learn==1.7.2         # clasificador de ventanas (pantalla Dataset)
+segno==1.6.6                # QR del panel de conexión (puro Python, sin internet)
+cryptography==44.0.0        # HTTPS local para la cámara del celular (autoridad propia)

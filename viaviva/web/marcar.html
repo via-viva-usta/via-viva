@@ -1,15 +1,23 @@
 <!doctype html>
-<html lang="es" class="tema-a">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f6feb">
 <title>VÍA VIVA · Marcar</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preload" href="/fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
 </head>
 <body class="pantalla-marcar">
 <header class="barra">
-  <div class="marca"><span class="logo"></span><div>MARCAR<small id="sub">VÍA VIVA</small></div></div>
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion" id="sub">Marcar</span>
   <span id="insignia" class="rol">—</span>
   <span class="espacio"></span>
   <a href="/sync">Sincronía</a>
@@ -105,6 +113,9 @@ document.addEventListener('keydown', (ev) => {
 });
 
 (async () => {
+  const pinQr = new URLSearchParams(location.search).get('pin');      // el QR del panel de conexión trae el PIN
+  if (pinQr) { try { await VV.post('/api/pin', {pin: pinQr}); } catch (e) { /* se pide a mano */ }
+               history.replaceState(null, '', '/marcar'); }
   etiquetas = (await VV.json('/api/etiquetas')).etiquetas;
   $('botones').innerHTML = etiquetas.map(([tecla, clase, nombre]) => '<button class="b-marcar" data-c="' + clase +
     '" data-n="' + VV.escapar(nombre) + '"><kbd>' + tecla + '</kbd>' + VV.escapar(nombre) + '</button>').join('');

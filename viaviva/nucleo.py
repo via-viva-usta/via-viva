@@ -266,6 +266,35 @@ class Nucleo:
         self._pendientes: queue.Queue = queue.Queue()
         threading.Thread(target=self._escritor, daemon=True, name="escritor-db").start()
 
+    def reiniciar_fuente(self, fs: float, origen: str, id_nodo: str) -> None:
+        """Deja el núcleo como recién creado para otra fuente (p. ej. del ejemplo al iPhone A) sin cerrar la app.
+        Solo sin grabación abierta: el tiempo de la fuente nueva vuelve a 0."""
+        with self.candado:
+            if self.sesion is not None:
+                raise ValueError("detenga la grabación antes de cambiar de fuente")
+            self.fs, self.origen, self.id_nodo = fs, origen, id_nodo
+            self.det = Detector(fs)
+            self.serie, self.trayecto = BuferCircular(600), BuferCircular(1200)
+            self.eventos, self.etiquetas = BuferCircular(200), BuferCircular(200)
+            self.sensores = {}
+            self.base_epoch, self.hora_de_gps = time.time(), False
+            self.ultimo_t, self.mono_ultimo = 0.0, time.monotonic()
+            self.n_acc, self.n_eventos_total, self.n_eventos_sin_gps = 0, 0, 0
+            self.n_cortes, self.s_perdidos, self.reconexiones = 0, 0.0, 0
+            self.lat = self.lon = self.precision = math.nan
+            self.vel_kmh, self.vel_max_kmh, self.n_sat, self.fix = 0.0, 0.0, 0, False
+            self.amb, self.distancia_mm, self.parada_abierta = {}, math.nan, False
+            self.destellos, self.conectado = [], True
+
+    def t_sesion_de_epoch(self, epoch: float) -> float | None:
+        """Segundo de la grabación abierta que corresponde a una hora del PC (para el video en vivo)."""
+        with self.candado:
+            if self.sesion is None:
+                return None
+            # segundo actual de la sesión menos cuánto hace que empezó el video (reloj del PC): sirve igual con
+            # phyphox en vivo y con una reproducción, cuya hora es la de la grabación original
+            return round(self.t_ahora() - self.t0_sesion - (time.time() - epoch), 3)
+
     # ---------------------------------------------------------------- tiempo y bitácora
     def t_ahora(self) -> float:
         return self.ultimo_t + (time.monotonic() - self.mono_ultimo if self.conectado else 0.0)

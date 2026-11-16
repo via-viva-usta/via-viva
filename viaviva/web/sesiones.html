@@ -1,14 +1,23 @@
 <!doctype html>
-<html lang="es" class="tema-a">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VÍA VIVA · Sesiones</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="/static/icono/viaviva-192.png">
+<link rel="apple-touch-icon" href="/static/icono/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preload" href="/fuentes/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fuentes/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/static/estilo.css">
+<script src="/tema.js"></script>
 </head>
 <body>
 <header class="barra">
-  <div class="marca"><span class="logo"></span><div>VÍA VIVA</div></div>
+  <a class="marca logo-texto" href="/" title="Inicio">Vía<i>·</i>Viva</a><span class="t-etiqueta barra-seccion">Sesiones</span>
   <span class="espacio"></span><div class="cuenta" id="cuenta"></div>
 </header>
 <main class="pagina">
@@ -42,7 +51,7 @@ async function cargar() {
     '<div id="m-' + VV.escapar(s.nombre) + '"></div>' +
     '<div class="datos"><div><b>' + mmss(s.duracion_s || 0) + '</b><span>duración</span></div><div><b>' + (s.km ?? '—') + '</b><span>km</span></div>' +
     '<div><b>' + (s.eventos_detectados ?? 0) + '</b><span>eventos</span></div><div><b>' + (s.marcas ?? 0) + '</b><span>marcas</span></div></div>' +
-    '<div class="fila-flex">' + (s.video ? '<span class="pill ok">Video · ' + VV.escapar(s.sincronia || '') + '</span>' : '<span class="pill">Sin video</span>') +
+    '<div class="fila-flex">' + (s.video ? '<span class="pill ok">Video · ' + VV.escapar((s.sincronia || '').replace('_', ' ')) + '</span>' : '<span class="pill">Sin video</span>') +
     (s.revisados ? '<span class="pill ac">' + s.revisados + ' revisados</span>' : '') +
     ((s.avisos || []).length ? '<span class="pill mal" title="' + VV.escapar(s.avisos.join(' · ')) + '">' + s.avisos.length + ' avisos</span>' :
       '<span class="pill ok">Calidad OK</span>') + '</div></a>').join('');

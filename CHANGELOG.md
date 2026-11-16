@@ -1,5 +1,50 @@
 # Cambios
 
+## 2026-11-12 — integración de app/UI y actualización de escritorio (PR #38, `ac/sincronizacion`)
+
+- Se integraron en una rama de revisión la app v1 y las mejoras de interfaz de Dany (#35 y #37); donde hubo conflicto,
+  prevaleció su HTML y marca. `web/en_linea/marca.css` conserva el sistema compartido y se mantiene `vigia.js`.
+- En Campo, la app de escritorio muestra estado y botón para actualizar desde el remoto oficial `main`; exige clon limpio,
+  bloquea sesiones y videos activos, conserva la versión instalada sin internet, reinstala `viaviva/requirements-pc.txt`
+  si cambió y permite volver al commit anterior. Solo Windows/macOS; Pi, sensores y firmware sin cambios.
+- Suite local: 104 pasan y 1 se omite (TensorFlow no está instalado); Ruff y 5 pruebas web pasan. El avance/reversa y la
+  desconexión se probaron con un clon limpio y un remoto Git local simulado. CI de GitHub para PR #38: `pytest`,
+  `node-test` y `compilar` en verde; sigue pendiente una aprobación para fusionar.
+- Añadidos CODEOWNERS y plantilla de PR. `main` está protegida (tres checks, una aprobación, conversaciones resueltas,
+  sin force-push) y GitHub borra automáticamente las ramas al fusionar. Dany tiene permiso Write. La rama de producción
+  de Netlify no se pudo verificar desde esta sesión y debe confirmarse en el panel del sitio.
+
+## 2026-11-12 — app v1 (rama `ac/app-v1`)
+
+- **Un solo sistema de estilos con la web de Dany:** `web/en_linea/marca.css` guarda los temas (`--t-*`, `--vv-*`);
+  el tablero en línea y la app local los leen. La app usa su barra, tipografía (Archivo Black + Inter locales), ◐,
+  botones y cifras. Se quitaron los temas A/B del 11-nov y Google Fonts.
+- **Mapa:** MapLibre 6.17 + OpenFreeMap (como el tablero en línea); las teselas de OSM daban 403 y CARTO pide clave.
+  Debajo, siempre, las calles de Tunja de la base local (`/api/calles`; sin base, `viaviva/web/datos/calles_tunja.json`):
+  sin internet el mapa muestra esas calles. `sw.js` guarda lo ya visto. Instaladores y Docker bajan MapLibre.
+- **Ejemplo que se mueve:** ruta real de 5,75 km por Tunja, 15–29 km/h, 16 baches con severidad baja/media/alta;
+  el simulador da vueltas (antes: 1 min quieto al inicio, 0 km/h y 0 eventos al abrirlo).
+- **Panel de conexión** en Campo (red, phyphox con puerto/latencia/Hz reales, Pi, PIN + QR) y cambio de fuente sin
+  cerrar la app (phyphox / ejemplo / ninguna).
+- **Cámara en vivo:** webcam del PC grabada dentro de la sesión (desfase por reloj, sin destello); celular por HTTPS
+  local con autoridad propia (`/ca.crt`, `/camara`). Probado con cámara sintética en Edge; **iPhone sin probar**.
+- **App con doble clic:** `viaviva app` + acceso directo «VIA VIVA» con icono (escritorio y menú Inicio) que crea
+  `instalar_pc.ps1`; `VIA VIVA.app` en Mac (sin probar). Al cerrar la ventana se guarda la grabación y se apaga.
+- Capturas de todas las pantallas (escritorio y celular) junto a la web de Dany: `docs/capturas/app-v1/`.
+
+## 2026-11-12 — tablero en línea: íconos SVG y cifras con tendencia (rama `web/iconos-tendencia`)
+
+- Un solo juego de íconos SVG en `web/en_linea/tablero.html` (trazo 1,75, puntas rectas, sin archivos ni fuentes aparte):
+  reemplaza los caracteres ?, ◐, ✕, ✓ y × de la barra, los filtros activos y la lista, y suma pictogramas de hueco y
+  golpe en el detalle.
+- Las cifras Huecos abiertos, Severidad alta y Reparados muestran una mini línea de 8 ventanas de 7 días y una frase
+  («3 menos que 7 días antes»). Respeta severidad y tipo, no el periodo. Funciones en `reglas.js`
+  (`abiertoEn`, `serieSemanas`, `textoTendencia`) con pruebas: `node --test tests/web/*.test.mjs` (5 pasan).
+- Revisado con los datos de prueba en el navegador (1440 px oscuro y claro, 390 px sin desborde). Sin probar contra
+  Supabase real.
+
+- Fiabilidad: `vigia.js` avisa y permite reintentar si el tablero o sus librerías no cargan; la portada conserva contenido visible sin JavaScript.
+
 ## 2026-11-11 — roles definitivos de la salida de campo
 
 - iPhone A = Anzola (phyphox + punto de acceso); PC de captura = su Lenovo, marca con el teclado; iPhone B = Pipe, solo

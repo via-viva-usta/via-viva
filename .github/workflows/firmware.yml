@@ -1,12 +1,13 @@
 # Compila el firmware del nodo (3 entornos) y los programas de prueba con PlatformIO.
-# Solo corre si cambia firmware/; guarda en caché PlatformIO (toolchains y librerías) para no gastar minutos.
+# Corre en cada PR para que la protección de main siempre tenga este check; push a main solo si cambia firmware/.
+# Usa caché de PlatformIO.
 name: firmware
 on:
   push:
     branches: [main]
     paths: ["firmware/**", ".github/workflows/firmware.yml"]
   pull_request:
-    paths: ["firmware/**", ".github/workflows/firmware.yml"]
+    # Todas las PR deben emitir este check requerido por la protección de main.
 concurrency:
   group: firmware-${{ github.ref }}
   cancel-in-progress: true

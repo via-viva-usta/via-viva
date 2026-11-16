@@ -1,6 +1,6 @@
 """Tablas y gráficas de los experimentos de arquitectura E1–E4 (y memoria y corriente) para el informe.
 
-Entrada (copiada de la microSD del nodo; ver docs/experimentos.md):
+Entrada (copiada de la microSD del nodo; protocolo E1–E4 de la ESP32, archivado fuera del repo):
   data/raw/nodo/**/exp_NNN.csv     filas t_ms,experimento,condicion,variable,valor (las escribe el firmware)
   data/raw/nodo/corriente.csv      medidas con el tester USB: estado,minutos,mah_inicio,mah_fin,voltaje_v
 
@@ -162,7 +162,7 @@ def main():
         aviso = ""
     df = leer(carpeta)
     if df.empty:
-        raise SystemExit(f"No hay archivos exp_*.csv en {carpeta}. Copiarlos de la microSD (ver docs/experimentos.md).")
+        raise SystemExit(f"No hay archivos exp_*.csv en {carpeta}. Copiarlos de la microSD (protocolo E1–E4 de la ESP32, archivado fuera del repo).")
     for d in (sal_md, sal_tab, sal_fig):
         d.mkdir(parents=True, exist_ok=True)
 

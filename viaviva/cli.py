@@ -5,6 +5,7 @@
     viaviva capture --replay <export.zip>  reproduce una grabación como si fuera en vivo (sin carro)
     viaviva capture --source pi            sensores de la Raspberry Pi
     viaviva serve                          solo el tablero local (sin captura)
+    viaviva app                            la aplicación en su propia ventana (icono VÍA VIVA)
     viaviva resumen <carpeta|export>       RESUMEN.md de una sesión
     viaviva detector ... | dataset ...     detector calibrable y constructor del dataset (Fase B)
     viaviva usuarios ... | sync ...        usuarios y roles; sincronización con Supabase
@@ -77,6 +78,30 @@ def _teclado(ctx, parar: threading.Event) -> None:
             print(f"  ✘ {err}", flush=True)
 
 
+def arrancar_https(ctx, app, host: str, puerto: int):
+    """Segundo servidor, en HTTPS, para la cámara del celular (Safari solo la da en HTTPS). Opcional: si falta
+    `cryptography` o el puerto está ocupado, la app sigue igual y el panel de conexión lo dice."""
+    import uvicorn
+
+    from viaviva import camara, conexion, doctor
+    ip = conexion.ip_local() or ctx.ip
+    if not doctor.puerto_libre(puerto):
+        ctx.https = {"activo": False, "error": f"el puerto {puerto} está ocupado"}
+        return None
+    try:
+        cert, clave = camara.certificado_servidor([i for i in (ip, ctx.ip) if i])
+    except Exception as err:                   # sin cryptography o sin permiso para escribir data/certificados
+        ctx.https = {"activo": False, "error": f"no se pudo crear el certificado: {err}"}
+        return None
+    srv = uvicorn.Server(uvicorn.Config(app, host=host, port=puerto, ssl_certfile=str(cert), ssl_keyfile=str(clave),
+                                        log_level="warning"))
+    threading.Thread(target=srv.run, daemon=True, name="https").start()
+    base = ip or "localhost"
+    ctx.https = {"activo": True, "puerto": puerto, "url_camara": f"https://{base}:{puerto}/camara",
+                 "url_ca": f"http://{base}:{ctx.puerto}/ca.crt"}
+    return srv
+
+
 def _servir(ctx, a, grabar: bool) -> int:
     import uvicorn
 
@@ -84,6 +109,7 @@ def _servir(ctx, a, grabar: bool) -> int:
     from viaviva.app import crear_app
     from viaviva.sistema import registrar_r7
     ctx.ip = doctor.ip_local()
+    ctx.puerto = a.puerto
     parar = threading.Event()
     threading.Thread(target=registrar_r7, args=(ctx.n, ctx.sistema, parar), daemon=True, name="r7").start()
     threading.Thread(target=ctx.agrupar, args=(parar,), daemon=True, name="huecos").start()
@@ -91,13 +117,18 @@ def _servir(ctx, a, grabar: bool) -> int:
         threading.Thread(target=ctx.sincro.bucle, args=(parar,), daemon=True, name="sincronizacion").start()
     if grabar:
         ctx.n.iniciar_grabacion(getattr(a, "nombre", "") or "")
-    servidor = uvicorn.Server(uvicorn.Config(crear_app(ctx), host=a.host, port=a.puerto, log_level="warning"))
+    app = crear_app(ctx)
+    servidor = uvicorn.Server(uvicorn.Config(app, host=a.host, port=a.puerto, log_level="warning"))
+    seguro = None if getattr(a, "sin_https", False) else arrancar_https(ctx, app, a.host, getattr(a, "puerto_https",
+                                                                                                    8443))
     url_local = f"http://localhost:{a.puerto}"
     print("═" * 64)
     print(f" VÍA VIVA · fuente: {getattr(a, 'source', 'ninguna')} · carpeta: {ctx.n.dir_grabaciones}")
     if grabar:
         print(f" Grabando: {ctx.n.sesion.carpeta.name if ctx.n.sesion else '—'}")
     print(f" Captura: {url_local}/captura    Tablero: {url_local}/tablero    Sincronía: {url_local}/sync")
+    if ctx.https.get("activo"):
+        print(f" Cámara del celular (HTTPS): {ctx.https['url_camara']}   autoridad local: {ctx.https['url_ca']}")
     ip = ctx.ip or "<IP de este PC>"          # en Docker la IP del contenedor no sirve al celular
     print(f" Celular extra (opcional): http://{ip}:{a.puerto}/marcar    PIN: {ctx.pin}")
     if sys.platform == "win32":
@@ -118,6 +149,8 @@ def _servir(ctx, a, grabar: bool) -> int:
         servidor.run()
     finally:
         parar.set()
+        if seguro:
+            seguro.should_exit = True
         carpeta = ctx.n.detener_grabacion()
         if hasattr(ctx.fuente, "cerrar"):
             ctx.fuente.cerrar()
@@ -135,6 +168,8 @@ def _servir(ctx, a, grabar: bool) -> int:
 def _capture(a) -> int:
     from viaviva.app import construir
     from viaviva.ejemplo import resolver
+    if a.replay and a.replay.strip().lower() == "ejemplo":
+        a.bucle = True                     # el ejemplo da vueltas: siempre hay algo moviéndose para mostrar
     a.replay = resolver(a.replay)          # «ejemplo» = export SINTÉTICO de práctica (cualquier PC)
     fuente = a.source
     if a.replay:
@@ -202,11 +237,22 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--sin-sync", action="store_true")
     c.add_argument("--permitir-apagado", action="store_true")
     c.add_argument("--abrir", action="store_true", help="abrir el navegador")
+    c.add_argument("--sin-https", action="store_true", help="no abrir el puerto HTTPS de la cámara del celular")
+    c.add_argument("--puerto-https", type=int, default=8443)
     s = sub.add_parser("serve", help="solo el tablero local")
     s.add_argument("--host", default="0.0.0.0")
     s.add_argument("--puerto", type=int, default=config.PUERTO)
     s.add_argument("--sin-sync", action="store_true")
     s.add_argument("--abrir", action="store_true")
+    s.add_argument("--sin-https", action="store_true")
+    s.add_argument("--puerto-https", type=int, default=8443)
+    v = sub.add_parser("app", help="la aplicación en su propia ventana (lo que abre el icono VÍA VIVA)")
+    v.add_argument("--fuente", choices=["phyphox", "ejemplo", "ninguna"], default=None,
+                   help="por defecto VIAVIVA_FUENTE_APP o phyphox (iPhone A)")
+    v.add_argument("--puerto", type=int, default=config.PUERTO)
+    v.add_argument("--puerto-https", type=int, default=8443)
+    v.add_argument("--sin-https", action="store_true")
+    v.add_argument("--sin-ventana", action="store_true", help="solo el servidor (pruebas)")
     r = sub.add_parser("resumen", help="RESUMEN.md de una sesión o export")
     r.add_argument("carpeta")
     sub.add_parser("usuarios", help="python -m viaviva usuarios crear <u> --rol editor|alcaldia|docente")
@@ -217,6 +263,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("modelo", help="esqueleto TFLite del clasificador de ventanas")
     sub.add_parser("nube", help="preparar el tablero en línea (config.js + tramos.geojson)")
     a = ap.parse_args(argv)
+    if a.cmd == "app":
+        from viaviva.ventana import main as app_main
+        return app_main(a)
     return {"doctor": _doctor, "capture": _capture, "serve": _serve, "resumen": _resumen}[a.cmd](a)
 
 

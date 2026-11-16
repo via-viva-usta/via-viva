@@ -1,4 +1,5 @@
-// VÍA VIVA · carga de datos del tablero en línea: Supabase (con sesión; RLS por rol) o DEMO inventada en el navegador.
+// VÍA VIVA · carga de datos del tablero en línea: Supabase (con sesión; RLS por rol) o datos de PRUEBA simulados en el
+// navegador (acceso público del prototipo).
 // `preparar` calcula una sola vez lo que la interfaz necesita (lugar legible, prioridad, días hasta reparar…).
 import {ABIERTOS, dias, lugar, ms, nivelSeveridad, nombrarVecinos, pesoTransito} from './reglas.js';
 
@@ -51,18 +52,18 @@ export async function cambiosPendientes(sb, idOrigen) {
 }
 
 /**
- * Datos INVENTADOS para ver el diseño sin cuenta (?demo=1). Semilla fija: siempre los mismos. El riesgo no se recorta
+ * Datos de PRUEBA simulados para el acceso público del prototipo. Semilla fija: siempre los mismos. El riesgo no se recorta
  * (antes el tope de 0,97 hacía que el top-10 entero empatara en 97 %) y los huecos caen más en los tramos de más
  * riesgo, para que el mapa se parezca a un caso real. Nada de esto es un resultado.
  */
-export function datosDemo(tramos, ahora = Date.now()) {
+export function datosPrueba(tramos, ahora = Date.now()) {
   let s = 7;
   const azar = () => (s = (s * 16807) % 2147483647) / 2147483647;
   const lista = tramos.features.filter((t) => t.geometry?.coordinates?.length >= 2);
   const riesgo = lista.map((t) => {
     const peso = pesoTransito(t.properties?.t), x = 0.95 * azar() ** 6;     // nunca 100 %
     const p = peso === 3 ? x + (1 - x) * 0.3 : peso === 2 ? x + (1 - x) * 0.12 : x;
-    return {id_tramo: t.id, probabilidad: Math.round(p * 1000) / 1000, modelo: 'bosque', version_modelo: 'DEMO',
+    return {id_tramo: t.id, probabilidad: Math.round(p * 1000) / 1000, modelo: 'bosque', version_modelo: 'PRUEBA',
       fecha_calculo: iso(ahora - DIA)};
   });
   const pTramo = new Map(riesgo.map((r) => [r.id_tramo, r.probabilidad]));
@@ -81,7 +82,7 @@ export function datosDemo(tramos, ahora = Date.now()) {
     const tsEstado = estado === 'detectado' ? null
       : Math.min(ahora - 3600e3, primera + (0.5 + azar() * (estado === 'reparado' ? 24 : 5)) * DIA);
     const ultima = primera + azar() * ((tsEstado ?? ahora) - primera);
-    return {id_origen: 'demo|' + (i + 1), instancia: 'demo', id_local: i + 1, lat: c[1], lon: c[0],
+    return {id_origen: 'prueba|' + (i + 1), instancia: 'prueba', id_local: i + 1, lat: c[1], lon: c[0],
       clase: azar() < 0.75 ? 'hueco' : 'impacto_fuerte', severidad, n_detecciones: 1 + Math.floor(azar() ** 2 * 6),
       estado, id_tramo: t.id, primera_ts: iso(primera), ultima_ts: iso(ultima), ts_estado: tsEstado && iso(tsEstado),
       recibido: iso(ahora - 2 * 3600e3)};
@@ -121,7 +122,7 @@ export function preparar(huecosCrudos, riesgoCrudo, tramos, ahora = Date.now()) 
     .map((f) => ({...f, properties: {...f.properties, p: pTramo.get(f.id), abiertos: abiertosTramo.get(f.id) || 0}}));
   const r0 = riesgo[0];
   const corrida = r0 ? {modelo: r0.modelo, version: r0.version_modelo, fecha: r0.fecha_calculo,
-    demo: /DEMO|SINT[EÉ]TICO/i.test(r0.version_modelo || '')} : null;
+    demo: /DEMO|PRUEBA|SINT[EÉ]TICO/i.test(r0.version_modelo || '')} : null;   // corrida de prueba: no es un resultado
   return {huecos, riesgo, corrida, ultimoDato, abiertosTramo, info,
     tramosRiesgo: {type: 'FeatureCollection', features: conRiesgo}};
 }
