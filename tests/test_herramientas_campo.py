@@ -33,7 +33,9 @@ def test_auditar_sesion_ok_y_hora_desfasada(tmp_path):
     campos[2] = f"{float(campos[2]) + 2109:.6f}"
     meta.write_text(lineas[0] + "\n" + ",".join(campos) + "\n", encoding="utf-8")
     inf = auditar_sesion.auditar(c)
-    assert inf.fallas >= 1 and any("desfasada +2109" in q for _, q, _ in inf.items)
+    # el valor exacto varía unas décimas según la máquina (en la CI, +2108,9): se compara con margen
+    assert inf.fallas >= 1 and any(e == "FALLA" and "desfasada" in q for e, q, _ in inf.items)
+    assert 2105 < inf.datos["hora_fuente_menos_pc_s"] < 2113
     assert auditar_sesion.main([str(c), "--json", str(tmp_path / "a.json")]) == 1
     assert json.loads((tmp_path / "a.json").read_text(encoding="utf-8"))["datos"]["hora_fuente_menos_pc_s"] > 2000
 
