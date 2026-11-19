@@ -1,5 +1,17 @@
 # Cambios
 
+## 2026-11-19 — auditoría de la salida del 18-nov (`ac/auditoria-campo-18nov`)
+
+- **Hora de phyphox:** en la salida del 18-nov, `ts_utc` de eventos, `utc` de marcas y `meta/time.csv` quedaron
+  **+2 108,9 s** adelantados. Lo midió la correlación con el export crudo del iPhone A, que coincidió con el reloj del
+  PC en < 0,1 s. Las muestras y los `t_s` relativos están bien. Causa: pausas de phyphox tomadas como «medición nueva».
+  Volvía a pedir el buffer desde 0, lo duplicaba y adelantaba el reloj. Ahora no se duplica si es la misma medición y la
+  hora se re-ancla al reloj del PC si se aparta > 5 s.
+- La bitácora de «fin» cuenta muestras y reconexiones de la sesión (antes, desde que arrancó la fuente).
+- El dataset avisa si hay sesiones grabadas desde una reproducción (`origen: simulado`), no solo por el nombre.
+- `modelo_ventanas.py` ya no dice que valida: hoy entrena y mide sobre el mismo conjunto.
+- Pruebas nuevas: `tests/test_phyphox_hora.py` y `tests/test_bitacora_sesion.py`. Ninguna en el iPhone ni en la Pi.
+
 ## 2026-11-12 — integración de app/UI y actualización de escritorio (PR #38, `ac/sincronizacion`)
 
 - Se integraron en una rama de revisión la app v1 y las mejoras de interfaz de Dany (#35 y #37); donde hubo conflicto,
