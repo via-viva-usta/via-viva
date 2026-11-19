@@ -1,8 +1,16 @@
 # Sitio en línea de VÍA VIVA (web/en_linea, de Dany): carpeta estática, sin compilación.
 # Al publicar, Netlify arma config.js con SUPABASE_URL y SUPABASE_CLAVE_PUBLICA (variables del sitio; ninguna clave en
 # Git). Sin esas variables el sitio queda en modo demostración. datos/tramos.geojson (calles OSM, ODbL) va en el repo.
+# Pasos para crear el sitio, las variables y las vistas previas por PR: docs/PUBLICAR_WEB.md
 [build]
   publish = "web/en_linea"
+  command = "node herramientas/config_web.mjs"
+
+# Vistas previas de cada PR y de otras ramas: mismo armado (con las variables que tenga cada contexto en Netlify)
+[context.deploy-preview]
+  command = "node herramientas/config_web.mjs"
+
+[context.branch-deploy]
   command = "node herramientas/config_web.mjs"
 
 [[headers]]

@@ -30,12 +30,9 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
    SUPABASE_CLAVE_PUBLICA=<anon / publishable>     # va a la página (es pública por diseño)
    SUPABASE_CLAVE=<service_role / secret>          # SOLO en el .env de la Pi/PC que sincroniza
    ```
-6. **Netlify:** en una consola, `npx netlify login` (se abre el navegador; inicia sesión AC) y luego, desde `via-viva`:
-   ```
-   viaviva.cmd nube preparar
-   npx netlify deploy --prod --dir web/en_linea
-   ```
-   (o arrastrar la carpeta `web/en_linea` en https://app.netlify.com/drop). Dar la URL a la Alcaldía y a los docentes.
+6. **Netlify:** seguir `docs/PUBLICAR_WEB.md` (publica desde GitHub con vistas previas por PR; las variables
+   `SUPABASE_URL` y `SUPABASE_CLAVE_PUBLICA` van en Netlify, nunca la clave secreta). Dar la URL a la Alcaldía y a los
+   docentes.
 
 ## Cómo queda funcionando
 
