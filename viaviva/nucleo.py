@@ -16,7 +16,9 @@ import csv
 import json
 import math
 import os
+import platform
 import queue
+import re
 import sqlite3
 import threading
 import time
@@ -31,6 +33,9 @@ G = 9.81
 CLASES_MARCA = [c for _, c, _ in config.ETIQUETAS]
 CLASES_ETIQUETA = set(CLASES_MARCA) | {"impacto_fuerte", "otro", "parada"}
 CLASES_EVENTO_DB = {"hueco", "resalto", "impacto_fuerte", "obstaculo"}   # las que acepta la tabla eventos
+# Rol de cada equipo en la salida (traspaso del 19-nov) y alias del equipo, nunca el nombre de una persona
+ROLES_DISPOSITIVO = ("nodo_pi", "phyphox_referencia", "camara", "panel_operador", "marcador")
+ALIAS_VALIDO = re.compile(r"[A-Z0-9][A-Z0-9-]{1,23}")
 
 ARCHIVOS = {   # clave → (archivo, encabezado). Los 3 primeros como los escribe phyphox en iOS (+ UTC del PC)
     "acc": ("Accelerometer.csv", ["Time (s)", "X (m/s^2)", "Y (m/s^2)", "Z (m/s^2)", "UTC PC (s)"]),
@@ -261,6 +266,10 @@ class Nucleo:
         self.parada_abierta = False
         self.id_etiqueta = 0
         self.destellos: list[dict] = []
+        # dispositivos que se identificaron (rol + alias no personal); la fuente la fija la app al armarse
+        self.dispositivos: dict[str, dict] = {}
+        self.dispositivo_fuente: dict = {"rol": "desconocido", "alias": "desconocido", "fuente": origen}
+        self._ult_estado_fuente, self._n_acc_estado = time.monotonic(), 0
         self.conectado = True
         self.al_cerrar_sesion = None               # función(carpeta) → p. ej. generar RESUMEN.md
         self._pendientes: queue.Queue = queue.Queue()
@@ -345,6 +354,7 @@ class Nucleo:
                     self.sesion.fila("acc", (t - self.t0_sesion, x, y, z, round(utc, 3)))
             self.mono_ultimo = time.monotonic()
             if self.sesion:
+                self._estado_fuente(recibido_epoch)
                 self.sesion.vaciar_si_toca()
         self.latencias["lote_a_pantalla_ms"].agregar((time.perf_counter() - t_lote0) * 1e3)
         for e in nuevos:
@@ -521,6 +531,45 @@ class Nucleo:
                 if ev["lat"] is not None:
                     self._pendientes.put(ev)      # la base hace UPSERT por (id_nodo, ts_utc)
 
+    # ---------------------------------------------------------------- dispositivos y estado de la fuente
+    def registrar_dispositivo(self, rol: str, alias: str, agente: str | None = None) -> dict:
+        """Un celular o PC dice qué rol cumple (cámara, marcador, panel…) con un alias del equipo, no un nombre de
+        persona. Queda en la bitácora de la sesión abierta (y de las siguientes mientras siga activo)."""
+        alias = (alias or "").strip().upper()
+        if rol not in ROLES_DISPOSITIVO:
+            raise ValueError(f"rol desconocido: {rol}")
+        if not ALIAS_VALIDO.fullmatch(alias):
+            raise ValueError("alias inválido: use mayúsculas, números y guiones (p. ej. PHONE-A, CAMARA-1)")
+        with self.candado:
+            sesion = self.sesion.carpeta.name if self.sesion else None
+            ant = self.dispositivos.get(alias)
+            d = {"rol": rol, "alias": alias, "agente": agente or "desconocido", "visto": time.monotonic(),
+                 "sesion": sesion}
+            self.dispositivos[alias] = d
+            if sesion and (ant is None or ant["rol"] != rol or ant["sesion"] != sesion):
+                self.bitacora("dispositivo", accion="conectado", rol=rol, alias=alias, agente=d["agente"])
+        return {"rol": rol, "alias": alias, "sesion": sesion}
+
+    def lista_dispositivos(self, max_s: float = 120.0) -> list[dict]:
+        ahora = time.monotonic()
+        with self.candado:
+            return [{"rol": d["rol"], "alias": d["alias"], "agente": d["agente"], "hace_s": round(ahora - d["visto"]),
+                     "sesion": d["sesion"]} for d in self.dispositivos.values() if ahora - d["visto"] <= max_s]
+
+    def _estado_fuente(self, recibido_epoch: float | None, cada_s: float = 60.0) -> None:
+        """Cada minuto, en la bitácora: frecuencia efectiva, desfase del reloj de la fuente, pérdidas y conexión.
+        Se llama con el candado tomado."""
+        ahora = time.monotonic()
+        dt = ahora - self._ult_estado_fuente
+        if dt < cada_s:
+            return
+        referencia = recibido_epoch if recibido_epoch else time.time()
+        self.bitacora("estado_fuente", fs_efectiva_hz=round((self.n_acc - self._n_acc_estado) / dt, 2),
+                      hora_fuente_menos_pc_s=round(self.epoch(self.ultimo_t) - referencia, 3),
+                      cortes=self.n_cortes, s_perdidos=round(self.s_perdidos, 3), conectado=self.conectado,
+                      reconexiones=self.reconexiones, hora_de_gps=self.hora_de_gps)
+        self._ult_estado_fuente, self._n_acc_estado = ahora, self.n_acc
+
     def destello(self, origen: str = "web", nota: str | None = None) -> dict:
         """Instante del destello de la página /sync (la cámara lo graba): sirve para alinear el video."""
         with self.candado:
@@ -569,7 +618,16 @@ class Nucleo:
             self.parada_abierta = False
             self.n_cortes, self.s_perdidos, self.vel_max_kmh = 0, 0.0, 0.0
             self.bitacora("inicio", carpeta=carpeta.name, origen=self.origen, id_nodo=self.id_nodo, fs_hz=self.fs,
-                          retardo_s=self.retardo_s)
+                          retardo_s=self.retardo_s, fuente=self.dispositivo_fuente,
+                          equipo={"so": platform.system(), "version": platform.release(),
+                                  "arquitectura": platform.machine(), "python": platform.python_version()})
+            self._ult_estado_fuente, self._n_acc_estado = time.monotonic(), self.n_acc
+            ahora = time.monotonic()
+            for d in self.dispositivos.values():            # los que ya estaban conectados quedan en esta sesión
+                if ahora - d["visto"] <= 120:
+                    d["sesion"] = carpeta.name
+                    self.bitacora("dispositivo", accion="presente al iniciar", rol=d["rol"], alias=d["alias"],
+                                  agente=d["agente"])
             self.aviso(f"Grabando en {carpeta.name}")
             return carpeta.name
 
