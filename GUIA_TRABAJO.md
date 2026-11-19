@@ -30,12 +30,16 @@
 
 ## Paso a paso (Windows y Mac igual; en Mac use `./herramientas/tarea.sh`)
 
-1. **Una vez:** instalar Git, VS Code y GitHub CLI; luego
+1. **Una vez:** instalar Git, VS Code, GitHub CLI y Node.js (y Python 3.11 si va a tocar código de Python); luego
    `git clone https://github.com/via-viva-usta/via-viva.git` → `cd via-viva` → `code .`
+   - Entorno de pruebas de Python (solo AC o quien toque `.py`; ~2 min, Git lo ignora):
+     Windows `py -3.11 -m venv .venv` → `.venv\Scripts\python -m pip install -r tests\requirements.txt`;
+     Mac `python3.11 -m venv .venv` → `.venv/bin/python -m pip install -r tests/requirements.txt`
 2. **Empezar una tarea** (crea la rama desde `main` al día): `herramientas\tarea.cmd dani/iconos-mapa`
 3. **Probar** antes de subir:
    - Web: `node --test tests/web/*.test.mjs`
-   - Python (Windows): `dataset\.venv\Scripts\python -m pytest` y `dataset\.venv\Scripts\python -m ruff check .`
+   - Python: `.venv\Scripts\python -m pytest` y `.venv\Scripts\python -m ruff check .`
+     (Mac: `.venv/bin/python …`; en el PC de AC sirve también `dataset\.venv`)
 4. **Guardar y subir:** `git add -A` → `git commit -m "feat(web): qué cambió"` → `git push -u origin HEAD` →
    `gh pr create --fill`
 5. **Revisión:** otra persona aprueba el PR; AC lo fusiona cuando los 3 checks (`pytest`, `node-test`, `compilar`)
