@@ -1,5 +1,18 @@
 # Cambios
 
+## 2026-11-19 (tarde) — equipos identificados, dataset real y preparación de la Pi (`ac/dataset-ingesta`)
+
+- Rol y alias de cada equipo (`/api/dispositivo`): selector visible en `/marcar`, `/camara` y `/sync` con confirmación
+  de la sesión asociada. La bitácora guarda la fuente (rol y alias), el sistema del equipo y, cada minuto,
+  `estado_fuente`: fs efectiva, desfase del reloj, pérdidas y conexión.
+- `herramientas/ingestar_sesion.py`: copia verificada de sesiones reales a `C:\VIA_VIVA_DATOS\dataset_vv`, con
+  procedencia, auditoría y corrección de hora sin aplicar. Dice por qué una sesión no es apta. La del 18-nov queda
+  como no apta.
+- `docs/PI_CONEXION.md` y `herramientas/pi_estado.sh`: conectar y validar la Pi en solo lectura.
+  `docs/WINDOWS_PAQUETE.md`: evaluación del paquete Windows (no hay `.exe` probado).
+- `docs/INVESTIGACION_DETECTORES.md`: Mendeley, RoadSens-4M, CRAWDAD, RSC-IoT, RDD y GOV.CO.
+  `docs/DATOS.md`: qué registró de verdad la sesión del 18-nov.
+
 ## 2026-11-19 — preparación de la salida con la Pi y comparación de detectores (`ac/salida-pi-herramientas`)
 
 - `herramientas/auditar_sesion.py`: auditoría de solo lectura de una sesión. Solo usa numpy, así que corre en la Pi.

@@ -20,6 +20,18 @@ Ningún dataset encontrado es SINTÉTICO. Ninguno separa tapa, grieta y parche. 
 | Mednis et al. 2011 (doi 10.1109/DCOSS.2011.5982206) | Z-THRESH, Z-DIFF, STDEV(Z), G-ZERO | Artículo | Triviales en numpy. Umbrales del artículo no verificados | **Línea base** del detector en vivo |
 | González et al. 2017 (doi 10.1109/TITS.2017.2662483) | Bag-of-words sobre la aceleración; compara ANN, árbol de decisión y SVM | Artículo | Fuera de línea, en el PC | Referencia |
 
+**Segunda revisión (19-nov, tarde).** Solo lectura: no se descargó nada y no se inició sesión. **PVS ya se evaluó
+localmente**; su informe está en `C:\VIA_VIVA_DATOS\PVS_evaluacion\INFORME.md`, fuera de Git.
+
+| Fuente | Datos | Licencia y acceso | Decisión |
+|---|---|---|---|
+| [Mendeley 4hmyws7cbc](https://data.mendeley.com/datasets/4hmyws7cbc/1) | iPhone 11 y 13 bajo un asiento de bus, a 100 Hz, con GPS a 1 Hz. Etiquetas manuales con fotos. ~113 MB | Datos CC BY 4.0; descarga pública sin cuenta | **Usar** (detección de «anomalía sí/no»). Antes hay que confirmar columnas, unidades y clases, que no se pudieron ver |
+| [RoadSens-4M](https://doi.org/10.6084/m9.figshare.30341143.v3) | Samsung S24 en el parabrisas con ejes alineados al carro, en m/s² a 100 Hz. Clases bump, pothole y normal, marcadas con botón (50 eventos validados con video). ~297 MB en Figshare; el crudo y los videos están en Drive | Datos CC BY 4.0 en Figshare; el artículo es CC BY-NC-ND; el código MIT | **Usar** como referencia principal para hueco, resalto y vía buena |
+| [CRAWDAD JIIT](https://ieee-dataport.org/open-access/crawdad-jiitaccelerometer) | Android, 678 km, resaltos. fs y unidades no indicadas. ~46 MB | CC BY 4.0. crawdad.org responde 404; IEEE pide cuenta | Evaluar luego |
+| [RSC-IoT](https://ieee-dataport.org/documents/rsc-iot-iot-based-dataset-road-anomaly-detection-using-motion-sensors) | MPU-6050 en el tablero. Hueco y grieta van juntos. 1,1 MB | CC BY 4.0, **pide suscripción a IEEE DataPort** | Evaluar si hay acceso institucional |
+| [RDD2022](https://github.com/sekilab/RoadDamageDetector) | **Solo imágenes**: grietas D00/D10/D20 y bache D40. Hay subconjuntos por país (Chequia 245 MB, EE. UU. 424 MB) | Imágenes CC BY-SA 4.0; código MIT; licencia de los pesos no indicada | Evaluar luego, para la evidencia fotográfica. No sirve para el acelerómetro |
+| [GOV.CO v5](https://cdn.www.gov.co/v5/) | Componentes de sedes oficiales. La página carga con JavaScript; se leyó el Anexo 2.1 de la Res. 2893/2020 | Obligatorio solo para entidades públicas | Tomar patrones (accesibilidad WCAG 2.1 AA, migas, filtros con contador, pie de atención). **No** usar las barras ni el logo de GOV.CO ni de la Alcaldía: el prototipo parecería un servicio oficial |
+
 **Skills y plugins de Claude Code:**
 - [anthropics/skills](https://github.com/anthropics/skills) (Apache-2.0): xlsx, pdf y skill-creator ya están
   disponibles en la sesión.
