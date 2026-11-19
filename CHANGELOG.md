@@ -1,5 +1,16 @@
 # Cambios
 
+## 2026-11-19 — preparación de la salida con la Pi y comparación de detectores (`ac/salida-pi-herramientas`)
+
+- `herramientas/auditar_sesion.py`: auditoría de solo lectura de una sesión. Solo usa numpy, así que corre en la Pi.
+  Revisa sensores, desfase entre acelerómetros, GPS, hora frente al reloj del equipo, marcas, eventos, destellos y video.
+  Sobre la sesión del 18-nov reproduce sus 2 FALLA (hora +2 108,9 s).
+- `herramientas/comparar_detectores.py`: el detector en vivo y el de análisis con las mismas sesiones, marcas y tolerancia.
+  Genera un HTML sin coordenadas. La repetición del detector en vivo reproduce los 74 eventos de `eventos.csv`.
+- `docs/SALIDA_PI.md`: lista de verificación de la salida con la Pi. `docs/INVESTIGACION_DETECTORES.md`: fuentes
+  externas con licencia, factores excluidos y plan de unificación. No cambia ningún umbral.
+- Skills del proyecto en `.claude/skills/vv-*`. `.gitignore` deja pasar solo esa carpeta de `.claude/`.
+
 ## 2026-11-12 — integración de app/UI y actualización de escritorio (PR #38, `ac/sincronizacion`)
 
 - Se integraron en una rama de revisión la app v1 y las mejoras de interfaz de Dany (#35 y #37); donde hubo conflicto,
