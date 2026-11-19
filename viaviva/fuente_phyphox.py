@@ -4,6 +4,8 @@
 - Si se cae el hotspot, reintenta cada 1–5 s y avisa; phyphox sigue guardando en el celular, así que al volver se
   piden las muestras atrasadas y **no se pierde nada** mientras phyphox siga midiendo.
 - Si phyphox empieza otra medición (el tiempo vuelve a 0), el tiempo de la sesión continúa con un desplazamiento.
+  Si era la misma medición (pausa o reconexión), no se duplica el buffer; y si la hora de phyphox se aparta > 5 s del
+  reloj del PC (pausas), se re-ancla, para que `ts_utc`, las marcas y `meta/time.csv` queden en la hora real.
 - Latencia de cada petición (media ± desviación) en `latencias.http_phyphox_ms` para R7.
 Experimento "VÍA VIVA 2.0" (06_CAMPO): buffers accX/Y/Z + acc_time, gyroX/Y/Z + gyro_time, gpsLat/Lon/Z/V/Dir/Accuracy/
 ZAccuracy + gps_time.
@@ -159,6 +161,7 @@ class FuentePhyphox:
         n = self.n
         desde = dict.fromkeys(GRUPOS, -1.0)
         desplazamiento, sesion_ph, base_lista, espera = 0.0, None, False, 1.0
+        previo, mono_dato = None, None          # estado antes de un reinicio; hora (monótona) del último dato
         if self.iniciar:
             try:
                 self.cliente.control("start")
@@ -197,6 +200,7 @@ class FuentePhyphox:
             if filas["acc"] and desde["acc"] > 0 and filas["acc"][0][0] < desde["acc"] - 1.0:
                 reinicio = True
             if reinicio:                              # phyphox empezó otra medición: el tiempo volvió a 0
+                previo = (desplazamiento, dict(desde), mono_dato)
                 desplazamiento = n.ultimo_t + 1.0
                 desde = dict.fromkeys(GRUPOS, -1.0)
                 self.partes += 1
@@ -205,10 +209,26 @@ class FuentePhyphox:
                 sesion_ph = sesion
                 continue
             sesion_ph = sesion
+            if previo is not None and filas["acc"]:
+                # Tras pedir el buffer desde 0: una medición NUEVA no puede traer más segundos que los que pasaron
+                # desde el último dato. Si trae más, es la MISMA medición (pausa o reconexión, salida del 18-nov):
+                # se descarta lo ya recibido para no duplicarlo ni adelantar el reloj de la sesión.
+                d_ant, desde_ant, mono_ant = previo
+                if mono_ant is not None and filas["acc"][-1][0] > (time.monotonic() - mono_ant) + 2.0:
+                    desplazamiento, self.partes = d_ant, self.partes - 1
+                    filas = {g: [f for f in filas[g] if f[0] > desde_ant[g]] for g in GRUPOS}
+                    desde = {g: desde_ant[g] if not filas[g] else desde[g] for g in GRUPOS}
+                    n.aviso("phyphox siguió con la misma medición (pausa o reconexión): no se duplican datos",
+                            "reinicio_phyphox")
+                previo = None
             if filas["acc"]:
-                if not base_lista:                    # t = 0 de phyphox en la hora del PC
-                    n.base_epoch = recibido - (filas["acc"][-1][0] + desplazamiento)
-                    base_lista = True
+                mono_dato = time.monotonic()
+                estimada = recibido - (filas["acc"][-1][0] + desplazamiento)   # t = 0 de phyphox en la hora del PC
+                if not base_lista:
+                    n.base_epoch, base_lista = estimada, True
+                elif abs(estimada - n.base_epoch) > 5.0:  # pausa de phyphox o medición nueva: la hora se re-ancla
+                    n.aviso(f"Hora de phyphox re-anclada al reloj del PC ({estimada - n.base_epoch:+.0f} s)", "hora")
+                    n.base_epoch = estimada
                 n.acc([(f[0] + desplazamiento, f[1], f[2], f[3]) for f in filas["acc"]], recibido)
                 desde["acc"] = filas["acc"][-1][0]
             if filas["giro"]:
