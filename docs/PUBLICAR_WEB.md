@@ -44,7 +44,7 @@ cuenta ni inicia sesión: estos pasos los hace AC una vez.
 ## Comprobar
 
 - `https://<sitio>/` abre la portada y `https://<sitio>/tablero.html` el tablero (sin sesión: datos de prueba).
-- `https://<sitio>/tablero.html?entrar` pide correo: con una cuenta invitada en Supabase y su perfil, muestra los datos
+- `https://<sitio>/tablero.html?entrar` pide correo y contraseña: con una cuenta invitada en Supabase y su perfil, muestra los datos
   reales (RLS: sin sesión no se lee nada; ver `docs/SEGURIDAD.md`).
 - `https://<sitio>/config.js` muestra la URL y la clave **pública**; nunca la secreta.
 
