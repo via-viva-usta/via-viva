@@ -20,6 +20,7 @@ def _repo(tmp_path, contenido):
 @pytest.mark.parametrize("contenido,esperado", [
     ('TOKEN = "123456789:' + "A" * 35 + '"\n', 1),                        # token de Telegram inventado
     ('TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")\n', 0),          # lee del entorno: no es secreto
+    ("SUPABASE_CLAVE=<service_role del proyecto>\n", 0),                   # marcador de la documentación
 ])
 def test_detecta_y_no_da_falsos_positivos(tmp_path, monkeypatch, capsys, contenido, esperado):
     _repo(tmp_path, contenido)
