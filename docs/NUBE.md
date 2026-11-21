@@ -12,7 +12,7 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
 
 ## Lo que hace AC (inicios de sesión y claves; Claude no los hace)
 
-1. **Supabase:** entrar en https://supabase.com con `andresscardens@gmail.com` → *New project* (región `us-east-1` o
+1. **Supabase:** entrar en https://supabase.com con la cuenta del equipo (la que AC administre) → *New project* (región `us-east-1` o
    la más cercana; contraseña de la base generada por Supabase y guardada solo en tu gestor de contraseñas).
 2. *SQL Editor* → pegar **todo** `viaviva/supabase_esquema.sql` → *Run*.
 3. *Authentication → Users → Invite*: los 4 del equipo, la Alcaldía y los docentes. *Authentication → Sign In / Up*:
@@ -30,12 +30,9 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
    SUPABASE_CLAVE_PUBLICA=<anon / publishable>     # va a la página (es pública por diseño)
    SUPABASE_CLAVE=<service_role / secret>          # SOLO en el .env de la Pi/PC que sincroniza
    ```
-6. **Netlify:** en una consola, `npx netlify login` (se abre el navegador; inicia sesión AC) y luego, desde `via-viva`:
-   ```
-   viaviva.cmd nube preparar
-   npx netlify deploy --prod --dir web/en_linea
-   ```
-   (o arrastrar la carpeta `web/en_linea` en https://app.netlify.com/drop). Dar la URL a la Alcaldía y a los docentes.
+6. **Netlify:** seguir `docs/PUBLICAR_WEB.md` (publica desde GitHub con vistas previas por PR; las variables
+   `SUPABASE_URL` y `SUPABASE_CLAVE_PUBLICA` van en Netlify, nunca la clave secreta). Dar la URL a la Alcaldía y a los
+   docentes.
 
 ## Cómo queda funcionando
 
@@ -54,3 +51,16 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
   evitarlo (sin garantía). Se restaura desde el panel.
 
 Probar sin internet: `viaviva.cmd sync --una-vez` muestra lo que está en la cola.
+
+## Verificar Supabase (después del paso 5)
+
+Con las tres claves ya en el `.env` (nunca en el chat):
+
+```
+dataset\.venv\Scripts\python herramientas\verificar_supabase.py --solo-sql    # sin red: el SQL del repo trae RLS
+dataset\.venv\Scripts\python herramientas\verificar_supabase.py               # contra el proyecto real
+```
+
+La segunda comprueba que la clave pública sin sesión **no lee ni escribe** ninguna tabla sincronizada y que la secreta sí
+escribe, lee y borra. Escribe una fila de prueba (`VERIFICACION|…`) en `eventos_publicos` y la borra. Nunca imprime las
+claves. Debe terminar en «Todo OK»; si no, vuelva a pegar `viaviva/supabase_esquema.sql` (paso 2).

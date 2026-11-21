@@ -1,5 +1,9 @@
 # firmware/
 
+> **Histórico (nota del 20-nov-2026):** el nodo del prototipo es la **Raspberry Pi 4** (`viaviva/`, `viaviva/instalar.sh`);
+> la ESP32 salió del diseño. Esta carpeta se conserva porque documenta la propuesta inicial y porque la CI la sigue
+> compilando (check obligatorio `compilar` de `main`). Quitarla exige cambiar ese check: es una decisión del equipo.
+
 Código de los microcontroladores del nodo a bordo (PlatformIO, framework Arduino).
 
 | Carpeta | Placa | Función |

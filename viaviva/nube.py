@@ -2,7 +2,9 @@
 
     viaviva nube preparar     → web/en_linea/config.js (URL y clave PÚBLICA de Supabase, desde .env)
                                  web/en_linea/datos/tramos.geojson (calles de OSM con id_tramo, desde la base local)
-Los dos archivos están en .gitignore. La clave de servicio NUNCA va a la página (solo la usa la Pi para sincronizar).
+`config.js` está en .gitignore; `tramos.geojson` SÍ se versiona (la web cruza su `id` con el `id_tramo`
+de los huecos, así que debe salir de la misma base que usa la Pi). La clave de servicio NUNCA va a la página
+(solo la usa la Pi para sincronizar).
 Pasos completos (crear el proyecto, pegar el SQL, usuarios, publicar): docs/NUBE.md.
 """
 from __future__ import annotations
