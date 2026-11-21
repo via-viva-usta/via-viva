@@ -129,3 +129,29 @@ viaviva/web/vendor/
 # Cobertura de pytest (se genera al probar)
 .coverage
 coverage.xml
+
+# ===== Protección extra contra datos locales (20-nov-2026) =====
+# web/datos.js: exportación LOCAL de calles de OpenStreetMap (ODbL) que generaba web/exportar.py, retirado en c21e4ca
+# junto con el mapa estático. No se versiona: es un archivo generado, pesa 1,2 MB y ya no lo usa ninguna página.
+web/datos.js
+# Sesiones de campo copiadas por error dentro del repo (CSV de phyphox/Pi, GPS, bitácoras, marcas)
+sesion_*/
+*.csv
+*.jsonl
+# Fotos y videos de campo (los formatos que faltaban arriba)
+*.jpg
+*.jpeg
+*.heic
+*.heif
+*.m4v
+# Modelos entrenados locales (no se versionan; ver dataset/README.md)
+*.tflite
+*.keras
+*.onnx
+*.pt
+*.pkl
+*.joblib
+# Restos de pruebas locales
+.codex_pytest_tmp_*/
+# Si de verdad hace falta versionar uno de estos (p. ej. un CSV de ejemplo sin datos personales), revisarlo y usar
+# `git add -f <ruta>`; anotarlo en el PR.

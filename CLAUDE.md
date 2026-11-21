@@ -1,6 +1,6 @@
 # CLAUDE.md — VÍA VIVA (lo que hay que saber para trabajar aquí)
 
-Actualizado el **13-nov-2026**. Primero lee este archivo, luego `GUIA_TRABAJO.md` (ramas y quién edita qué) y, según la
+Actualizado el **20-nov-2026**. Primero lee este archivo, luego `GUIA_TRABAJO.md` (ramas y quién edita qué) y, según la
 tarea, `viaviva/README.md`, `README_SALIDA.md` o `docs/`. El historial largo (decisiones viejas, ESTADO, informe) salió
 del repo el 13-nov: sigue en Git y en `02_VIA_VIVA/_archivo/repo_2026-11-13/` del PC de AC.
 
@@ -15,7 +15,7 @@ Supabase → tablero web (`web/en_linea/`, Netlify). No genera multas ni lee pla
 |---|---|
 | **Campo** | Versión de la prueba en el carro **congelada** en la etiqueta `campo-2026-11-13` (se crea solo cuando AC avise que pasó la prueba real con el iPhone A). Clon aparte `C:\VIA_VIVA_CAMPO`, sin cambios ni funciones nuevas. El botón **Actualizar** se bloquea solo fuera de `main` (`viaviva/actualizacion.py`, prueba en `tests/test_actualizacion.py`) |
 | **Software** | App, motor, Pi y firmware: ramas cortas `ac/<tarea>` → PR → `main`; los clones en `main` se ponen al día con **Actualizar** |
-| **Web** | Dany, en `web/`: ramas `dani/<tarea>` → PR (vista previa de Netlify) → `main` → publicado |
+| **Web** | Dany, en `web/`: ramas `dani/<tarea>` → PR (vista previa de Netlify) → `main` → publicado por Netlify cuando el sitio exista (`docs/PUBLICAR_WEB.md`) |
 El formato de sesión debe seguir siendo legible por versiones posteriores (`nucleo.py`, `sesiones.py`, `resumen.py`).
 
 ## 3. Reglas

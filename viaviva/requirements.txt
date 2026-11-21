@@ -1,4 +1,4 @@
-# VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS Bookworm 64 bits). Lo instala viaviva/instalar.sh en viaviva/.venv.
+# VÍA VIVA en la Raspberry Pi 4 (Raspberry Pi OS 64 bits; probado el 19-nov-2026 en la versión basada en Debian 13 trixie). Lo instala viaviva/instalar.sh en viaviva/.venv.
 # El venv se crea con --system-site-packages para usar los paquetes de apt de los pines
 # (python3-lgpio, python3-gpiozero, python3-spidev, python3-smbus2, python3-serial).
 python-dotenv
@@ -8,6 +8,8 @@ pyyaml==6.0.2       # parámetros del detector
 openpyxl            # Excel de 3 hojas
 reportlab           # PDF del top-10
 adafruit-blinka     # base de las dos librerías de Adafruit
+gpiod>=2.2.2,<3     # Blinka exige esta versión: el python3-libgpiod de apt (2.2.0 en trixie) hace fallar
+                    # `import board` con «unsupported versions». Probado en la Pi el 19-nov (quedó gpiod 2.6.0).
 adafruit-circuitpython-vl53l0x
 adafruit-circuitpython-dht
 segno==1.6.6         # QR del panel de conexión

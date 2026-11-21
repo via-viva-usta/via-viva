@@ -23,6 +23,23 @@
 - `docs/SALIDA_PI.md`: lista de verificación de la salida con la Pi. `docs/INVESTIGACION_DETECTORES.md`: fuentes
   externas con licencia, factores excluidos y plan de unificación. No cambia ningún umbral.
 - Skills del proyecto en `.claude/skills/vv-*`. `.gitignore` deja pasar solo esa carpeta de `.claude/`.
+## 2026-11-20 — orden del repo, coherencia app → nube → web y salvaguardas (rama `ac/orden-repo`)
+
+- **Datos:** una marca «vía buena» (falsa alarma) dejaba el evento como `impacto_fuerte`, que se agrupa como hueco
+  abierto: ahora pasa a `normal` y el hueco sin detecciones queda descartado (`viaviva/nucleo.py`). Nota: la web marca como
+  prueba toda corrida de riesgo cuyo nombre diga DEMO, PRUEBA o SINTÉTICO; la app solo retiene DEMO y SINTÉTICO, así que
+  una versión real **no** debe llamarse «…prueba…» (no se cambió la app: «prueba» es palabra común y bloquearía datos).
+- **Pi:** `gpiod>=2.2.2,<3` en `viaviva/requirements.txt` (Blinka fallaba con el de apt; visto en la Pi el 19-nov).
+  `pi_probar.sh` ya no dice «no está instalado» por un SIGPIPE de `grep -q` con `pipefail`. `doctor` solo marca ✔ el
+  DHT22 si lee una temperatura real. `instalar.sh` muestra el nombre real de la Pi (`$(hostname).local`).
+- **Seguridad:** `config_web.mjs` rechaza claves `sb_secret_…` o JWT que no sean `anon` aunque `SUPABASE_CLAVE` no esté
+  en Netlify; `buscar_secretos.py` busca claves de Supabase; las claves privadas de la autoridad local quedan con
+  permisos 600 en Linux.
+- **Repo:** `.gitignore` protege `web/datos.js` (exportación local de OSM), CSV, bitácoras, fotos, videos y modelos;
+  `ATRIBUCIONES.md` y `LEEME.md` de licencias junto a los datos de OSM; sin correo personal en `docs/NUBE.md`.
+- **Docs:** se corrigieron afirmaciones viejas (sitio «publicado», Docker, Leaflet/CARTO, RLS «de lectura pública»,
+  `git add -A`, CODEOWNERS, cámara y trayectorias en `docs/SEGURIDAD.md`); la portada dice el estado al 20-nov.
+- Nada de esto se probó con los sensores de la Pi (siguen sin conectar).
 
 ## 2026-11-12 — integración de app/UI y actualización de escritorio (PR #38, `ac/sincronizacion`)
 

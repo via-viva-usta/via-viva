@@ -4,9 +4,9 @@
 
 | Carril | Qué | Cómo se usa |
 |---|---|---|
-| **Campo** | Software de la prueba en el carro, **congelado** en la etiqueta `campo-2026-11-13` | Clon aparte `C:\VIA_VIVA_CAMPO`, sin editar ni actualizar (`README_SALIDA.md`) |
+| **Campo** | Software de la prueba en el carro, **congelado** en la etiqueta `campo-2026-11-13` (se crea cuando AC lo avise; mientras no exista, usar la rama `main` del día de la salida) | Clon aparte `C:\VIA_VIVA_CAMPO`, sin editar ni actualizar (`README_SALIDA.md`) |
 | **Software** | App, motor, Pi y firmware | Ramas cortas `ac/<tarea>` → PR → `main`; la app se pone al día con **Actualizar** |
-| **Web** | Sitio en línea (`web/en_linea/`) | Ramas cortas `dani/<tarea>` → PR (Netlify muestra una vista previa) → `main` → publicado |
+| **Web** | Sitio en línea (`web/en_linea/`) | Ramas cortas `dani/<tarea>` → PR (Netlify muestra una vista previa) → `main` → Netlify publica (cuando el sitio esté creado: `docs/PUBLICAR_WEB.md`) |
 
 ## Qué hay en cada carpeta
 
@@ -40,7 +40,8 @@
    - Web: `node --test tests/web/*.test.mjs`
    - Python: `.venv\Scripts\python -m pytest` y `.venv\Scripts\python -m ruff check .`
      (Mac: `.venv/bin/python …`; en el PC de AC sirve también `dataset\.venv`)
-4. **Guardar y subir:** `git add -A` → `git commit -m "feat(web): qué cambió"` → `git push -u origin HEAD` →
+4. **Guardar y subir:** revisar `git status` y agregar **solo** los archivos de la tarea: `git add <archivo> …` (nunca
+   `git add -A`: puede subir archivos locales como `web/datos.js` o datos de campo) → `git commit -m "feat(web): qué cambió"` → `git push -u origin HEAD` →
    `gh pr create --fill`
 5. **Revisión:** otra persona aprueba el PR; AC lo fusiona cuando los 3 checks (`pytest`, `node-test`, `compilar`)
    están en verde. Nadie empuja a `main` directo ni usa `--force`.

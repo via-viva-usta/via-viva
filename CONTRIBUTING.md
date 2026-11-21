@@ -9,7 +9,8 @@ El paso a paso (clonar, rama, probar, PR) está en **[`GUIA_TRABAJO.md`](GUIA_TR
    rama sin fusionar se guarda en una etiqueta `archivo/<rama>`.
 3. **Responsables:** Dany → `web/` (interfaz e identidad; `web/en_linea/marca.css` es la única fuente de estilos, que
    también usa la app local). AC → `viaviva/`, `firmware/`, `db/`, `tests/`. Los cambios de Pi, sensores o firmware no
-   se mezclan con cambios visuales. `CODEOWNERS` propone revisor por carpeta.
+   se mezclan con cambios visuales. `.github/CODEOWNERS` asigna revisor para `web/` y `viaviva/`; solo
+   lo pide automáticamente si se activa «Require review from Code Owners» en la regla de `main` (hoy no está activado).
 4. **Carril de campo:** la versión de la prueba en el carro está congelada en una etiqueta (`campo-AAAA-MM-DD`) y se usa
    en un clon aparte. No se edita ni se actualiza: el botón **Actualizar** solo funciona en un clon en la rama `main`.
 5. **Datos y secretos:** nunca subir `.env`, claves, `06_CAMPO`, `data/raw/`, datos de la Alcaldía, fotos ni videos.

@@ -97,9 +97,9 @@ fi
 cat <<FIN
 
 Listo. Falta (una vez):
-  1. Copiar la base del PC con las calles de OSM:  scp data/via_viva.db $USUARIO@viavivapi.local:$RAIZ/data/
+  1. Copiar la base del PC con las calles de OSM:  scp data/via_viva.db $USUARIO@$(hostname).local:$RAIZ/data/
   2. Usuarios (cada quien escribe su contraseña):  viaviva/.venv/bin/python -m viaviva usuarios crear <u> --rol editor
   3. sudo reboot   (aplica SPI, I2C, UART y el pulsador). Después:  viaviva/.venv/bin/python -m viaviva doctor --source pi
-Desde el celular (mismo hotspot): http://viavivapi.local/captura · /marcar · /tablero  (o la IP que muestre el doctor)
+Desde el celular (mismo hotspot): http://$(hostname).local/captura · /marcar · /tablero  (o la IP que muestre el doctor)
 Ver: systemctl status via-viva-pi · journalctl -u via-viva-pi -f
 FIN

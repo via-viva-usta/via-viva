@@ -12,7 +12,7 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
 
 ## Lo que hace AC (inicios de sesión y claves; Claude no los hace)
 
-1. **Supabase:** entrar en https://supabase.com con `andresscardens@gmail.com` → *New project* (región `us-east-1` o
+1. **Supabase:** entrar en https://supabase.com con la cuenta del equipo (la que AC administre) → *New project* (región `us-east-1` o
    la más cercana; contraseña de la base generada por Supabase y guardada solo en tu gestor de contraseñas).
 2. *SQL Editor* → pegar **todo** `viaviva/supabase_esquema.sql` → *Run*.
 3. *Authentication → Users → Invite*: los 4 del equipo, la Alcaldía y los docentes. *Authentication → Sign In / Up*:
@@ -30,12 +30,9 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
    SUPABASE_CLAVE_PUBLICA=<anon / publishable>     # va a la página (es pública por diseño)
    SUPABASE_CLAVE=<service_role / secret>          # SOLO en el .env de la Pi/PC que sincroniza
    ```
-6. **Netlify:** en una consola, `npx netlify login` (se abre el navegador; inicia sesión AC) y luego, desde `via-viva`:
-   ```
-   viaviva.cmd nube preparar
-   npx netlify deploy --prod --dir web/en_linea
-   ```
-   (o arrastrar la carpeta `web/en_linea` en https://app.netlify.com/drop). Dar la URL a la Alcaldía y a los docentes.
+6. **Netlify:** seguir `docs/PUBLICAR_WEB.md` (publica desde GitHub con vistas previas por PR; las variables
+   `SUPABASE_URL` y `SUPABASE_CLAVE_PUBLICA` van en Netlify, nunca la clave secreta). Dar la URL a la Alcaldía y a los
+   docentes.
 
 ## Cómo queda funcionando
 
