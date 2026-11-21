@@ -10,6 +10,7 @@ from __future__ import annotations
 import hmac
 import ipaddress
 import json
+import os
 import platform
 import secrets
 import subprocess
@@ -583,6 +584,21 @@ def crear_app(ctx: Contexto) -> FastAPI:
         exigir(request, ("editor",))
         return ctx.estado()
 
+    @app.post("/api/dispositivo")
+    def api_dispositivo(request: Request, datos: dict = Body(default={})):
+        """El celular o PC elige su rol y un alias del equipo; la respuesta confirma a qué sesión quedó asociado."""
+        exigir(request, MARCAR)
+        try:
+            return {"ok": True, **ctx.n.registrar_dispositivo(str(datos.get("rol", "")), str(datos.get("alias", "")),
+                                                              agente_de(request.headers.get("user-agent", "")))}
+        except ValueError as err:
+            return JSONResponse({"error": str(err)}, status_code=400)
+
+    @app.get("/api/dispositivos")
+    def api_dispositivos(request: Request):
+        exigir(request, MARCAR)
+        return {"fuente": ctx.n.dispositivo_fuente, "dispositivos": ctx.n.lista_dispositivos()}
+
     @app.get("/api/marcar/estado")
     def estado_marcar(request: Request):
         exigir(request, MARCAR)
@@ -873,6 +889,18 @@ def crear_fuente(fuente: str, archivo: str | None = None, velocidad: float = 1.0
     return f, simulador, origen, id_nodo
 
 
+ROL_DE_FUENTE = {"pi": "nodo_pi", "phyphox": "phyphox_referencia"}   # replay y ejemplo: "reproduccion"
+
+
+def agente_de(ua: str) -> str:
+    """Navegador y sistema en una forma corta (p. ej. «iOS · Safari»), sin versión ni identificadores."""
+    so = next((n for k, n in (("iPhone", "iOS"), ("iPad", "iPadOS"), ("Android", "Android"), ("Windows", "Windows"),
+                               ("Mac OS", "macOS"), ("Linux", "Linux")) if k in ua), "desconocido")
+    nav = next((n for k, n in (("Edg/", "Edge"), ("FxiOS", "Firefox"), ("Firefox", "Firefox"), ("CriOS", "Chrome"),
+                                ("Chrome", "Chrome"), ("Safari", "Safari")) if k in ua), "desconocido")
+    return f"{so} · {nav}"
+
+
 def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, bucle: bool = False,
               url_db: str | None = None, dir_grabaciones: Path | None = None, sync: bool = True,
               permitir_apagado: bool = False, url_phyphox: str = config.PHYPHOX_URL, iniciar_phyphox: bool = False,
@@ -897,6 +925,9 @@ def construir(fuente: str, archivo: str | None = None, velocidad: float = 1.0, b
     ctx = Contexto(n, f, calles, Sincronizador(url_db=url_db) if sync else None, permitir_apagado, url_db, pin)
     ctx.simulador = simulador
     ctx.tipo_fuente = "ejemplo" if archivo and "SINTETICO_ejemplo" in str(archivo) else fuente
+    n.dispositivo_fuente = {"rol": ROL_DE_FUENTE.get(ctx.tipo_fuente, "reproduccion"),
+                            "alias": os.getenv("VIAVIVA_ALIAS_FUENTE", "").strip().upper() or "desconocido",
+                            "fuente": ctx.tipo_fuente}
     ref.append(ctx)
     if fuente == "pi":
         f.al_apagar = ctx.apagar

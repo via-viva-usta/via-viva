@@ -335,3 +335,9 @@ canvas.linea { width: 100%; height: 150px; display: block; cursor: crosshair; ba
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 @media (max-width: 900px) { .rev, .demo .escena { grid-template-columns: 1fr; } .clases { grid-template-columns: repeat(2, 1fr); }
   .demo { padding: 16px; } }
+
+/* Rol y alias del equipo (marcar, cámara, sincronía) */
+.dispositivo { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; margin-bottom: 1rem; }
+.dispositivo label { display: grid; gap: .2rem; font-size: .85rem; }
+.dispositivo input { text-transform: uppercase; max-width: 11rem; }
+.dispositivo .estado-dispositivo { flex-basis: 100%; margin: 0; font-size: .85rem; }

@@ -53,6 +53,7 @@
 <script src="/static/comun.js"></script>
 <script src="/static/camara.js"></script>
 <script>
+VV.dispositivo('camara');          // rol y alias de este equipo (bitácora de la sesión)
 const $ = (id) => document.getElementById(id);
 const cam = new CamaraVV($('video'), 'celular');
 let grabandoPC = false;
