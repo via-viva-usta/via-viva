@@ -32,3 +32,15 @@ test('se niega a publicar la clave de servicio o una URL que no es de Supabase',
   assert.equal(correr({SUPABASE_URL: 'https://otro.example.com', SUPABASE_CLAVE_PUBLICA: 'x'}).status, 1);
   restaurar();
 });
+
+test('se niega a publicar una clave secreta aunque SUPABASE_CLAVE no esté definida (lo normal en Netlify)', () => {
+  const jwt = (rol) => ['e30', Buffer.from(JSON.stringify({role: rol})).toString('base64url'), 'firma'].join('.');
+  const url = 'https://abcd1234.supabase.co';
+  assert.equal(correr({SUPABASE_URL: url, SUPABASE_CLAVE_PUBLICA: 'sb_secret_falsa0123456789'}).status, 1);
+  assert.equal(correr({SUPABASE_URL: url, SUPABASE_CLAVE_PUBLICA: jwt('service_role')}).status, 1);
+  if (respaldo === null) {                                         // estas sí escriben config.js
+    assert.equal(correr({SUPABASE_URL: url, SUPABASE_CLAVE_PUBLICA: jwt('anon')}).status, 0);
+    assert.equal(correr({SUPABASE_URL: url, SUPABASE_CLAVE_PUBLICA: 'sb_publishable_falsa0123'}).status, 0);
+  }
+  restaurar();
+});

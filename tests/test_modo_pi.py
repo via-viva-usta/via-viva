@@ -102,3 +102,35 @@ def test_modo_pi_arranca_con_sensores_faltantes(modulos_falsos, tmp_path):
         assert all(abs(v - 256 * 0.0039 * 9.81) < 1e-6 for v in z)      # 1 g en z
     finally:
         f.cerrar()
+
+
+class _DHTFalso:
+    def __init__(self, inicia=True, lecturas=()):
+        self.inicia, self.lecturas, self.error = inicia, list(lecturas), None
+
+    def iniciar(self):
+        if not self.inicia:
+            self.error = "ModuleNotFoundError: board"
+        return self.inicia
+
+    def leer(self):
+        r = self.lecturas.pop(0) if self.lecturas else None
+        if r is None:
+            self.error = "lectura fuera de rango"
+        return r
+
+
+def test_doctor_dht22_solo_da_ok_con_una_lectura_real():
+    from viaviva import doctor
+    pausas = []
+    inf = doctor.Informe()
+    doctor.chequear_dht22(inf, _DHTFalso(lecturas=[None, (18.4, 61.0)]), esperar=pausas.append)
+    assert inf.filas[-1][0] == doctor.OK and "18.4 °C" in inf.filas[-1][2] and pausas == [2.1]
+
+    inf = doctor.Informe()
+    doctor.chequear_dht22(inf, _DHTFalso(lecturas=[]), esperar=pausas.append)   # librería lista, sin sensor
+    assert inf.filas[-1][0] == doctor.AVISO and "sin lectura válida en 3 intentos" in inf.filas[-1][2]
+
+    inf = doctor.Informe()
+    doctor.chequear_dht22(inf, _DHTFalso(inicia=False), esperar=pausas.append)
+    assert inf.filas[-1][0] == doctor.AVISO and "board" in inf.filas[-1][2]

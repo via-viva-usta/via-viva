@@ -167,7 +167,7 @@
   <section class="estado" id="estado" aria-labelledby="h-estado">
     <header class="sec-cabeza aparece">
       <h2 class="t-titulo" id="h-estado">Estado del prototipo</h2>
-      <p class="t-etiqueta">Actualizado el 10 de noviembre de 2026</p>
+      <p class="t-etiqueta">Actualizado el 20 de noviembre de 2026</p>
     </header>
     <p class="estado-intro aparece">VÍA VIVA está en fase de <b>prototipo</b>. El tablero está abierto al público y, mientras la
       interfaz web se enlaza con el software de captura, muestra <b>datos de prueba</b>: huecos y riesgo simulados en el
@@ -175,8 +175,8 @@
     <ol class="piezas">
       <li class="aparece"><span class="pieza-num t-etiqueta">01</span><h3>Software de captura</h3>
         <span class="pieza-estado curso">En pruebas</span>
-        <p>Graba el acelerómetro y el GPS, detecta los golpes y guarda cada salida. Probado en el PC con las grabaciones reales
-          de los recorridos del 7 de noviembre; falta probarlo montado en la Raspberry Pi.</p></li>
+        <p>Graba el acelerómetro y el GPS, detecta los golpes y guarda cada salida. Probado en el PC con las grabaciones del celular
+          de los recorridos de noviembre. Ya está instalado en la Raspberry Pi; falta probarlo con sus sensores.</p></li>
       <li class="aparece" style="--i:1"><span class="pieza-num t-etiqueta">02</span><h3>Base de datos local</h3>
         <span class="pieza-estado listo">Lista</span>
         <p>Guarda las detecciones y junta en un solo hueco las que están a menos de 10 m, con su estado e historial. Tiene
@@ -186,9 +186,9 @@
         <p>La sincronización está programada (cola con reintentos; solo salen huecos, eventos y riesgo). Falta crear el
           proyecto en la nube y las cuentas del equipo, la Alcaldía y los docentes.</p></li>
       <li class="aparece" style="--i:3"><span class="pieza-num t-etiqueta">04</span><h3>Tablero web</h3>
-        <span class="pieza-estado listo">Listo</span>
-        <p>Mapa, prioridad de atención, riesgo por tramo, tendencia y descargas. Pasa de los datos de prueba a los reales en
-          cuanto el enlace con la nube esté activo.</p></li>
+        <span class="pieza-estado curso">Construido</span>
+        <p>Mapa, prioridad de atención, riesgo por tramo, tendencia y descargas. Mientras el enlace con la nube no esté
+          activo muestra solo datos de prueba; pasa a los reales cuando lo esté.</p></li>
       <li class="aparece" style="--i:4"><span class="pieza-num t-etiqueta">05</span><h3>Detector y modelo de riesgo</h3>
         <span class="pieza-estado curso">En calibración</span>
         <p>Funcionan de punta a punta, pero se calibran con recorridos etiquetados en campo; hasta entonces sus números no se

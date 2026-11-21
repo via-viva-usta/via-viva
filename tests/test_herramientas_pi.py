@@ -25,6 +25,15 @@ def test_pi_probar_cubre_el_checklist():
         assert clave in t
 
 
+@pytest.mark.parametrize("ruta", SCRIPTS, ids=lambda p: p.name)
+def test_sin_grep_q_en_tuberias_con_pipefail(ruta):
+    """Con `set -o pipefail`, `cmd | grep -q` puede dar 141 (SIGPIPE) aunque haya coincidencia (falso «no instalado»)."""
+    t = ruta.read_text(encoding="utf-8")
+    if "pipefail" in t:
+        lineas = [x for x in t.splitlines() if not x.lstrip().startswith("#")]
+        assert not any("| grep -q" in x for x in lineas)
+
+
 def test_actualizar_pi_solo_avanza_en_main_y_tiene_vuelta_atras():
     t = SCRIPTS[1].read_text(encoding="utf-8")
     assert "git pull --ff-only origin main" in t

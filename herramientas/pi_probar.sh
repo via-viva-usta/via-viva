@@ -100,8 +100,11 @@ else
 fi
 
 echo "== 6. Servicio $SERVICIO"
-if systemctl list-unit-files 2>/dev/null | grep -q "^$SERVICIO.service"; then
-  if systemctl is-enabled --quiet "$SERVICIO"; then ok "$SERVICIO habilitado (arranca solo)"; else falla "$SERVICIO no está habilitado" "sudo systemctl enable $SERVICIO"; fi
+# `systemctl cat` y no `list-unit-files | grep -q`: con pipefail, grep -q cierra la tubería, systemctl muere por SIGPIPE
+# (141) y el script decía «no está instalado» con el servicio instalado (visto en la Pi el 19-nov-2026).
+if systemctl cat "$SERVICIO" >/dev/null 2>&1; then
+  if systemctl is-enabled --quiet "$SERVICIO"; then ok "$SERVICIO habilitado (arranca solo)"
+  else falla "$SERVICIO instalado, pero sin habilitar" "habilitarlo solo después de la prueba de mesa con 0 FALLA: sudo systemctl enable $SERVICIO"; fi
   [ "$estaba_activo" = 1 ] && ok "$SERVICIO estaba activo (se vuelve a arrancar al terminar)" \
                            || aviso "$SERVICIO no estaba activo. Últimas líneas: journalctl -u $SERVICIO -n 30"
 else
