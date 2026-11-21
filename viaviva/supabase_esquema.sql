@@ -82,8 +82,14 @@ create table if not exists cambios_remotos (
     creado      timestamptz not null default now(),
     origen      text not null default 'web' check (origen in ('web', 'csv')),
     aplicado    boolean not null default false,
-    resultado   text
+    resultado   text,
+    -- id_local e instancia deben ser los del hueco de id_origen (la Pi aplica por id_local)
+    constraint cambio_del_mismo_hueco check (id_origen = instancia || '|' || id_local::text)
 );
+-- Para una base creada antes del 12-nov (create table if not exists no agrega la regla):
+alter table cambios_remotos drop constraint if exists cambio_del_mismo_hueco;
+alter table cambios_remotos add constraint cambio_del_mismo_hueco
+    check (id_origen = instancia || '|' || id_local::text) not valid;
 
 alter table eventos_publicos enable row level security;
 alter table huecos_publicos enable row level security;
