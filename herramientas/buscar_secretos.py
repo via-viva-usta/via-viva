@@ -16,8 +16,10 @@ PATRONES = {
     "clave de AWS": r"\bAKIA[0-9A-Z]{16}\b",
     "llave privada": r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
     "clave de Kaggle": r'"key"\s*:\s*"[0-9a-f]{32}"',
+    "clave secreta de Supabase": r"\bsb_secret_[A-Za-z0-9_-]{16,}",
+    "JWT (posible clave de Supabase)": r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",
     # (os.getenv / os.environ leen la variable del entorno: no son secretos)
-    "variable de .env con valor": r"^\+\s*(TELEGRAM_BOT_TOKEN|BOT_SAL_HASH|SOCRATA_APP_TOKEN|KAGGLE_KEY)\s*=\s*(?!os\.)\S{8,}",
+    "variable de .env con valor": r"^\+\s*(TELEGRAM_BOT_TOKEN|BOT_SAL_HASH|SOCRATA_APP_TOKEN|KAGGLE_KEY|SUPABASE_CLAVE)\s*=\s*(?!os\.|<)\S{8,}",   # <…> = marcador de la doc
     "asignación de clave": r"(?i)^\+.*\b(password|contrase[ñn]a|secret|api_?key)\b\s*[=:]\s*['\"][^'\"\s]{8,}['\"]",
 }
 ARCHIVOS_PROHIBIDOS = [".env", "firmware/nodo-sensores/include/secretos.h", "kaggle.json"]

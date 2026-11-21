@@ -34,6 +34,14 @@ def _clave():
     return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
+def _solo_dueno(ruta: Path) -> None:
+    """Clave privada legible solo por el dueño en Linux (la Pi): con umask 022 quedaba 0644. En Windows no aplica."""
+    try:
+        ruta.chmod(0o600)
+    except OSError:
+        pass
+
+
 def autoridad(carpeta: Path = CARPETA_CERT):
     """Autoridad local de VÍA VIVA (se crea una vez y se reutiliza: el iPhone la instala una sola vez)."""
     from cryptography import x509
@@ -59,6 +67,7 @@ def autoridad(carpeta: Path = CARPETA_CERT):
             .sign(clave, hashes.SHA256()))
     f_clave.write_bytes(clave.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
                                             serialization.NoEncryption()))
+    _solo_dueno(f_clave)
     f_cert.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     return cert, clave
 
@@ -90,6 +99,7 @@ def certificado_servidor(ips: list[str], carpeta: Path = CARPETA_CERT) -> tuple[
     f_cert, f_clave = carpeta / "servidor.crt", carpeta / "servidor.key"
     f_clave.write_bytes(clave.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
                                             serialization.NoEncryption()))
+    _solo_dueno(f_clave)
     f_cert.write_bytes(cert.public_bytes(serialization.Encoding.PEM) + ca_cert.public_bytes(serialization.Encoding.PEM))
     return f_cert, f_clave
 

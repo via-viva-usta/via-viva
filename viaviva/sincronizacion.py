@@ -5,12 +5,16 @@
   (sin variables ni la marca "reportado", que viene de datos de la Alcaldía). Nada de fotos, video, trayectorias ni
   datos crudos de la Alcaldía. Los datos DEMO, SINTÉTICOS y simulados nunca salen.
 - Cola `cola_envio` en SQLite con reintentos y espera exponencial (30 s, 1 min, 2 min, … hasta 1 h).
-- Claves solo en el `.env` de la Pi: `SUPABASE_URL` y `SUPABASE_CLAVE` (clave secreta del proyecto). En Supabase las
-  tablas tienen RLS de solo lectura pública: con la clave pública nadie escribe (`viaviva/supabase_esquema.sql`).
-  Sin claves, la sincronización queda apagada y solo se llena la cola local.
-- La Pi es el punto de acceso WiFi (sin internet). Para sincronizar: cable de red o USB al celular con datos.
+- Claves solo en el `.env` del equipo que sincroniza: `SUPABASE_URL` y `SUPABASE_CLAVE` (clave secreta del proyecto).
+  En Supabase la RLS no deja leer nada sin sesión; leen solo usuarios con sesión y perfil (editor, alcaldía, docente) y
+  con la clave pública nadie escribe (`viaviva/supabase_esquema.sql`). Sin claves, la sincronización queda apagada y
+  solo se llena la cola local.
+- Cada equipo que sincroniza necesita su propio `VIAVIVA_INSTANCIA` (o `PI_ID_NODO`): los huecos suben como
+  `<instancia>|<id_hueco>`, así que dos equipos con la misma instancia se pisarían en la nube.
+- Para sincronizar, el equipo necesita internet (WiFi, cable o celular por USB). Con el punto de acceso propio de la Pi
+  (`instalar.sh --punto-de-acceso`) no hay internet y la cola espera.
 
-Uso: corre como hilo dentro de `pi.servidor`; para probar a mano: `python -m viaviva.sincronizacion --una-vez`.
+Uso: corre como hilo dentro de la app (`viaviva/app.py`); para probar a mano: `python -m viaviva.sincronizacion --una-vez`.
 """
 from __future__ import annotations
 

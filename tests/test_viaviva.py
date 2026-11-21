@@ -532,3 +532,25 @@ def test_id_local_de_exige_que_el_pedido_coincida_con_id_origen():
     assert s.id_local_de({"id_origen": "otra-pi|12", "instancia": "otra-pi", "id_local": 12}) is None
     assert s.id_local_de({"id_origen": f"{s.INSTANCIA}|abc", "id_local": 1}) is None
     assert s.id_local_de({}) is None
+
+
+def test_via_buena_saca_el_evento_del_hueco(tmp_path):
+    """«Vía buena» = falsa alarma. Antes el evento quedaba como impacto_fuerte y seguía contando como hueco abierto."""
+    from viaviva.nucleo import Nucleo
+    e = {"clase": "impacto_fuerte", "etiqueta_manual": None, "id_etiqueta": None}
+    Nucleo._aplicar_etiqueta(e, {"clase": "via_buena", "id": 1})
+    assert e["clase"] == "normal" and e["etiqueta_manual"] == "via_buena"
+    Nucleo._aplicar_etiqueta(e, {"clase": "grieta", "id": 2})          # sin clase propia en la base: sin clasificar
+    assert e["clase"] == "impacto_fuerte"
+
+    url = _base_con_calle(tmp_path)
+    ev = {"ts_utc": "2026-11-20T10:00:00.000Z", "lat": 5.53500, "lon": -73.36500, "vel_kmh": 20.0,
+          "clase": "impacto_fuerte", "etiqueta_manual": None, "severidad": "media", "confianza": 0.5, "id_tramo": 1}
+    almacen.guardar_eventos([ev], "pi-01", "nodo", url)
+    con = almacen.conectar(url)
+    assert [h["estado"] for h in almacen.huecos(con)] == ["detectado"]
+    con.close()
+    almacen.guardar_eventos([{**ev, "clase": "normal", "etiqueta_manual": "via_buena"}], "pi-01", "nodo", url)
+    con = almacen.conectar(url)
+    assert [h["estado"] for h in almacen.huecos(con)] == ["descartado"]
+    con.close()

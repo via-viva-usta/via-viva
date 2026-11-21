@@ -31,7 +31,7 @@ hardware). Practicar sin carro: en la app, **Conexión → Usar el ejemplo** (re
 | Carpeta | Qué es |
 |---|---|
 | `viaviva/` | La app: captura (phyphox, Pi o reproducción), detector, tablero local, sincronización, instaladores |
-| `web/en_linea/` | Sitio público (portada + tablero), publicado con Netlify (`netlify.toml`) |
+| `web/en_linea/` | Sitio público (portada + tablero), listo para Netlify (`netlify.toml`); publicación pendiente (`docs/PUBLICAR_WEB.md`) |
 | `firmware/` | Nodo ESP32 (histórico, fuera del prototipo desde el 9-nov; la CI lo sigue compilando) |
 | `db/`, `config/` | Esquema SQLite y ajustes (detector, experimento de phyphox) |
 | `analysis/`, `etl/`, `risk_model/`, `dataset/` | Señales y detector, calles OSM y scraping, modelo de riesgo, fotos y CNN |
@@ -40,4 +40,5 @@ hardware). Practicar sin carro: en la app, **Conexión → Usar el ejemplo** (re
 
 Nunca en Git: `.env`, claves, datos de campo (`06_CAMPO`), fotos ni videos. Todo dato sintético se marca SINTÉTICO/DEMO.
 
-Licencias de datos: OpenStreetMap (ODbL), barrios de la Alcaldía (datos abiertos), IDEAM vía datos.gov.co (CC BY-SA 4.0).
+Licencias de datos y de librerías de terceros: `ATRIBUCIONES.md` (OpenStreetMap ODbL, barrios por confirmar, IDEAM
+CC BY-SA 4.0, MapLibre, Chart.js…). El código de VÍA VIVA todavía no tiene licencia: decisión pendiente del equipo.

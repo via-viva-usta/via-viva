@@ -3,8 +3,8 @@
 Revisión hecha el **10-nov-2026** (versiones del registro npm y tamaños medidos con `gzip -9` sobre los archivos de
 jsDelivr; no son cifras de los proyectos). Dos tableros con la misma estética:
 
-1. **Tablero local** (PC o Pi, sin internet): FastAPI + HTML/JS propios (`viaviva/web/`), mapa con Leaflet si hay copia
-   local y, si no, un mapa simple en `<canvas>`. Ya existe y está probado.
+1. **Tablero local** (PC o Pi, sin internet): FastAPI + HTML/JS propios (`viaviva/web/`), mapa con MapLibre (copia local que bajan
+   los instaladores) y, sin internet, las calles de la base local. Ya existe; ver «Vigente desde el 12-nov».
 2. **Tablero en línea** (Netlify, lee de Supabase): página estática sin compilación, en `web/en_linea/`.
 
 ## Vigente desde el 12-nov: un solo sistema, la marca de Dany (app local y web)
@@ -22,7 +22,7 @@ Las secciones de abajo (temas A/B del 11-nov) quedan como historia.
 
 ## Dirección visual del 11-nov (HISTÓRICO: reemplazada el 12-nov)
 
-Maquetas en `docs/diseno/` (`maqueta.html?d=a|b`, `direccion_a.png`, `direccion_b.png`). AC eligió **combinarlas**:
+Maquetas en `docs/diseno/` (carpeta retirada en afdaaa9; queda en el historial de git) (`maqueta.html?d=a|b`, `direccion_a.png`, `direccion_b.png`). AC eligió **combinarlas**:
 
 | Tema | Dónde | Rasgos |
 |---|---|---|
@@ -55,7 +55,7 @@ Alcaldía, la entrada y los reportes PDF. El tema B que se aplicó a la página 
 | **supabase-js** | 2.119.0 (04-nov-2026) | MIT | 56 KB | Sí | Autenticación y lectura con RLS |
 
 **Decisión:** MapLibre GL JS + Chart.js + Pico.css + supabase-js, todo como módulos ES desde jsDelivr con versión fija.
-Sin compilación: el equipo lo edita a mano. Un solo color de acento (azul `#1f6feb`), tipografía del sistema, tarjetas de
+Sin compilación: el equipo lo edita a mano. *(Superado el 12-nov: colores y tipografía salen de `web/en_linea/marca.css`; ver «Vigente desde el 12-nov».)* Un solo color de acento (azul `#1f6feb`), tipografía del sistema, tarjetas de
 indicadores grandes, animaciones solo de transición (respetando `prefers-reduced-motion`), modo kiosco con `?kiosco=1`.
 
 ```
@@ -92,6 +92,8 @@ https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm
 **Decisión:** OpenFreeMap (`https://tiles.openfreemap.org/styles/positron` y `/styles/dark`; el estilo Dark está marcado
 "sin terminar" por su autor) con **CARTO como respaldo** (clave gratuita restringida al dominio, en la configuración pública
 del sitio, nunca una clave secreta). Siempre se muestra la atribución © OpenStreetMap.
+*(Actualización: CARTO no se usa. Desde el 12-nov pide clave, así que el respaldo sin internet es el fondo propio con
+las calles de la base local, `viaviva/web/comun.js:56-60`.)*
 
 ## Supabase y publicación
 
