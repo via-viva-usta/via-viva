@@ -11,6 +11,17 @@ if (publica && publica === (process.env.SUPABASE_CLAVE || '').trim()) {
   console.error('SUPABASE_CLAVE_PUBLICA es igual a la clave de servicio: NO se publica. Use la clave anon.');
   process.exit(1);
 }
+// La comparación de arriba no sirve en Netlify si SUPABASE_CLAVE no está definida (lo normal): se mira la clave misma.
+// Claves nuevas: sb_publishable_… (pública) / sb_secret_… (secreta). Claves antiguas: JWT con role anon / service_role.
+const rolJwt = (k) => {
+  const partes = k.split('.');
+  if (partes.length !== 3) return null;
+  try { return JSON.parse(Buffer.from(partes[1], 'base64url').toString('utf8')).role ?? null; } catch { return null; }
+};
+if (publica && (publica.startsWith('sb_secret_') || (rolJwt(publica) !== null && rolJwt(publica) !== 'anon'))) {
+  console.error('SUPABASE_CLAVE_PUBLICA parece una clave SECRETA (sb_secret_ o JWT que no es anon): NO se publica.');
+  process.exit(1);
+}
 if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) {
   console.error('SUPABASE_URL no parece la URL de un proyecto de Supabase (https://<id>.supabase.co).');
   process.exit(1);

@@ -31,6 +31,9 @@ G = 9.81
 CLASES_MARCA = [c for _, c, _ in config.ETIQUETAS]
 CLASES_ETIQUETA = set(CLASES_MARCA) | {"impacto_fuerte", "otro", "parada"}
 CLASES_EVENTO_DB = {"hueco", "resalto", "impacto_fuerte", "obstaculo"}   # las que acepta la tabla eventos
+# Marcas que dicen «aquí no hay defecto»: el evento pasa a `normal` y sale del hueco (antes quedaba impacto_fuerte,
+# que se agrupa como hueco abierto: una falsa alarma descartada aparecía en el tablero como hueco).
+CLASE_SIN_DEFECTO = {"via_buena": "normal"}
 
 ARCHIVOS = {   # clave → (archivo, encabezado). Los 3 primeros como los escribe phyphox en iOS (+ UTC del PC)
     "acc": ("Accelerometer.csv", ["Time (s)", "X (m/s^2)", "Y (m/s^2)", "Z (m/s^2)", "UTC PC (s)"]),
@@ -459,7 +462,8 @@ class Nucleo:
     @staticmethod
     def _aplicar_etiqueta(e: dict, etq: dict) -> None:
         e["etiqueta_manual"], e["id_etiqueta"] = etq["clase"], etq["id"]
-        e["clase"] = etq["clase"] if etq["clase"] in CLASES_EVENTO_DB else "impacto_fuerte"
+        c = etq["clase"]
+        e["clase"] = c if c in CLASES_EVENTO_DB else CLASE_SIN_DEFECTO.get(c, "impacto_fuerte")
 
     def etiquetar(self, clase: str, origen: str = "web", retardo_s: float | None = None) -> dict:
         if clase not in CLASES_ETIQUETA:
