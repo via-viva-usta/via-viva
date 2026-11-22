@@ -1,7 +1,7 @@
 # web/ — interfaz web (dueño: Dany)
 
 Sitio público de VÍA VIVA: portada y tablero de huecos y riesgo de Tunja. Estático (HTML + CSS + JS sin compilar),
-publicado con Netlify desde `main`. Pruebas: `node --test tests/web/*.test.mjs` (también en el check `node-test`).
+pensado para publicarse con Netlify desde `main` (el sitio aún no está creado: `docs/PUBLICAR_WEB.md`). Pruebas: `node --test tests/web/*.test.mjs` (también en el check `node-test`).
 
 ## Qué hay en cada archivo (`web/en_linea/`)
 

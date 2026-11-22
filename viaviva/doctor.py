@@ -232,6 +232,26 @@ def chequear_pc(inf: Informe, puerto: int, dir_sesiones: Path, con_internet: boo
                  "VIAVIVA_IP_PC)" if os.getenv("VIAVIVA_EN_DOCKER") else "sin IP en la red del iPhone"))
 
 
+def chequear_dht22(inf: Informe, dht, intentos: int = 3, pausa_s: float = 2.1, esperar=time.sleep) -> None:
+    """Lee de verdad el DHT22: antes bastaba con que cargara la librería para marcar ✔, aunque no hubiera sensor.
+    El protocolo de un hilo falla ~1 de cada 3 lecturas, así que se intenta varias veces (≥ 2 s entre lecturas)."""
+    if not dht.iniciar():
+        inf.agregar(AVISO, "dht22", dht.error or "no se pudo iniciar")
+        return
+    lectura = None
+    for i in range(intentos):
+        lectura = dht.leer()
+        if lectura is not None:
+            break
+        if i < intentos - 1:
+            esperar(pausa_s)
+    if lectura is not None:
+        inf.agregar(OK, "dht22", f"{lectura[0]:.1f} °C · {lectura[1]:.0f} % HR")
+    else:
+        inf.agregar(AVISO, "dht22", f"librería lista, pero sin lectura válida en {intentos} intentos "
+                                    f"({dht.error or 'sin respuesta'}): revisar DATA → GPIO{config.PIN_DHT22} y la pull-up")
+
+
 def chequear_pi(inf: Informe) -> None:
     from viaviva import sensores as s
     from viaviva.sistema import Sistema
@@ -264,8 +284,7 @@ def chequear_pi(inf: Informe) -> None:
                     " · sin fijación aún")) if gps.lecturas else (gps.error or "sin frases NMEA"))
     else:
         inf.agregar(FALTA, "GPS NEO-6M", gps.error or "no abre /dev/serial0")
-    dht = s.DHT22()
-    inf.agregar(OK if dht.iniciar() else AVISO, "dht22", dht.error or "librería lista (lectura tolerante a fallos)")
+    chequear_dht22(inf, s.DHT22())
     sis = Sistema().estado()
     est = sis.get("estrangulamiento") or {}
     inf.agregar(FALTA if est.get("bajo_voltaje") else (AVISO if est.get("hubo_bajo_voltaje") else OK), "Alimentación",

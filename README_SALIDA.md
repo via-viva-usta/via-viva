@@ -90,7 +90,11 @@ mapa y en la señal; da vueltas sin parar. No son resultados. También sirve un 
   y **Grabar con la sesión**: el Lenovo ve la imagen (unos 1–2 cuadros por segundo) y el video entra a la sesión.
   Si algo de esto falla, Pipe filma como siempre (normal, con destello) y el video se importa después en **Revisión**.
 
-## Instalar en el Lenovo de Anzola (y opciones: Mac de Dani, Docker)
+## Instalar en el Lenovo de Anzola (y opción: Mac de Dani)
+
+> **Docker:** el repo ya no trae `Dockerfile` ni `docker-compose.yml` (se retiraron el 13-nov en c21e4ca). El código
+> conserva `VIAVIVA_EN_DOCKER` y `VIAVIVA_IPS_EDITOR` por si alguien arma su propio contenedor, pero ese camino no
+> está mantenido ni probado.
 
 - **Windows (camino principal):** instalar Git y Python 3.11 (`winget install Git.Git Python.Python.3.11`; ffmpeg
   opcional: `winget install Gyan.FFmpeg`). Clonar la rama estable `main` del repo y, en `via-viva`:

@@ -12,7 +12,7 @@ Netlify: web/en_linea (estático) ──supabase-js (clave pública + sesión)�
 
 ## Lo que hace AC (inicios de sesión y claves; Claude no los hace)
 
-1. **Supabase:** entrar en https://supabase.com con `andresscardens@gmail.com` → *New project* (región `us-east-1` o
+1. **Supabase:** entrar en https://supabase.com con la cuenta del equipo (la que AC administre) → *New project* (región `us-east-1` o
    la más cercana; contraseña de la base generada por Supabase y guardada solo en tu gestor de contraseñas).
 2. *SQL Editor* → pegar **todo** `viaviva/supabase_esquema.sql` → *Run*.
 3. *Authentication → Users → Invite*: los 4 del equipo, la Alcaldía y los docentes. *Authentication → Sign In / Up*:
