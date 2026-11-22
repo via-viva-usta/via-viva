@@ -2,9 +2,11 @@
 
     %USERPROFILE%\\.venvs\\vv-modelo\\Scripts\\python -m viaviva.modelo_ventanas <manifest.csv> [--sintetico]
 
-Red densa pequeña sobre las características de `viaviva/ventanas.py` (normalizadas), validación dejando una salida
-afuera para elegir épocas, y exportación a TFLite float32 e int8 (PTQ con 200 ventanas de entrenamiento). Se compara
-contra el detector por umbrales con las mismas salidas cuando haya datos etiquetados suficientes (≥ 30 por clase).
+Red densa pequeña sobre las características de `viaviva/ventanas.py` (normalizadas) y exportación a TFLite float32 e
+int8 (PTQ con 200 ventanas de entrenamiento). HOY entrena con TODAS las ventanas y solo informa la exactitud sobre ese
+mismo conjunto: **no hay validación** (falta: dejar una salida afuera, como `viaviva dataset evaluar`). Se compara
+contra el detector por umbrales con las mismas salidas cuando haya datos etiquetados suficientes (≥ 30 por clase y
+≥ 2 salidas reales).
 `--sintetico` arma un manifest de prueba (marcado SINTETICO) solo para comprobar que el flujo corre.
 """
 from __future__ import annotations

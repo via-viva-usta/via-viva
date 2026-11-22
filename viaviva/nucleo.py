@@ -572,6 +572,7 @@ class Nucleo:
             self.sesion = Sesion(carpeta, self.epoch(self.t0_sesion), self.vaciar_s)
             self.parada_abierta = False
             self.n_cortes, self.s_perdidos, self.vel_max_kmh = 0, 0.0, 0.0
+            self._al_iniciar = (self.n_acc, self.reconexiones)   # la bitácora de «fin» cuenta solo esta sesión
             self.bitacora("inicio", carpeta=carpeta.name, origen=self.origen, id_nodo=self.id_nodo, fs_hz=self.fs,
                           retardo_s=self.retardo_s)
             self.aviso(f"Grabando en {carpeta.name}")
@@ -582,8 +583,12 @@ class Nucleo:
             if not self.sesion:
                 return None
             carpeta = self.sesion.carpeta
-            self.bitacora("fin", muestras=self.n_acc, cortes=self.n_cortes, s_perdidos=round(self.s_perdidos, 3),
-                          reconexiones=self.reconexiones,
+            n_acc0, reconex0 = getattr(self, "_al_iniciar", (0, 0))
+            if n_acc0 > self.n_acc or reconex0 > self.reconexiones:   # la fuente se reinició durante la sesión
+                n_acc0, reconex0 = 0, 0
+            # muestras y reconexiones de ESTA sesión; las latencias son desde que arrancó la fuente
+            self.bitacora("fin", muestras=self.n_acc - n_acc0, cortes=self.n_cortes,
+                          s_perdidos=round(self.s_perdidos, 3), reconexiones=self.reconexiones - reconex0,
                           latencias={k: w.resumen() for k, w in self.latencias.items() if w.n})
             self.sesion.cerrar()
             self.sesion = None

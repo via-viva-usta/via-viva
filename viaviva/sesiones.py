@@ -328,6 +328,17 @@ def escribir_etiquetas(c: Path, con: sqlite3.Connection) -> int:
 
 
 # ------------------------------------------------------------------------------------------------ dataset
+def _es_de_prueba(c: Path) -> bool:
+    """Sesión grabada desde una reproducción (`origen: simulado` en la bitácora) o con nombre de prueba/SINTÉTICO."""
+    if "SINTETICO" in c.name.upper() or "simul" in c.name.lower():
+        return True
+    try:
+        with open(c / "bitacora.jsonl", encoding="utf-8") as f:
+            return json.loads(f.readline() or "{}").get("origen") == "simulado"
+    except (OSError, ValueError):
+        return False
+
+
 def construir_dataset(base: Path) -> dict:
     """Ventanas + calidad + umbrales con TODAS las sesiones. Devuelve (y guarda) un resumen para la pantalla."""
     from collections import Counter
@@ -365,8 +376,10 @@ def construir_dataset(base: Path) -> dict:
     r["avisos"] = []
     if r["con_marca"] < 30:
         r["avisos"].append(f"Solo {r['con_marca']} ventanas con marca: las cifras no son concluyentes.")
-    if any("SINTETICO" in c.name.upper() or "simul" in c.name.lower() for c in rutas):
-        r["avisos"].append("Hay sesiones de prueba entre los datos.")
+    prueba = [c.name for c in rutas if _es_de_prueba(c)]
+    if prueba:
+        r["avisos"].append(f"Hay sesiones de prueba (reproducción o SINTÉTICAS) entre los datos: {', '.join(prueba)}. "
+                           "No cuentan como medición real: sáquelas de la carpeta antes de entrenar o evaluar.")
     (SALIDA_DATASET / "ultimo.json").write_text(json.dumps(r, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     return r
 
