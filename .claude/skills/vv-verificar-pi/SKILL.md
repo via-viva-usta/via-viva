@@ -19,9 +19,10 @@ disable-model-invocation: true
    - `systemctl is-active via-viva-pi`;
    - `ls /dev/spidev0.* /dev/serial0` e `i2cdetect -y 1` (direcciones esperadas: 0x68 MPU-6050, 0x29 VL53L0X,
      0x23 BH1750);
-   - `bash herramientas/pi_probar.sh`. Si no existe, falta fusionar el PR #41;
+   - `bash herramientas/pi_probar.sh` (la sección 6 da FALLA mientras el servicio esté deshabilitado a propósito);
    - `viaviva/.venv/bin/python -m viaviva doctor --source pi`.
-3. **Antes de cualquier cambio en la Pi:** respaldar la carpeta de sesiones y `.env`. Copiar, nunca mover.
+3. **Antes de cualquier cambio en la Pi:** respaldar la carpeta de sesiones. Copiar, nunca mover. **No copiar `.env`**
+   (tiene claves): si hace falta, anotar qué variables define, sin sus valores.
 4. **Informe:** tabla de lo verificado frente a lo que falta, con la salida real. Lo que no se ejecutó queda como «NO PROBADO».
 
 Reglas:

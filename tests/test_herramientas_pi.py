@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 RAIZ = Path(__file__).resolve().parents[1]
-SCRIPTS = [RAIZ / "herramientas" / "pi_probar.sh", RAIZ / "herramientas" / "actualizar_pi.sh"]
+SCRIPTS = [RAIZ / "herramientas" / "pi_probar.sh", RAIZ / "herramientas" / "actualizar_pi.sh",
+           RAIZ / "herramientas" / "pi_estado.sh"]
 
 
 @pytest.mark.parametrize("ruta", SCRIPTS, ids=lambda p: p.name)
@@ -40,3 +41,11 @@ def test_actualizar_pi_solo_avanza_en_main_y_tiene_vuelta_atras():
     assert '[ "$rama" != main ]' in t
     assert 'git reset --hard "$anterior"' in t
     assert "push" not in t.replace("nunca se empuja", "")
+
+
+def test_pi_estado_lee_bien_en_la_pi_real():
+    """Lo que falló el 19-nov en la Pi: i2cdetect fuera del PATH, el NUL del modelo y un «-» de más en los servicios."""
+    t = SCRIPTS[2].read_text(encoding="utf-8")
+    assert "/usr/sbin/i2cdetect" in t
+    assert "tr -d '\\0' < /proc/device-tree/model" in t
+    assert "|| echo -)" not in t                     # is-enabled/is-active ya imprimen su estado aunque salgan ≠ 0
