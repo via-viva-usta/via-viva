@@ -12,7 +12,7 @@ o() { "$@" 2>&1 || echo "(no disponible: $*)"; }
 t "Fecha y equipo"
 date -Is
 o hostname
-o cat /proc/device-tree/model; echo
+tr -d '\0' < /proc/device-tree/model 2>/dev/null || echo "(no disponible: modelo)"; echo   # el archivo trae un NUL final
 o uname -m
 o getconf LONG_BIT
 awk -F: '/^Model|^Hardware|^Revision/{print}' /proc/cpuinfo 2>/dev/null
@@ -40,8 +40,10 @@ o ip -br link
 command -v nmcli >/dev/null && o nmcli -t -f DEVICE,TYPE,STATE device
 
 t "Servicios"
+# is-enabled / is-active imprimen el estado Y salen con código ≠ 0 si no está activo: no se agrega «-» encima.
+est() { local r; r=$(systemctl "$1" "$2" 2>/dev/null); echo "${r:--}"; }
 for s in ssh via-viva-pi via-viva-scraping.timer; do printf '%-26s %s / %s\n' "$s" \
-  "$(systemctl is-enabled "$s" 2>/dev/null || echo -)" "$(systemctl is-active "$s" 2>/dev/null || echo -)"; done
+  "$(est is-enabled "$s")" "$(est is-active "$s")"; done
 
 t "Interfaces de los sensores (raspi-config: 0 = activada)"
 for q in get_spi get_i2c get_serial_hw get_serial_cons; do
@@ -50,7 +52,9 @@ o ls -l /dev/spidev0.0 /dev/spidev0.1 /dev/i2c-1 /dev/serial0
 grep -E '^(enable_uart|dtoverlay=disable-bt|dtoverlay=gpio-shutdown)' /boot/firmware/config.txt /boot/config.txt 2>/dev/null
 
 t "Dispositivos I2C en el bus 1 (esperados: 68 MPU-6050, 29 VL53L0X, 23 BH1750)"
-if command -v i2cdetect >/dev/null; then o i2cdetect -y 1; else echo "(i2c-tools no instalado)"; fi
+# i2cdetect vive en /usr/sbin, que no está en el PATH de un usuario normal por SSH
+I2CDETECT=$(command -v i2cdetect || { [ -x /usr/sbin/i2cdetect ] && echo /usr/sbin/i2cdetect; })
+if [ -n "$I2CDETECT" ]; then o "$I2CDETECT" -y 1; else echo "(i2c-tools no instalado)"; fi
 
 t "Python y proyecto"
 o python3 --version

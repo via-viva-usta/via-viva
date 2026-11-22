@@ -16,7 +16,7 @@ resultado.
 
 | # | Qué | Cómo | Se acepta si |
 |---|---|---|---|
-| A1 | Sensores y pines | `bash herramientas/pi_probar.sh` (PR #41) | 0 FALLA. Cada sensor montado aparece OK |
+| A1 | Sensores y pines | `bash herramientas/pi_probar.sh` | 0 FALLA. Cada sensor montado aparece OK |
 | A2 | Pre-chequeo de la app | `viaviva/.venv/bin/python -m viaviva doctor --source pi` | LISTO |
 | A3 | Espacio | `df -h /` | ≥ 5 GB libres. Por acelerómetro, 30 min a 200 Hz dan ≈ 20 MB de CSV (estimado con los ~59 B por fila del export del 18-nov) |
 | A4 | Hora | `timedatectl` con internet. Sin internet, la app toma la hora del GPS y lo avisa en la bitácora | `System clock synchronized: yes`, o el aviso «Hora corregida con el GPS» |

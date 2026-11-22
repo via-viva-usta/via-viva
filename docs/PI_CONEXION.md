@@ -10,10 +10,11 @@ microSD de 64 GB (almacenamiento, no RAM).
 Use la misma red para la Pi y el PC: el hotspot del iPhone A o el WiFi configurado en Raspberry Pi Imager.
 
 1. **Por nombre.** En el PC (PowerShell):
-   - `Resolve-DnsName viavivapi.local`
+   - `Resolve-DnsName viaviva.local`
    - `Resolve-DnsName raspberrypi.local`
 
-   El nombre `viavivapi` es el que espera `instalar.sh`; `raspberrypi` es el de Imager por defecto.
+   El nombre es el que se le dio en Raspberry Pi Imager: la Pi del proyecto se llama `viaviva` (comprobado el
+   19-nov). `raspberrypi` es el de Imager por defecto. `instalar.sh` no cambia el nombre.
 2. **Por la tabla ARP del PC.** Solo lee lo que el PC ya vio; no escanea:
    ```powershell
    Get-NetNeighbor -AddressFamily IPv4 | Where-Object LinkLayerAddress -match '^(B8-27-EB|DC-A6-32|E4-5F-01|D8-3A-DD|2C-CF-67|28-CD-C1)'
@@ -26,7 +27,7 @@ No comparta en el chat la IP pública ni el nombre de la red. La IP local (192.1
 
 ## 2. Entrar por SSH
 
-- Comando: `ssh <usuario>@viavivapi.local`, o `ssh <usuario>@<IP local>`.
+- Comando: `ssh <usuario>@viaviva.local`, o `ssh <usuario>@<IP local>`.
 - La contraseña se escribe **solo en la terminal**, nunca en el chat.
 - Si SSH no responde, actívelo en Imager (pestaña Servicios) y vuelva a grabar la tarjeta, o use monitor y teclado.
 - No cambie la red ni la IP hasta que SSH funcione.
@@ -83,14 +84,15 @@ bash viaviva/instalar.sh
 - desactiva `gpsd`;
 - crea `.env` (permisos 600);
 - permite apagar desde la web;
-- instala el servicio `via-viva-pi` y lo **activa al arranque**.
+- instala el servicio `via-viva-pi` y lo **activa al arranque**. Hasta pasar la prueba de mesa con 0 FALLA conviene
+  dejarlo apagado: `sudo systemctl disable --now via-viva-pi` (así se hizo en la Pi el 19-nov).
 
-Lo que **no** cambia sin opciones: la red. El punto de acceso propio solo se crea con la opción `--ap`.
+Lo que **no** cambia sin opciones: la red. El punto de acceso propio solo se crea con la opción `--punto-de-acceso`.
 
 Después hay que reiniciar (`sudo reboot`) para que se apliquen SPI, I2C y UART. Luego:
 ```bash
 cd ~/via-viva
-bash herramientas/pi_probar.sh 2>&1 | tee ~/pi_probar.txt          # requiere el PR #41 en main
+bash herramientas/pi_probar.sh 2>&1 | tee ~/pi_probar.txt          # la sección 6 da FALLA si el servicio está deshabilitado
 viaviva/.venv/bin/python -m viaviva doctor --source pi 2>&1 | tee ~/doctor.txt
 systemctl status via-viva-pi --no-pager | head -12
 ```
@@ -108,7 +110,7 @@ viaviva/.venv/bin/python -m herramientas.auditar_sesion <carpeta_sesion> --json 
 viaviva/.venv/bin/python -m herramientas.comparar_detectores <carpeta_sesion> --html ~/mesa.html
 ```
 
-Para respaldar, en el PC: `scp -r <usuario>@viavivapi.local:<carpeta_sesion> C:\VIA_VIVA_DATOS\pi_mesa\`.
+Para respaldar, en el PC: `scp -r <usuario>@viaviva.local:<carpeta_sesion> C:\VIA_VIVA_DATOS\pi_mesa\`.
 
 Planee la salida de campo solo con 0 FALLA en la auditoría de mesa.
 
