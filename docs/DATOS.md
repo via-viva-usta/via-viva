@@ -24,6 +24,42 @@ en `data/*.db`, los derivados en `data/procesado/`. Solo el código y las muestr
 
 Clases de marca (teclas 1–7): `hueco, resalto, grieta, parche, tapa, obstaculo, via_buena`. Retardo de reacción −1,0 s.
 
+**Identificación de equipos (desde el 19-nov).** La bitácora agrega:
+- en `inicio`, la `fuente`: rol `nodo_pi` / `phyphox_referencia` / `reproduccion` y alias tomado de
+  `VIAVIVA_ALIAS_FUENTE`, o `desconocido`;
+- en `inicio`, el `equipo`: sistema operativo, versión, arquitectura y Python, sin nombre del equipo;
+- `dispositivo`: rol, alias y navegador/SO corto de cada celular o PC que se identificó en `/marcar`, `/camara` o `/sync`;
+- `estado_fuente` cada minuto: fs efectiva, desfase del reloj de la fuente, pérdidas y conexión.
+
+Los alias son del equipo de trabajo (`PHONE-A`, `CAMARA-1`), nunca nombres de personas. Sin alias registrado, la
+identidad física es `desconocido`.
+
+**Sesión real del 18-nov (`sesion_2026-11-18_0619`), con celulares y phyphox, no con la Pi.** Qué dice la evidencia:
+- **Datos inerciales y GPS:** `origen: phyphox`, `id_nodo: phyphox-pc`. Coinciden muestra a muestra con el export
+  crudo del iPhone A (180 628 de 180 629).
+- **Video:** `origen_video: celular`, sincronizado a mano (`metodo: manual`, 8,154 s). No hubo destellos.
+- **Qué no quedó registrado:** qué celular, navegador o persona usó cada página. Por eso no se puede atribuir identidad
+  física a ningún equipo.
+- **Hora:** `ts_utc` y `utc` quedaron +2 108,9 s adelantados (corregido para las próximas sesiones en el PR #56).
+- **Marcas:** 1 de 69 revisada con video.
+
+## 1b. Dataset de sesiones reales (`herramientas/ingestar_sesion.py`, fuera de Git)
+
+`python -m herramientas.ingestar_sesion agregar <sesión>` copia la sesión, sin el video, a
+`C:\VIA_VIVA_DATOS\dataset_vv\sesiones\`. También guarda en `meta\<sesión>\`:
+- la procedencia, con el SHA-256 de cada archivo;
+- la auditoría;
+- las correcciones de hora, documentadas **sin aplicarlas**.
+
+Rechaza las sesiones de reproducción o SINTÉTICAS. `apto_entrenamiento` sigue falso mientras falte algo:
+- sincronía del video por destello;
+- marcas revisadas con video;
+- alias de los equipos;
+- auditoría sin FALLA.
+
+`… aptas` lista las rutas que puede leer `viaviva dataset construir`. La sesión del 18-nov ya está ingestada como
+**no apta**, con sus 4 motivos.
+
 ## 2. Base SQLite (`db/schema.sql`, 14 tablas)
 
 `tramos` (OSM), `nodos`, `barrios`, `variables_tramo`, `riesgo`, `fuentes_externas` (scraping), `reportes`,

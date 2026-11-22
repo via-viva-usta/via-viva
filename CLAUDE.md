@@ -51,6 +51,9 @@ El formato de sesión debe seguir siendo legible por versiones posteriores (`nuc
   | sync | nube | r7` (Mac/Linux: `./viaviva.sh`). Icono VÍA VIVA = `viaviva app`.
 - Pruebas: `dataset\.venv\Scripts\python -m pytest` y `… -m ruff check .`; web: `node --test tests/web/*.test.mjs`.
 - Secretos: `dataset\.venv\Scripts\python herramientas\buscar_secretos.py`.
+- Procedimientos largos (se cargan solo al usarlos): skills `/vv-auditar-sesion`, `/vv-comparar-detectores`,
+  `/vv-preparar-salida`, `/vv-verificar-pi`, `/vv-investigar-modelos`, `/vv-sincronizar-github` (`.claude/skills/`).
+  Salida con la Pi: `docs/SALIDA_PI.md`.
 
 ## 5b. Entorno (PC de AC, Windows 11)
 Python 3.11 (`py -3.11`). Venvs: `viaviva\.venv` (app), `dataset\.venv` (pruebas: pytest, ruff, httpx, OpenCV < 5),

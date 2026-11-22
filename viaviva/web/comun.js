@@ -285,6 +285,47 @@ VV.botonTema = () => {
   cuenta ? barra.insertBefore(b, cuenta) : barra.appendChild(b);
 };
 
+// Rol y alias del equipo (traspaso 19-nov): el celular dice qué es (cámara, marcador…) con un alias del equipo, no
+// con el nombre de una persona; la app lo guarda en la bitácora y la pantalla confirma a qué sesión quedó asociado.
+VV.ROLES = {marcador: 'Marcador', camara: 'Cámara', panel_operador: 'Panel del operador',
+  phyphox_referencia: 'phyphox de referencia', nodo_pi: 'Nodo Raspberry Pi'};
+VV.dispositivo = (rolPorDefecto) => {
+  const caja = document.createElement('section');
+  caja.className = 'tarjeta dispositivo';
+  caja.setAttribute('aria-label', 'Rol de este equipo');
+  let guardado = {};
+  try { guardado = JSON.parse(localStorage.getItem('vv_dispositivo') || '{}'); } catch (e) { /* sin almacenamiento */ }
+  const rol = guardado.rol || rolPorDefecto;
+  caja.innerHTML = `<label>Rol <select name="rol">${Object.entries(VV.ROLES).map(([k, v]) =>
+    `<option value="${k}"${k === rol ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+    <label>Alias del equipo <input name="alias" maxlength="24" autocapitalize="characters" placeholder="PHONE-A"
+    value="${VV.escapar(guardado.alias || '')}" pattern="[A-Za-z0-9][A-Za-z0-9-]{1,23}"></label>
+    <button type="button">Conectar</button><p class="estado-dispositivo" role="status" aria-live="polite">
+    Sin identificar: elija el rol y un alias (no use nombres de personas).</p>`;
+  const [sel, txt, btn, estado] = ['select', 'input', 'button', 'p'].map(s => caja.querySelector(s));
+  let reloj = null;
+  const enviar = async () => {
+    const datos = {rol: sel.value, alias: txt.value.trim().toUpperCase()};
+    if (!datos.alias) return;
+    try {                                       // fetch directo: un 401 (falta el PIN) no debe sacar de la página
+      const resp = await fetch('/api/dispositivo', {method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos)});
+      const r = await resp.json().catch(() => ({}));
+      if (resp.status === 401) { estado.textContent = 'Ingrese el PIN; luego se conecta solo.'; setTimeout(enviar, 5000); return; }
+      if (!resp.ok) { estado.textContent = r.error || ('Error ' + resp.status); return; }
+      try { localStorage.setItem('vv_dispositivo', JSON.stringify(datos)); } catch (e) { /* sin almacenamiento */ }
+      estado.textContent = `✓ ${r.alias} · ${VV.ROLES[r.rol]} · ` + (r.sesion ? `sesión ${r.sesion}` : 'sin grabación abierta');
+      clearInterval(reloj);
+      reloj = setInterval(enviar, 30000);       // renueva y se asocia a la sesión que se abra después
+    } catch (e) { estado.textContent = 'Sin conexión con la app: se reintenta.'; }
+  };
+  btn.addEventListener('click', enviar);
+  const destino = document.getElementById('principal') || document.querySelector('main') || document.body;
+  destino.prepend(caja);
+  if (guardado.alias) setTimeout(enviar, 500);
+  return caja;
+};
+
 // App instalable y ventana propia: caché del mapa (sw.js) y latido para que `viaviva app` sepa que la ventana sigue
 VV.arranque = () => {
   VV.botonTema();
