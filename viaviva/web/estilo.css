@@ -276,16 +276,20 @@ dialog::backdrop { background: rgb(0 0 0 / .72); }
 .tira > span { background: var(--superficie); border-right: 1px solid var(--borde); padding: .45rem .6rem; display: flex; flex-direction: column; }
 .tira > span:last-child { border-right: 0; }
 .tira .et { font-size: .6rem; } .tira b { font: 400 1.35rem/1.1 var(--tit); font-variant-numeric: tabular-nums; }
-.botones-marcar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.b-marcar { min-height: 96px; font: 400 clamp(1.05rem, 5.2vw, 1.6rem)/1 var(--tit); letter-spacing: -.01em; text-transform: uppercase; overflow-wrap: anywhere; border-width: 1px; border-left-width: 8px;
-  position: relative; background: var(--superficie-2); }
+.botones-marcar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; container-type: inline-size; }
+/* La letra sigue al ancho del bloque de botones (cqi), no al de la pantalla: así «OBSTÁCULO» cabe en una línea en
+   celular y escritorio. Las palabras no se parten; si algo no cabe, baja la letra (primera línea = respaldo sin cqi). */
+.b-marcar { min-height: 96px; font: 400 clamp(1rem, 4.6vw, 1.45rem)/1 var(--tit); font-size: clamp(.95rem, 6cqi, 1.6rem);
+  letter-spacing: -.01em; text-transform: uppercase; overflow-wrap: normal; word-break: keep-all; hyphens: manual;
+  border-width: 1px; border-left-width: 8px; position: relative; background: var(--superficie-2); }
 .b-marcar:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .b-marcar.pulsado { background: var(--senal); color: #0a0a0a; border-color: var(--senal); }
 kbd { border: 1px solid var(--borde); padding: 1px 6px; color: var(--sub); text-transform: none; letter-spacing: 0; }
 .b-marcar kbd { position: absolute; top: 8px; left: 10px; font-family: ui-monospace, Consolas, monospace; font-size: .7rem; }
 .b-marcar.pulsado kbd { color: #0a0a0a; border-color: #0a0a0a; }
 .grande-sec { width: 100%; min-height: 60px; font-size: .9rem; }
-@media (min-width: 700px) { .botones-marcar { grid-template-columns: repeat(4, minmax(0, 1fr)); } .b-marcar { min-height: 130px; } }
+@media (min-width: 700px) { .botones-marcar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .b-marcar { min-height: 130px; font-size: clamp(.95rem, 3.2cqi, 1.6rem); } }
 
 /* ---------------------------------------------------------------- páginas (sesiones, revisión, dataset, demo) */
 .valor, .num { font-variant-numeric: tabular-nums; }

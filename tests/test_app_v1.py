@@ -38,6 +38,16 @@ def test_marca_de_dany_y_app_instalable(tmp_path):
     assert "fonts.googleapis" not in estilo and "var(--t-fondo)" in estilo
 
 
+def test_botones_de_marcar_no_parten_palabras():
+    """«OBSTÁCULO» salía partido («OBSTÁCUL / O») en celular y escritorio (21-nov). La letra sigue al ancho del bloque
+    (cqi) y las palabras no se cortan. Medido en Chrome de 320 a 1600 px: ninguno se parte ni se desborda."""
+    import re
+    estilo = (config.RAIZ / "viaviva" / "web" / "estilo.css").read_text(encoding="utf-8")
+    regla = re.search(r"\.b-marcar \{([^}]*)\}", estilo).group(1)
+    assert "word-break: keep-all" in regla and "overflow-wrap: anywhere" not in regla and "cqi" in regla
+    assert "container-type: inline-size" in re.search(r"\.botones-marcar \{([^}]*)\}", estilo).group(1)
+
+
 def test_calles_para_el_mapa_sin_internet(tmp_path):
     ctx, c = _cliente(tmp_path, _base_con_calle(tmp_path), segundos=5, velocidad=5)
     try:
