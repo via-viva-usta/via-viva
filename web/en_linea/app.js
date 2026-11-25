@@ -109,7 +109,7 @@ async function mostrarApp() {
   $('entrar').classList.add('oculto'); $('app').classList.remove('oculto');
   const ROL = {editor: 'Editor', alcaldia: 'Alcaldía', docente: 'Docente'};
   $('cuenta').innerHTML = PRUEBA
-    ? '<span class="publico">Acceso público</span>' + (ROL[yo.rol] ? ` <span class="rol">${ROL[yo.rol]} (prueba)</span>` : '')
+    ? '<span class="publico">Acceso público</span>' + (ROL[yo.rol] ? ` <span class="rol">${ROL[yo.rol]} (demostración)</span>` : '')
       + ' <a href="?entrar=1">Entrar</a>'
     : esc(yo.nombre || yo.correo || '') + ` <span class="rol">${esc(ROL[yo.rol])}</span> <a href="#" id="b-salir">Salir</a>`;
   if ($('b-salir')) $('b-salir').onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
@@ -265,7 +265,7 @@ function contexto({visibles, rango: r}) {
 function frescura() {
   const el = $('frescura'), t = $('t-frescura');
   el.classList.remove('al-dia', 'viejo');
-  if (PRUEBA) { t.textContent = 'Datos de prueba'; return; }
+  if (PRUEBA) { t.textContent = 'Escenario de demostración'; return; }
   if (!D.ultimoDato) { t.textContent = 'Sin datos sincronizados todavía'; el.classList.add('viejo'); return; }
   const reciente = Date.now() - D.ultimoDato <= 2 * DIA;
   el.classList.add(reciente ? 'al-dia' : 'viejo');
@@ -398,7 +398,7 @@ function conectarCambio(h) {
     $('b-cambiar').disabled = elegido === h.estado;
   };
   $('b-cambiar').onclick = async () => {
-    if (PRUEBA) return toast(`Prototipo con datos de prueba: el cambio no se envía. Con el enlace activo, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
+    if (PRUEBA) return toast(`Escenario de demostración: el cambio no se envía. Con el enlace activo, «${R.ESTADO[elegido].nombre}» queda pedido y la Pi lo aplica al sincronizar.`);
     $('b-cambiar').setAttribute('aria-busy', 'true');
     const {error} = await sb.from('cambios_remotos').insert({id_origen: h.id_origen, instancia: h.instancia, id_local: h.id_local,
       estado: elegido, nota: $('nota').value.trim() || null});
@@ -427,7 +427,7 @@ function tramosTop() {
   const c = D.corrida;
   $('ayuda-tramos').innerHTML = 'Probabilidad estimada de que el tramo tenga un hueco sin reportar: una guía para revisar, no una certeza.'
     + (c ? `<br><span class="chip">${esc(c.modelo)} · ${esc(c.version)} · ${R.fechaDia(c.fecha)}</span>` : '')
-    + (c?.demo ? ' <span class="chip fuerte">Datos de prueba: no es un resultado</span>' : '');
+    + (c?.demo ? ' <span class="chip">Demostración</span>' : '');
   if (!D.riesgo.length) {
     $('top').innerHTML = vacio('Aún no hay corridas del modelo de riesgo', 'Aparecen cuando se corre el modelo y la Pi sincroniza.');
     return;
@@ -655,7 +655,7 @@ $('x-xlsx').onclick = async (e) => {
     return {id_tramo: r.id_tramo, calle: t ? l.titulo : '', barrio: l.barrio || '', tipo_via: t ? l.via : '',
       probabilidad: r.probabilidad, nivel: R.NIVELES_RIESGO[R.nivelRiesgo(r.probabilidad)], huecos_abiertos: D.abiertosTramo.get(r.id_tramo) || 0};
   })), 'Riesgo por tramo');
-  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', PRUEBA ? 'PROTOTIPO: datos de prueba (simulados), no son mediciones de Tunja' : ''],
+  XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['VÍA VIVA', PRUEBA ? 'Escenario de demostración: no son mediciones de Tunja' : ''],
     ['Generado', new Date().toLocaleString('es-CO', {timeZone: 'America/Bogota'})], ['Vista', $('contexto').textContent],
     ['Último dato', D.ultimoDato ? R.fechaHora(D.ultimoDato) : '—'],
     ['Corrida de riesgo', D.corrida ? `${D.corrida.modelo} ${D.corrida.version} (${R.fechaDia(D.corrida.fecha)})` : '—'], [],
@@ -680,7 +680,7 @@ $('archivo').onchange = async () => {
   $('b-enviar').disabled = r.errores.length > 0 || !r.cambios.length;
 };
 $('b-enviar').onclick = async () => {
-  if (PRUEBA) { $('d-importar').close(); return toast(`El archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}). En el prototipo con datos de prueba no se envía nada.`); }
+  if (PRUEBA) { $('d-importar').close(); return toast(`El archivo está bien (${plural(cambiosCSV.length, 'cambio', 'cambios')}). En el escenario de demostración no se envía nada.`); }
   const {error} = await sb.from('cambios_remotos').insert(cambiosCSV);
   toast(error ? 'No se envió: ' + error.message : `${plural(cambiosCSV.length, 'cambio enviado', 'cambios enviados')}; se aplican cuando la Pi sincronice.`);
   $('d-importar').close();

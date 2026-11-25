@@ -74,8 +74,8 @@ button.icono:hover { border-color: var(--vv-texto); }
 .aviso { margin: .75rem 1rem 0; padding: .55rem .9rem; font-size: .88rem;
   background: color-mix(in srgb, var(--vv-verificado) 12%, transparent); border-left: 3px solid var(--vv-verificado); }
 
-/* franja del prototipo: sobria (no alarma), específica y con enlace al estado del enlace */
-.franja-prototipo { display: flex; align-items: center; gap: .6rem 1rem; flex-wrap: wrap; padding: .55rem 1rem; font-size: .8rem;
+/* franja del escenario de demostración: discreta, de una línea, con enlace al estado del proyecto */
+.franja-prototipo { display: flex; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; padding: .4rem 1rem; font-size: .76rem;
   line-height: 1.45; background: #141414; color: #bdbdbd; border-bottom: 1px solid #262626; }
 .franja-prototipo b { color: #fff; font-weight: 600; }
 .franja-texto { flex: 1 1 32rem; }
