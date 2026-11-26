@@ -102,8 +102,9 @@ data/fotos_bot/
 # ===== Firmware: claves del punto de acceso =====
 firmware/**/include/secretos.h
 
-# ===== Configuración local de Claude Code =====
-.claude/
+# ===== Configuración local de Claude Code (las skills del proyecto sí van a Git) =====
+.claude/*
+!.claude/skills/
 
 # ===== Salidas del análisis (métricas; se suben solo las que vayan al informe) =====
 analysis/salidas/
