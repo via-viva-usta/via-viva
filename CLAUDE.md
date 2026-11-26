@@ -30,7 +30,9 @@ El formato de sesión debe seguir siendo legible por versiones posteriores (`nuc
    `SUPABASE_URL` y `SUPABASE_CLAVE_PUBLICA` como variables de Netlify (`herramientas/config_web.mjs`).
 5. **Datos:** nunca en Git `06_CAMPO`, `data/raw/`, `data/alcaldia/`, `*.db`, fotos, videos ni `data/certificados/`.
 6. **Verdad:** todo número sale de código o medición; lo sintético se marca SINTÉTICO/DEMO; decir qué no se probó en
-   hardware real (hoy: la Pi, el iPhone por HTTPS, Mac).
+   hardware real. Hoy: la Pi se probó **en banco** (21, 24 y 26-nov: MPU-6050, VL53L0X, GPS, pulsador, LED; los ADXL345
+   no están montados desde el 26-nov) y faltan la **prueba en vehículo**, el **GPS con fijación** y el **consumo con
+   fuente de 5 V / 3 A** (el USB del PC no alcanza: `throttled=0x50000`). Sin probar: el iPhone por HTTPS y Mac.
 7. **Idioma y commits:** español sencillo; commits pequeños con prefijo (`feat(viaviva): …`, `docs: …`) y la línea
    `Co-Authored-By` cuando los hace Claude. Lo obsoleto se mueve fuera del repo; no se borran archivos locales de AC.
 8. **Alcance:** fuera del prototipo (13-nov): bot de Telegram, reportes ciudadanos tipo Waze y `futuro/`. El scraping

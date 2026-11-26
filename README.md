@@ -23,8 +23,8 @@ cd via-viva
 powershell -ExecutionPolicy Bypass -File viaviva\instalar_pc.ps1
 ```
 
-Mac: `bash viaviva/instalar_mac.sh` (sin probar en Mac). Raspberry Pi: `bash viaviva/instalar.sh` (sin probar en
-hardware). Practicar sin carro: en la app, **Conexión → Usar el ejemplo** (recorrido SINTÉTICO por Tunja).
+Mac: `bash viaviva/instalar_mac.sh` (sin probar en Mac). Raspberry Pi: `bash viaviva/instalar.sh` (probada solo en
+banco; falta la prueba en vehículo). Practicar sin carro: en la app, **Conexión → Usar el ejemplo** (recorrido SINTÉTICO por Tunja).
 
 ## Qué hay
 
