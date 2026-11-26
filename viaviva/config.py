@@ -62,6 +62,9 @@ PHYPHOX_URL = os.getenv("VIAVIVA_PHYPHOX_URL", "http://172.20.10.1")   # iPhone 
 #                                                                        se autodetecta 80/8080 con `viaviva doctor`)
 FS_PHYPHOX_HZ = 100.0
 SPI_CS_ADXL2 = 1                 # ADXL345 #2 en CE1 (opcional, manual v3)
+# ADXL345 #1: desde el 26-nov no está montado (decisión de AC: el nodo sigue con el MPU-6050). Por defecto el `doctor`
+# lo marca AVISO («no montado»); con PI_ADXL_OBLIGATORIO=1 en .env vuelve a ser FALTA (cuando se monte de nuevo).
+ADXL_OBLIGATORIO = os.getenv("PI_ADXL_OBLIGATORIO", "").strip().lower() in ("1", "si", "sí", "true")
 _CAMPO = RAIZ.parent.parent / "06_CAMPO"   # 02_VIA_VIVA/06_CAMPO: datos crudos fuera del repo
 DIR_GRABACIONES = Path(os.getenv("VIAVIVA_DIR_SESIONES") or os.getenv("PI_DIR_GRABACIONES") or
                        (_CAMPO / "sesiones" if _CAMPO.exists() else RAIZ / "data" / "raw" / "sesiones"))
