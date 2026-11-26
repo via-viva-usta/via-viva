@@ -33,8 +33,9 @@ El formato de sesión debe seguir siendo legible por versiones posteriores (`nuc
    hardware real. Hoy: la Pi se probó **en banco** (21, 24 y 26-nov: MPU-6050, VL53L0X, GPS, pulsador, LED; los ADXL345
    no están montados desde el 26-nov) y faltan la **prueba en vehículo**, el **GPS con fijación** y el **consumo con
    fuente de 5 V / 3 A** (el USB del PC no alcanza: `throttled=0x50000`). Sin probar: el iPhone por HTTPS y Mac.
-7. **Idioma y commits:** español sencillo; commits pequeños con prefijo (`feat(viaviva): …`, `docs: …`) y la línea
-   `Co-Authored-By` cuando los hace Claude. Lo obsoleto se mueve fuera del repo; no se borran archivos locales de AC.
+7. **Idioma y commits:** español sencillo; commits pequeños con prefijo (`feat(viaviva): …`, `docs: …`). Desde el
+   26-nov, por decisión de AC, **sin** la línea `Co-Authored-By` de Claude ni la firma de Claude Code en los PR; los
+   commits viejos que la tienen no se reescriben. Lo obsoleto se mueve fuera del repo; no se borran archivos locales de AC.
 8. **Alcance:** fuera del prototipo (13-nov): bot de Telegram, reportes ciudadanos tipo Waze y `futuro/`. El scraping
    (clima IDEAM y noticias, `etl/scraping/`) se queda: es requisito del curso y alimenta el riesgo; en la Pi es opcional
    (`instalar.sh --con-scraping`). `risk_model/` y `dataset/` se quedan. Pendientes de Dany: la pestaña de reportes del
