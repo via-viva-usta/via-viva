@@ -1,5 +1,24 @@
 # Cambios
 
+## 2026-11-26 — modelo, cifras de inferencia y umbrales de simulación a la vista, rotulados «SIMULADO» (`ac/modelo-simulacion`)
+
+- **Un solo lugar:** `config/simulacion.yaml` reúne:
+  - los umbrales de simulación: detector en vivo, detector de análisis `v2-sin-calibrar`, ventanas del modelo y
+    umbral de confianza, que hoy no existe;
+  - los modelos preentrenados que hay, **todos SINTÉTICOS**: la red 1-D del 2-nov, MobileNetV2 del 3 y del 5-nov;
+  - las cifras de inferencia **medidas en el PC** (`docs/R7.md`, 10-nov).
+
+  No cambia ningún umbral: una prueba exige que coincidan con `viaviva/config.py`, `config/detector.yaml` y
+  `viaviva/ventanas.py`.
+- **`viaviva/modelo_estado.py` + `GET /api/modelo`:**
+  - siempre rotula «SIMULADO» si la fuente no dice `simulado: false`;
+  - cuando el API entregue el estado real, basta con dejar `data/modelo/estado_api.json` (mismo esquema, fuera de
+    Git) y la app lo prefiere;
+  - si ese archivo está roto, vuelve a la simulación con un aviso.
+- **Tablero local:** pestaña nueva «Modelo», con el rótulo en rojo, las tablas de modelos e inferencia y los umbrales.
+  No toca `web/`.
+- 5 pruebas nuevas en `tests/test_modelo_simulacion.py`. **Nada de esto es precisión real ni se midió en la Pi.**
+
 ## 2026-11-20 — orden del repo, coherencia app → nube → web y salvaguardas (rama `ac/orden-repo`)
 
 - **Datos:** una marca «vía buena» (falsa alarma) dejaba el evento como `impacto_fuerte`, que se agrupa como hueco

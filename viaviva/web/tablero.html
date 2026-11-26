@@ -62,6 +62,7 @@
         <button data-p="p-top">Top-10 riesgo</button>
         <button data-p="p-atencion">Atención</button>
         <button data-p="p-reportes">Reportes</button>
+        <button data-p="p-modelo">Modelo</button>
       </div>
       <div id="p-huecos" class="lista-panel">
         <table class="tabla"><thead><tr><th>#</th><th>Estado</th><th>Dónde</th><th class="num">Det.</th><th>Última</th></tr></thead>
@@ -81,6 +82,19 @@
       <div id="p-reportes" class="lista-panel oculto">
         <table class="tabla"><thead><tr><th>Id</th><th>Tipo</th><th>Fecha</th><th>Estado</th></tr></thead>
           <tbody id="reportes"></tbody></table>
+      </div>
+      <div id="p-modelo" class="lista-panel oculto">
+        <p class="aviso rojo" id="m-rotulo" style="margin:0 0 8px">SIMULADO</p>
+        <p class="ayuda" id="m-nota" style="margin:0 0 8px"></p>
+        <h3 class="sub" style="margin:8px 0 4px">Modelos</h3>
+        <table class="tabla"><thead><tr><th>Modelo</th><th>Fecha</th><th>Datos</th><th>Cifras (simuladas)</th></tr></thead>
+          <tbody id="m-modelos"></tbody></table>
+        <h3 class="sub" style="margin:12px 0 4px">Inferencia</h3>
+        <p class="ayuda" id="m-medidas" style="margin:0 0 4px"></p>
+        <table class="tabla"><thead><tr><th>Etapa</th><th class="num">ms</th><th class="num">n</th></tr></thead>
+          <tbody id="m-cifras"></tbody></table>
+        <h3 class="sub" style="margin:12px 0 4px">Umbrales de simulación</h3>
+        <div id="m-umbrales" class="ayuda"></div>
       </div>
     </section>
   </aside>
@@ -287,6 +301,33 @@ async function cargarReportes() {
 // ---------------------------------------------------------------- importar
 $('b-importar').onclick = () => { $('resultado').innerHTML = ''; $('b-aplicar').disabled = true; $('d-importar').showModal(); };
 $('archivo').onchange = () => { archivoTexto = null; $('b-aplicar').disabled = true; $('resultado').innerHTML = ''; };
+// ---------------------------------------------------------------- modelo (hoy SIMULADO: /api/modelo)
+async function cargarModelo() {
+  const m = await VV.json('/api/modelo');
+  const e = VV.escapar;
+  $('m-rotulo').textContent = m.simulado
+    ? 'SIMULADO · modelos entrenados con datos sintéticos y latencias medidas en el PC: no son resultados de Tunja'
+    : (m.rotulo || 'Datos del API') + ' · fuente: ' + m.fuente;
+  $('m-rotulo').className = 'aviso ' + (m.simulado ? 'rojo' : '');
+  $('m-nota').textContent = [m.nota, m.aviso, m.actualizado ? 'Actualizado: ' + m.actualizado : ''].filter(Boolean).join(' · ');
+  const cifras = (o) => Object.entries(o || {}).map(([k, v]) => e(k.replaceAll('_', ' ')) + ' ' +
+    e(typeof v === 'number' ? (v <= 1 ? v.toFixed(3) : String(v)) : String(v))).join('<br>');
+  $('m-modelos').innerHTML = (m.modelos || []).map(x => '<tr><td>' + e(x.nombre || x.id) + '</td><td>' + e(x.fecha || '') +
+    '</td><td>' + e(x.datos || '') + '</td><td>' + cifras(x.metricas_simuladas || x.metricas) + '</td></tr>').join('') ||
+    '<tr><td colspan="4">Sin modelos</td></tr>';
+  const ci = m.cifras_inferencia || {};
+  $('m-medidas').textContent = [ci.medidas_en, ci.fecha, ci.origen].filter(Boolean).join(' · ') +
+    (ci.pendiente ? ' · Pendiente: ' + ci.pendiente : '');
+  $('m-cifras').innerHTML = (ci.etapas || []).map(x => '<tr><td>' + e(x.etapa) + '</td><td class="num">' + e(String(x.media)) +
+    (x.desv != null ? ' ± ' + e(String(x.desv)) : '') + '</td><td class="num">' + e(x.n == null ? '—' : String(x.n)) +
+    '</td></tr>').join('') + (ci.proceso ? '<tr><td>CPU del proceso / RAM</td><td class="num">' + e(String(ci.proceso.cpu_pct)) +
+    ' % · ' + e(String(ci.proceso.ram_mb)) + ' MB</td><td class="num">—</td></tr>' : '');
+  $('m-umbrales').innerHTML = Object.entries(m.umbrales || {}).map(([grupo, v]) => '<p style="margin:4px 0"><b>' +
+    e(grupo.replaceAll('_', ' ')) + ':</b> ' + (v && typeof v === 'object'
+      ? Object.entries(v).map(([k, x]) => e(k) + ' = ' + e(String(x))).join(' · ') : e(v == null ? 'sin definir' : String(v))) +
+    '</p>').join('');
+}
+
 async function enviarCSV(aplicar) {
   const f = $('archivo').files[0];
   if (!f) { VV.aviso('Elija un archivo CSV', 'mal'); return; }
@@ -334,6 +375,7 @@ async function latido() {
   try { await cargarRiesgo(); } catch (e) { $('info-corrida').textContent = 'Error: ' + e.message; }
   await latido();
   cargarReportes().catch(() => {});
+  cargarModelo().catch((e) => { $('m-nota').textContent = 'No se pudo leer el estado del modelo: ' + e.message; });
   setInterval(latido, 5000);
 })();
 </script>

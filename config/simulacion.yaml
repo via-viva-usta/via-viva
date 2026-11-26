@@ -1,0 +1,99 @@
+# VÍA VIVA · modelo y simulación: UN SOLO LUGAR para los umbrales de simulación y las cifras de inferencia que la app
+# muestra mientras no haya datos de vehículo. Lo lee viaviva/modelo_estado.py y lo sirve GET /api/modelo.
+#
+# TODO lo de este archivo es SIMULADO: los modelos se entrenaron solo con datos SINTÉTICOS y las latencias se midieron
+# en el PC (no en la Pi). No son resultados de Tunja ni precisión real. Siempre se muestran con el rótulo «SIMULADO».
+#
+# Cuando el API entregue el estado real, basta con dejar su JSON en data/modelo/estado_api.json (mismo esquema que
+# este archivo; ver viaviva/modelo_estado.py): la app lo prefiere y no hay que rehacer la interfaz.
+#
+# Los umbrales repiten los valores vigentes del código (no los cambian): tests/test_modelo_simulacion.py exige que
+# coincidan con viaviva/config.py (ParametrosUmbral) y con config/detector.yaml. Si se calibra, se cambian allá y aquí.
+
+esquema: 1
+fuente: simulacion
+simulado: true
+rotulo: SIMULADO
+actualizado: "2026-11-26"
+nota: >-
+  Modelos entrenados solo con datos SINTÉTICOS y latencias medidas en el PC. Sirven para mostrar la cadena completa;
+  no son precisión real. Los umbrales del detector están sin calibrar.
+
+umbrales:
+  detector_en_vivo:                 # viaviva/config.py → ParametrosUmbral (el que corre en la Pi y en el PC)
+    v_min_kmh: 5.0
+    k_rel: 6.0
+    p2p_min_g: 0.30
+    tau_base_s: 2.0
+    ventana_p2p_s: 0.05
+    refractario_s: 1.0
+  detector_analisis:                # config/detector.yaml (versión v2-sin-calibrar)
+    version: v2-sin-calibrar
+    umbral_pico_g: 0.35
+    umbral_rel_fondo: 4.0
+    umbral_jerk_g_s: 12.0
+    v_min_kmh: 5
+    v_ref_kmh: 20
+    exponente_velocidad: 0.5
+    refractario_s: 1.0
+    severidad_media_g: 0.6
+    severidad_alta_g: 1.0
+  ventanas_modelo:                  # viaviva/ventanas.py (entrada de la red 1-D y del bosque)
+    ventana_s: 2.0
+    paso_s: 1.0
+    tolerancia_s: 1.5
+  umbral_confianza_modelo: null     # NO existe en el código: el modelo aún no decide nada en vivo. Se fija al entrenar con datos reales.
+
+modelos:
+  - id: red1d-ventanas-2026-11-02
+    nombre: Red 1-D sobre ventanas de aceleración (y bosque de 10 árboles)
+    fecha: "2026-11-02"
+    datos: "SINTÉTICOS: 6 recorridos, 8,6 km, 232 ventanas"
+    archivos: "analysis/salidas/detector_2026-11-02_SINTETICO.md y .json (fuera de Git); firmware/nodo-sensores/src/modelo_cnn.h y modelo_bosque.h"
+    parametros: 788
+    bytes_float32: 3152
+    bytes_int8: 872
+    metricas_simuladas:
+      f1_macro_ventanas: 1.0
+      coincidencia_float32_int8: 1.0
+      f1_eventos_umbral: 0.857
+  - id: mobilenetv2-fotos-2026-11-05
+    nombre: Clasificador de fotos MobileNetV2 int8 (PTQ, 200 imágenes de calibración)
+    fecha: "2026-11-05"
+    datos: SINTÉTICOS (9 clases)
+    archivos: "dataset/salidas/20261105-0752-SINTETICO/ (fuera de Git; dataset/salidas/ultimo.txt apunta aquí); copia en web/clasificador/modelo/modelo.tflite"
+    tamano_kb_int8: 2647
+    metricas_simuladas:
+      exactitud_float32: 0.917
+      f1_macro_float32: 0.920
+      exactitud_int8: 0.933
+      f1_macro_int8: 0.932
+      acuerdo_int8_con_keras: 0.95
+  - id: mobilenetv2-fotos-2026-11-03
+    nombre: Clasificador de fotos MobileNetV2 (pesos ImageNet) float32 e int8
+    fecha: "2026-11-03"
+    datos: "SINTÉTICOS: 308 / 60 / 64 fotos (train / val / test)"
+    archivos: "data/procesado_sintetico/modelo/20261103-0936-SINTETICO/ (fuera de Git)"
+    tamano_kb_int8: 1213
+    metricas_simuladas:
+      exactitud_float32: 0.984
+      f1_macro_float32: 0.986
+      exactitud_int8: 0.8125
+      f1_macro_int8: 0.778
+      acuerdo_float32_int8: 0.797
+
+cifras_inferencia:                  # docs/R7.md, 10-nov-2026, medidas en el PC con `viaviva r7 medir` (media ± desv., n)
+  medidas_en: PC de escritorio (NO en la Raspberry Pi); modelo de ventanas SINTÉTICO
+  fecha: "2026-11-10"
+  origen: docs/R7.md (de data/logs/r7.jsonl)
+  etapas:
+    - {etapa: tflite_ventana_ms, media: 0.0016, desv: 0.0004, n: 200}
+    - {etapa: caracteristicas_ventana_2s_ms, media: 0.075, desv: 0.0072, n: 200}
+    - {etapa: detector_en_vivo_1s_100_muestras_ms, media: 0.1186, desv: 0.0025, n: 200}
+    - {etapa: nucleo_lote_25_muestras_ms, media: 0.0576, desv: 0.013, n: 200}
+    - {etapa: detector_v2_30s_ms, media: 0.9967, desv: 0.041, n: 100}
+    - {etapa: mobilenetv2_int8_foto_ms, media: 3.04, desv: null, n: null}    # dataset/salidas/20261105-0752-SINTETICO/metricas.json (PC)
+  proceso:
+    cpu_pct: 4.8
+    ram_mb: 349.3
+  pendiente: "medir en la Pi con `viaviva r7 medir` (con la fuente de 5 V / 3 A)"

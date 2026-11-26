@@ -633,6 +633,13 @@ def crear_app(ctx: Contexto) -> FastAPI:
         exigir(request, LECTURA)
         return ctx.vivo()
 
+    @app.get("/api/modelo")
+    def modelo(request: Request):
+        """Modelos, cifras de inferencia y umbrales (hoy SIMULADO; viaviva/modelo_estado.py)."""
+        exigir(request, LECTURA)
+        from viaviva import modelo_estado
+        return ctx.cache(("modelo",), 30, modelo_estado.cargar)
+
     @app.get("/api/tablero/huecos")
     def huecos(request: Request, simulados: str = "1"):
         exigir(request, LECTURA)
