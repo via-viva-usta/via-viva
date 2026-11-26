@@ -250,6 +250,7 @@ class Nucleo:
         self.latencias = {k: Welford() for k in ("lectura_fifo_ms", "irq_a_lectura_ms", "detector_us", "ciclo_i2c_ms",
                                                  "http_phyphox_ms", "lote_a_pantalla_ms")}
         self.sensores: dict = {}                   # nombre → objeto con .estado() → dict
+        self.acelerometro: str | None = None       # sensor que alimenta el detector en la Pi (adxl345 o mpu6050)
         self.sesion: Sesion | None = None
         self.t0_sesion = 0.0
         self.base_epoch = time.time()              # epoch de t = 0 de la fuente (lo corrige el GPS)
@@ -268,6 +269,16 @@ class Nucleo:
         self.al_cerrar_sesion = None               # función(carpeta) → p. ej. generar RESUMEN.md
         self._pendientes: queue.Queue = queue.Queue()
         threading.Thread(target=self._escritor, daemon=True, name="escritor-db").start()
+
+    def usar_acelerometro(self, nombre: str | None, fs: float) -> None:
+        """La fuente dice qué sensor alimenta el detector y a qué frecuencia (en la Pi: el ADXL345 a 200 Hz o, si no
+        está montado, el MPU-6050 a 100 Hz). Rehace el detector con esa fs; solo antes de grabar."""
+        with self.candado:
+            if self.sesion is not None:
+                raise ValueError("detenga la grabación antes de cambiar de acelerómetro")
+            self.acelerometro = nombre
+            if fs != self.fs:
+                self.fs, self.det = fs, Detector(fs)
 
     def reiniciar_fuente(self, fs: float, origen: str, id_nodo: str) -> None:
         """Deja el núcleo como recién creado para otra fuente (p. ej. del ejemplo al iPhone A) sin cerrar la app.
@@ -573,7 +584,7 @@ class Nucleo:
             self.parada_abierta = False
             self.n_cortes, self.s_perdidos, self.vel_max_kmh = 0, 0.0, 0.0
             self.bitacora("inicio", carpeta=carpeta.name, origen=self.origen, id_nodo=self.id_nodo, fs_hz=self.fs,
-                          retardo_s=self.retardo_s)
+                          retardo_s=self.retardo_s, acelerometro=self.acelerometro)
             self.aviso(f"Grabando en {carpeta.name}")
             return carpeta.name
 
@@ -611,7 +622,7 @@ class Nucleo:
                 "carpeta": self.sesion.carpeta.name if self.sesion else None,
                 "t_grabacion_s": round(self.t_ahora() - self.t0_sesion, 1) if self.sesion else 0,
                 "origen": self.origen, "id_nodo": self.id_nodo, "fs_hz": self.fs, "conectado": self.conectado,
-                "acelerometro_sin_datos": sin_datos, "muestras": self.n_acc,
+                "acelerometro_sin_datos": sin_datos, "acelerometro": self.acelerometro, "muestras": self.n_acc,
                 "cortes": self.n_cortes, "s_perdidos": round(self.s_perdidos, 2), "reconexiones": self.reconexiones,
                 "gps": {"fix": self.fix, "lat": None if math.isnan(self.lat) else self.lat,
                         "lon": None if math.isnan(self.lon) else self.lon,

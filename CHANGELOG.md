@@ -1,5 +1,27 @@
 # Cambios
 
+## 2026-11-26 — sin ADXL, el MPU-6050 alimenta el detector en vivo (`ac/pi-mpu-principal`)
+
+- **El problema** (informe T3 del 26-nov): en la Pi el detector en vivo solo recibía datos del ADXL345. El MPU-6050 se
+  grababa aparte en `Accelerometer_mpu6050.csv` y nada más lo leía. Sin ADXL montado:
+  - el carro tendría **0 eventos en vivo**;
+  - `RESUMEN.md` diría «Sin datos del acelerómetro»;
+  - el LED quedaría en «falla».
+- **El cambio:**
+  - Al arrancar, `FuenteSensores` elige el acelerómetro principal: el ADXL #1 si responde; si no, y el MPU sí, el
+    **MPU-6050** a `FS_MPU_HZ` (100 Hz).
+  - Con el MPU como principal, sus lotes entran por `Nucleo.acc()`: alimentan el detector (rehecho a 100 Hz), la gráfica
+    y `Accelerometer.csv`, con la columna UTC.
+  - Con eso, `resumen.py`, Revisión, `senal.py`, la ingesta y el dataset funcionan sin más cambios.
+  - La bitácora de «inicio» y `/api/estado` dicen qué acelerómetro se usó (`acelerometro`).
+  - El LED marca falla solo si no hay ningún acelerómetro.
+  - **Con ADXL montado nada cambia.**
+- **Límites:**
+  - el MPU está a ±4 g (puede saturar en golpes fuertes) y su frecuencia real en la Pi probablemente queda por debajo de
+    100 Hz: falta medirla;
+  - en la Pi hace falta además el #61 (ID 0x98).
+- Pruebas nuevas con sensores falsos en `tests/test_modo_pi.py`. **Sin probar en la Pi ni en carro.**
+
 ## 2026-11-20 — orden del repo, coherencia app → nube → web y salvaguardas (rama `ac/orden-repo`)
 
 - **Datos:** una marca «vía buena» (falsa alarma) dejaba el evento como `impacto_fuerte`, que se agrupa como hueco

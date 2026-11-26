@@ -41,6 +41,7 @@ class FuenteSensores:
         self.mpu = s.MPU6050(self.bus)
         self.luz = s.BH1750(self.bus)
         self.led = self.boton = None
+        self.principal: str | None = None   # acelerómetro que alimenta el detector (se decide al arrancar)
         self.t0 = time.monotonic()
 
     def t(self) -> float:
@@ -58,6 +59,14 @@ class FuenteSensores:
         faltan = [x.nombre for x in n.sensores.values() if not x.presente]
         if faltan:                       # cada sensor es opcional: se arma por fases
             n.aviso(f"Sin conectar o sin responder: {', '.join(faltan)} (el resto funciona)")
+        # Acelerómetro del detector: el ADXL345 #1 si responde; si no está montado (26-nov) y el MPU-6050 sí, el MPU
+        # pasa a ser el principal: alimenta el detector en vivo, la gráfica y Accelerometer.csv a FS_MPU_HZ.
+        if self.adxl.presente:
+            self.principal = "adxl345"
+        elif self.mpu.presente:
+            self.principal, self.fs = "mpu6050", config.FS_MPU_HZ
+            n.aviso(f"Sin ADXL345: el MPU-6050 (±4 g, {config.FS_MPU_HZ:.0f} Hz) alimenta el detector")
+        n.usar_acelerometro(self.principal, self.fs)
         for nombre, f in (("adq-adxl", self._hilo_adxl), ("i2c", self._hilo_i2c), ("gps", self._hilo_gps),
                           ("ambiente", self._hilo_ambiente), ("led", self._hilo_led)):
             threading.Thread(target=f, daemon=True, name=nombre).start()
@@ -137,7 +146,10 @@ class FuenteSensores:
                     self.luz.falla(err)
             if len(lote_giro) >= 10:
                 self.n.giro(lote_giro)
-                self.n.acc_mpu(lote_acc)
+                if self.principal == "mpu6050":          # sin ADXL: el MPU es el acelerómetro del detector
+                    self.n.acc(lote_acc)
+                else:
+                    self.n.acc_mpu(lote_acc)
                 lote_acc, lote_giro = [], []
             self.n.latencias["ciclo_i2c_ms"].agregar((time.perf_counter() - inicio) * 1e3)
             siguiente += periodo
@@ -187,7 +199,7 @@ class FuenteSensores:
         while not self.parar.wait(1.0):
             if self.led is None:
                 continue
-            falla = not self.adxl.presente or time.monotonic() - self.n.mono_ultimo > 2.0
+            falla = self.principal is None or time.monotonic() - self.n.mono_ultimo > 2.0
             nuevo = "falla" if falla else "grabando" if self.n.sesion else "listo"
             if nuevo != modo:
                 modo = nuevo
