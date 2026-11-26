@@ -1,5 +1,14 @@
 # Cambios
 
+## 2026-11-26 — `doctor`: el ADXL345 #1 sin montar es AVISO (`ac/pi-adxl-opcional`)
+
+- Desde el 26-nov los dos ADXL345 no están montados (decisión de AC: el nodo sigue con el MPU-6050 hasta la etapa del
+  modelo). El `doctor --source pi` daba FALTA por el ADXL #1; ahora da **AVISO «no montado»** y el diagnóstico puede
+  quedar LISTO. Es el mismo cambio que se hizo a mano en la Pi.
+- Interruptor propuesto en `.env`: `PI_ADXL_OBLIGATORIO=1` lo vuelve FALTA (para cuando se monte de nuevo). Por defecto
+  queda AVISO. AC decide si lo adopta. No cambia nada más del `doctor`.
+- Pruebas nuevas en `tests/test_modo_pi.py` (con y sin el interruptor). Sin probar en la Pi con este código del repo.
+
 ## 2026-11-20 — orden del repo, coherencia app → nube → web y salvaguardas (rama `ac/orden-repo`)
 
 - **Datos:** una marca «vía buena» (falsa alarma) dejaba el evento como `impacto_fuerte`, que se agrupa como hueco

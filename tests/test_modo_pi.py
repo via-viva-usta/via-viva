@@ -134,3 +134,29 @@ def test_doctor_dht22_solo_da_ok_con_una_lectura_real():
     inf = doctor.Informe()
     doctor.chequear_dht22(inf, _DHTFalso(inicia=False), esperar=pausas.append)
     assert inf.filas[-1][0] == doctor.AVISO and "board" in inf.filas[-1][2]
+
+
+@pytest.mark.parametrize("obligatorio,esperado", [(False, "AVISO"), (True, "FALTA")])
+def test_doctor_adxl1_sin_montar_es_aviso_salvo_que_sea_obligatorio(monkeypatch, obligatorio, esperado):
+    """Desde el 26-nov el ADXL #1 no está montado: el doctor no debe dar FALTA (decisión de AC).
+    Con PI_ADXL_OBLIGATORIO=1 vuelve a exigirlo."""
+    from viaviva import config, doctor
+    from viaviva import sensores as s
+
+    class _AdxlAusente:
+        def __init__(self, *a, **k):
+            self.error = "RuntimeError: DEVID 0x00 (esperado 0xE5): revisar cableado SPI"
+
+        def iniciar(self):
+            return False
+
+    monkeypatch.setattr(s, "ADXL345", _AdxlAusente)
+    monkeypatch.setattr(config, "ADXL_OBLIGATORIO", obligatorio)
+    monkeypatch.setitem(sys.modules, "smbus2", None)
+    monkeypatch.setattr(s.GPS, "iniciar", lambda self: False)
+    monkeypatch.setattr(doctor, "chequear_dht22", lambda inf, dht: None)
+    inf = doctor.Informe()
+    doctor.chequear_pi(inf)
+    fila = next(f for f in inf.filas if f[1] == "ADXL345 #1 (SPI CE0)")
+    assert fila[0] == esperado and "DEVID 0x00" in fila[2]
+    assert (fila[2].startswith("no montado")) == (not obligatorio)

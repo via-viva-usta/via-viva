@@ -256,7 +256,12 @@ def chequear_pi(inf: Informe) -> None:
     from viaviva import sensores as s
     from viaviva.sistema import Sistema
     adxl = s.ADXL345()
-    inf.agregar(OK if adxl.iniciar() else FALTA, "ADXL345 #1 (SPI CE0)", adxl.error or "DEVID 0xE5")
+    if adxl.iniciar():
+        inf.agregar(OK, "ADXL345 #1 (SPI CE0)", "DEVID 0xE5")
+    elif config.ADXL_OBLIGATORIO:
+        inf.agregar(FALTA, "ADXL345 #1 (SPI CE0)", adxl.error or "sin respuesta")
+    else:                                   # no montado desde el 26-nov (PI_ADXL_OBLIGATORIO=1 lo vuelve FALTA)
+        inf.agregar(AVISO, "ADXL345 #1 (SPI CE0)", f"no montado ({adxl.error or 'sin respuesta'})")
     adxl2 = s.ADXL345(cs=config.SPI_CS_ADXL2)
     inf.agregar(OK if adxl2.iniciar() else AVISO, "ADXL345 #2 (CE1)", adxl2.error or "DEVID 0xE5 (opcional)")
     try:
