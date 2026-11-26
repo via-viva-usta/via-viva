@@ -3,7 +3,16 @@
 **Hardware esperado (falta confirmarlo en el equipo):** Raspberry Pi 4 Model B de 4 GB de RAM, Cortex-A72 de 64 bits y
 microSD de 64 GB (almacenamiento, no RAM).
 
-**Nada de esto se ha probado todavía en la Pi.** Cada paso dice qué cambia. Los pasos 1–4 son de solo lectura.
+**Estado (26-nov):** la Pi se probó **en banco** (21, 24 y 26-nov); falta la prueba en vehículo. Cada paso dice qué
+cambia. Los pasos 1–4 son de solo lectura.
+
+> **Alimentación:** el USB del PC **no alcanza**. El 26-nov dio 4,90 V y 0,495 A en el Charger Doctor,
+> `vcgencmd get_throttled` = `0x50000` (hubo bajo voltaje y limitación desde el arranque) y la Pi se reinició sola. Usar
+> la fuente USB-C de 5 V / 3 A (y en el carro un convertidor a 5 V / 3 A medido antes).
+>
+> **ADXL345 opcional por ahora:** desde el 26-nov los dos ADXL345 no están montados (decisión de AC). El `doctor` debe
+> marcar el ADXL #1 como AVISO «no montado», no FALTA (PR #62; `PI_ADXL_OBLIGATORIO=1` en `.env` lo vuelve obligatorio).
+> Ojo: sin ADXL el detector en vivo no recibe datos; el MPU-6050 solo se graba (ver el informe T3 del 26-nov).
 
 ## 1. Encontrarla en la red, sin escanear rangos
 
