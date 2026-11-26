@@ -26,7 +26,8 @@ Salida de campo paso a paso: `README_SALIDA.md`.
   (recorrido SINTÉTICO). `.env` opcional: `VIAVIVA_PIN` (PIN fijo de `/marcar`), `VIAVIVA_IP_PC` e
   `VIAVIVA_IPS_EDITOR` (solo para un contenedor propio; el repo ya no trae `Dockerfile`).
 - **Raspberry Pi 4** (OS Lite 64 bits, manual de armado v3): `bash viaviva/instalar.sh` → servicio `via-viva-pi`
-  (graba desde el arranque; el pulsador de GPIO27 apaga limpio). **Sin probar en hardware.**
+  (graba desde el arranque; el pulsador de GPIO27 apaga limpio). **Probada solo en banco** (21, 24 y 26-nov); falta la
+  prueba en vehículo. Necesita fuente USB-C de 5 V / 3 A: el USB del PC no alcanza (`throttled=0x50000`).
 
 ## Comandos
 
