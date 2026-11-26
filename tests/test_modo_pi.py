@@ -134,3 +134,30 @@ def test_doctor_dht22_solo_da_ok_con_una_lectura_real():
     inf = doctor.Informe()
     doctor.chequear_dht22(inf, _DHTFalso(inicia=False), esperar=pausas.append)
     assert inf.filas[-1][0] == doctor.AVISO and "board" in inf.filas[-1][2]
+
+
+class _BusFalso:
+    """Bus I2C mínimo: responde WHO_AM_I (0x75) con el ID dado y acepta escrituras."""
+    def __init__(self, quien):
+        self.quien, self.escrito = quien, []
+
+    def read_byte_data(self, direccion, registro):
+        assert (direccion, registro) == (0x68, 0x75)
+        return self.quien
+
+    def write_byte_data(self, direccion, registro, valor):
+        self.escrito.append((registro, valor))
+
+
+@pytest.mark.parametrize("quien", [0x68, 0x70, 0x72, 0x98])
+def test_mpu6050_acepta_los_ids_conocidos(quien):
+    """0x98 es el ID del GY-521 de la Pi (banco del 26-nov, validado por datos)."""
+    from viaviva.sensores import MPU6050
+    m = MPU6050(_BusFalso(quien))
+    assert m.iniciar() and m.presente and m.error is None
+
+
+def test_mpu6050_rechaza_un_id_desconocido_y_dice_cual():
+    from viaviva.sensores import MPU6050
+    m = MPU6050(_BusFalso(0x00))
+    assert not m.iniciar() and "WHO_AM_I inesperado: 0x00" in m.error

@@ -1,5 +1,13 @@
 # Cambios
 
+## 2026-11-26 — MPU-6050: se acepta el ID 0x98 (`ac/pi-mpu-id-0x98`)
+
+- En la prueba de banco del 26-nov el GY-521 de la Pi devolvió `WHO_AM_I = 0x98` (no 0x68) y `doctor` lo daba como
+  «WHO_AM_I inesperado». Se validó por datos (~1 g en reposo, los ejes y el giroscopio cambian al mover) y AC decidió
+  aceptarlo: `viaviva/sensores.py` pasa la lista a `IDS_WHO_AM_I = (0x68, 0x70, 0x72, 0x98)`. El error ahora dice qué ID
+  leyó. Es el mismo cambio que se hizo a mano en la Pi (línea 144).
+- Pruebas nuevas con un bus I²C falso (`tests/test_modo_pi.py`). Probado en la Pi solo en banco; no en carro.
+
 ## 2026-11-20 — orden del repo, coherencia app → nube → web y salvaguardas (rama `ac/orden-repo`)
 
 - **Datos:** una marca «vía buena» (falsa alarma) dejaba el evento como `impacto_fuerte`, que se agrupa como hueco

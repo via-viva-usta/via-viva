@@ -138,11 +138,15 @@ class MPU6050(_I2C):
     nombre, direccion = "mpu6050", 0x68
     ESCALA_ACC = 8192.0             # ±4 g
     ESCALA_GIRO = 65.5              # ±500 °/s
+    # WHO_AM_I (registro 0x75) aceptados. 0x98: el módulo GY-521 de la Pi lo devuelve (banco del 26-nov); se validó
+    # por datos (~1 g en reposo, ejes y giroscopio cambian al mover). El ID varía entre módulos: validar por datos.
+    IDS_WHO_AM_I = (0x68, 0x70, 0x72, 0x98)
 
     def iniciar(self) -> bool:
         try:
-            if self.bus.read_byte_data(self.direccion, 0x75) not in (0x68, 0x70, 0x72):
-                raise RuntimeError("WHO_AM_I inesperado")
+            quien = self.bus.read_byte_data(self.direccion, 0x75)
+            if quien not in self.IDS_WHO_AM_I:
+                raise RuntimeError(f"WHO_AM_I inesperado: 0x{quien:02X}")
             self.bus.write_byte_data(self.direccion, 0x6B, 0x01)     # despertar, reloj del giro X
             self.bus.write_byte_data(self.direccion, 0x1A, 0x03)     # filtro digital ~44 Hz
             self.bus.write_byte_data(self.direccion, 0x1B, 0x08)     # ±500 °/s
